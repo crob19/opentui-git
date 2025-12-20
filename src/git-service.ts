@@ -230,10 +230,24 @@ export class GitService {
 
   /**
    * Push to remote
+   * Automatically sets upstream for new branches
    * @returns Promise<void>
    */
   async push(): Promise<void> {
-    await this.git.push();
+    try {
+      await this.git.push();
+    } catch (error) {
+      // If push fails due to no upstream, try with --set-upstream
+      if (error instanceof Error && error.message.includes("no upstream branch")) {
+        const status = await this.git.status();
+        const currentBranch = status.current;
+        if (currentBranch) {
+          await this.git.push(["--set-upstream", "origin", currentBranch]);
+          return;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
@@ -250,6 +264,24 @@ export class GitService {
    */
   async createBranch(branchName: string): Promise<void> {
     await this.git.checkoutLocalBranch(branchName);
+  }
+
+  /**
+   * Delete a local branch
+   * @param branchName - Name of the branch to delete
+   * @param force - Force delete even if not fully merged (default: false)
+   */
+  async deleteBranch(branchName: string, force: boolean = false): Promise<void> {
+    const flag = force ? "-D" : "-d";
+    await this.git.branch([flag, branchName]);
+  }
+
+  /**
+   * Merge a branch into the current branch
+   * @param branchName - Name of the branch to merge into the current branch
+   */
+  async mergeBranch(branchName: string): Promise<void> {
+    await this.git.merge([branchName]);
   }
 
   /**

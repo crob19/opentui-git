@@ -3,14 +3,15 @@ import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
 import { FileList } from "./components/file-list.js";
+import { BranchList } from "./components/branch-list.js";
 import { DiffViewer } from "./components/diff-viewer.js";
 import { Footer } from "./components/footer.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { ToastProvider, useToast } from "./components/toast.js";
 import { CommitDialog } from "./components/commit-dialog.js";
 import { BranchDialog } from "./components/branch-dialog.js";
-import { BranchSwitcherDialog } from "./components/branch-switcher-dialog.js";
-import type { GitStatusSummary } from "./types.js";
+import { DeleteBranchDialog } from "./components/delete-branch-dialog.js";
+import type { GitStatusSummary, GitBranchInfo } from "./types.js";
 
 /**
  * Main application component
@@ -39,6 +40,8 @@ function AppContent() {
   
   // State
   const [selectedIndex, setSelectedIndex] = createSignal(0);
+  const [branchSelectedIndex, setBranchSelectedIndex] = createSignal(0);
+  const [activePanel, setActivePanel] = createSignal<"files" | "branches">("files");
   const [isGitRepo, setIsGitRepo] = createSignal(true);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
 
@@ -70,6 +73,36 @@ function AppContent() {
     }
   });
 
+  // Load branches
+  const [branches, { refetch: refetchBranches }] = createResource<GitBranchInfo>(async () => {
+    try {
+      return await gitService.getBranches();
+    } catch (error) {
+      console.error("Error loading branches:", error);
+      throw error;
+    }
+  });
+
+  // Get local branches only (filter out remotes)
+  const localBranches = () => {
+    const b = branches();
+    if (!b) return [];
+    return b.all
+      .filter((name) => !name.startsWith("remotes/"))
+      .sort((a, bName) => {
+        // Put current branch first
+        if (a === b.current) return -1;
+        if (bName === b.current) return 1;
+        return a.localeCompare(bName);
+      });
+  };
+
+  // Get selected branch name
+  const selectedBranch = () => {
+    const list = localBranches();
+    return list[branchSelectedIndex()] || null;
+  };
+
   // Track the selected file for diff loading
   const selectedFile = () => {
     const status = gitStatus();
@@ -79,16 +112,14 @@ function AppContent() {
 
   // Load diff for selected file
   const [diffContent, { refetch: refetchDiff }] = createResource(
-    () => {
-      const file = selectedFile();
-      return file ? { path: file.path, staged: file.staged ?? false } : null;
-    },
-    async (file) => {
-      if (!file) return null;
-      const { path, staged } = file;
+    () => selectedFile()?.path,
+    async (filePath) => {
+      if (!filePath) return null;
       try {
-        console.log(`Loading diff for: ${path} (staged: ${staged})`);
-        const diff = await gitService.getDiff(path, staged);
+        const file = selectedFile();
+        const staged = file?.staged || false;
+        console.log(`Loading diff for: ${filePath} (staged: ${staged})`);
+        const diff = await gitService.getDiff(filePath, staged);
         return diff || null;
       } catch (error) {
         console.error("Error loading diff:", error);
@@ -96,6 +127,49 @@ function AppContent() {
       }
     }
   );
+
+  // Refetch diff when selected file changes
+  createEffect(() => {
+    const file = selectedFile();
+    if (file) {
+      refetchDiff();
+    }
+  });
+
+  // Helper function to show the new branch dialog
+  const showNewBranchDialog = (currentBranchName: string, shouldSelectNewBranch: boolean = false) => {
+    console.log("Opening new branch dialog");
+    dialog.show(
+      () => (
+        <BranchDialog
+          currentBranch={currentBranchName}
+          onCreateBranch={async (branchName: string) => {
+            try {
+              console.log(`Creating branch: ${branchName}`);
+              await gitService.createBranch(branchName);
+              console.log(`Branch created and checked out: ${branchName}`);
+              toast.success(`Switched to new branch: ${branchName}`);
+              await refetch();
+              await refetchBranches();
+              // After creating and checking out the new branch from the branches panel,
+              // it will be sorted to the top of the branch list; select it explicitly.
+              if (shouldSelectNewBranch) {
+                setBranchSelectedIndex(0);
+              }
+            } catch (error) {
+              console.error("Failed to create branch:", error);
+              toast.error(error instanceof Error ? error.message : "Failed to create branch");
+              setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
+            }
+          }}
+          onCancel={() => {
+            console.log("Branch creation cancelled");
+          }}
+        />
+      ),
+      () => console.log("Branch dialog closed")
+    );
+  };
 
   // Keyboard handler
   const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
@@ -124,6 +198,8 @@ function AppContent() {
     }
 
     const status = gitStatus();
+    const branchList = localBranches();
+    const currentBranch = branches()?.current || "";
     
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
@@ -131,7 +207,7 @@ function AppContent() {
     }
     
     // Handle pull/push regardless of file status
-    if (key.toLowerCase() === "p") {
+    if (key === "p" || key === "P") {
       if (shift) {
         // Push
         console.log("Pushing to remote...");
@@ -163,168 +239,202 @@ function AppContent() {
       }
       return;
     }
-    
-    if (!status || status.files.length === 0) return;
+
+    // Toggle between panels with Tab
+    if (key === "tab") {
+      setActivePanel((prev) => prev === "files" ? "branches" : "files");
+      return;
+    }
 
     try {
-      switch (key) {
-        // Navigation
-        case "j":
-        case "down":
-          setSelectedIndex((prev) => {
-            const next = Math.min(prev + 1, status.files.length - 1);
-            console.log(`Navigation down: ${prev} -> ${next} (max: ${status.files.length - 1})`);
-            return next;
-          });
-          break;
-
-        case "k":
-        case "up":
-          setSelectedIndex((prev) => {
-            const next = Math.max(prev - 1, 0);
-            console.log(`Navigation up: ${prev} -> ${next}`);
-            return next;
-          });
-          break;
-
-        // Stage/unstage current file
-        case " ":
-        case "space":
-          const file = status.files[selectedIndex()];
-          if (file) {
-            if (file.staged) {
-              console.log(`Unstaging: ${file.path}`);
-              await gitService.unstageFile(file.path);
-              toast.info(`Unstaged: ${file.path}`);
-            } else {
-              console.log(`Staging: ${file.path}`);
-              await gitService.stageFile(file.path);
-              toast.info(`Staged: ${file.path}`);
-            }
-            await refetch();
-          }
-          break;
-
-        // Stage all
-        case "a":
-          console.log("Staging all files");
-          await gitService.stageAll();
-          toast.success("Staged all files");
-          await refetch();
-          break;
-
-        // Unstage all
-        case "u":
-          console.log("Unstaging all files");
-          await gitService.unstageAll();
-          toast.info("Unstaged all files");
-          await refetch();
-          break;
-
-        // Refresh
-        case "r":
-          console.log("Refreshing git status");
-          await refetch();
-          toast.info("Refreshed");
-          break;
-
-        // Commit
-        case "c":
-          const stagedFiles = status.files.filter((f) => f.staged);
-          if (stagedFiles.length === 0) {
-            console.log("No staged files to commit");
-            toast.warning("No staged files to commit");
+      // Panel-specific key handling
+      if (activePanel() === "branches") {
+        // Branches panel keys
+        switch (key) {
+          case "j":
+          case "down":
+            setBranchSelectedIndex((prev) => Math.min(prev + 1, branchList.length - 1));
             break;
-          }
-          console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
-          dialog.show(
-            () => (
-              <CommitDialog
-                stagedCount={stagedFiles.length}
-                onCommit={async (message) => {
-                  try {
-                    console.log(`Committing with message: ${message}`);
-                    await gitService.commit(message);
-                    console.log("Commit successful");
-                    toast.success("Commit successful");
-                    await refetch();
-                  } catch (error) {
-                    console.error("Commit failed:", error);
-                    toast.error(error instanceof Error ? error.message : "Commit failed");
-                    setErrorMessage(error instanceof Error ? error.message : "Commit failed");
-                  }
-                }}
-                onCancel={() => {
-                  console.log("Commit cancelled");
-                }}
-              />
-            ),
-            () => console.log("Dialog closed")
-          );
-          break;
 
-        // New branch
-        case "n":
-          console.log("Opening new branch dialog");
-          dialog.show(
-            () => (
-              <BranchDialog
-                currentBranch={status.current}
-                onCreateBranch={async (branchName) => {
-                  try {
-                    console.log(`Creating branch: ${branchName}`);
-                    await gitService.createBranch(branchName);
-                    console.log(`Branch created and checked out: ${branchName}`);
-                    toast.success(`Switched to new branch: ${branchName}`);
-                    await refetch();
-                  } catch (error) {
-                    console.error("Failed to create branch:", error);
-                    toast.error(error instanceof Error ? error.message : "Failed to create branch");
-                    setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
-                  }
-                }}
-                onCancel={() => {
-                  console.log("Branch creation cancelled");
-                }}
-              />
-            ),
-            () => console.log("Branch dialog closed")
-          );
-          break;
+          case "k":
+          case "up":
+            setBranchSelectedIndex((prev) => Math.max(prev - 1, 0));
+            break;
 
-        // Switch branch
-        case "b":
-          console.log("Opening branch switcher dialog");
-          try {
-            const branches = await gitService.getBranches();
+          // Checkout branch with space
+          case " ":
+          case "space":
+            const branch = selectedBranch();
+            if (branch && branch !== currentBranch) {
+              console.log(`Checking out branch: ${branch}`);
+              toast.info(`Switching to ${branch}...`);
+              try {
+                await gitService.checkoutBranch(branch);
+                console.log(`Switched to branch: ${branch}`);
+                toast.success(`Switched to branch: ${branch}`);
+                await refetch();
+                await refetchBranches();
+              } catch (error) {
+                console.error("Failed to switch branch:", error);
+                toast.error(error instanceof Error ? error.message : "Failed to switch branch");
+              }
+            } else if (branch === currentBranch) {
+              toast.info("Already on this branch");
+            }
+            break;
+
+          // Delete branch with 'd'
+          case "d":
+            const branchToDelete = selectedBranch();
+            if (!branchToDelete) break;
+            
+            if (branchToDelete === currentBranch) {
+              toast.warning("Cannot delete the current branch");
+              break;
+            }
+            
+            console.log(`Opening delete confirmation for branch: ${branchToDelete}`);
             dialog.show(
               () => (
-                <BranchSwitcherDialog
-                  branches={branches}
-                  onSwitch={async (branchName) => {
+                <DeleteBranchDialog
+                  branchName={branchToDelete}
+                  onConfirm={async () => {
                     try {
-                      console.log(`Switching to branch: ${branchName}`);
-                      await gitService.checkoutBranch(branchName);
-                      console.log(`Switched to branch: ${branchName}`);
-                      toast.success(`Switched to branch: ${branchName}`);
-                      await refetch();
+                      console.log(`Deleting branch: ${branchToDelete}`);
+                      await gitService.deleteBranch(branchToDelete);
+                      console.log(`Branch deleted: ${branchToDelete}`);
+                      toast.success(`Deleted branch: ${branchToDelete}`);
+                      const updatedBranches = await refetchBranches();
+                      const branchCount = updatedBranches?.all?.length ?? 0;
+                      // Reset selection if needed
+                      if (branchSelectedIndex() >= branchCount) {
+                        setBranchSelectedIndex(Math.max(0, branchCount - 1));
+                      }
                     } catch (error) {
-                      console.error("Failed to switch branch:", error);
-                      toast.error(error instanceof Error ? error.message : "Failed to switch branch");
+                      console.error("Failed to delete branch:", error);
+                      toast.error(error instanceof Error ? error.message : "Failed to delete branch");
                     }
                   }}
                   onCancel={() => {
-                    console.log("Branch switch cancelled");
+                    console.log("Branch deletion cancelled");
                   }}
                 />
               ),
-              () => console.log("Branch switcher dialog closed")
+              () => console.log("Delete branch dialog closed")
             );
-          } catch (error) {
-            console.error("Failed to load branches:", error);
-            toast.error("Failed to load branches");
-          }
-          break;
+            break;
+
+          // New branch
+          case "n":
+            showNewBranchDialog(currentBranch, true);
+            break;
+        }
+      } else {
+        // Files panel keys
+        if ((!status || status.files.length === 0) && key !== "n" && key !== "r") return;
+
+        switch (key) {
+          // Navigation
+          case "j":
+          case "down":
+            setSelectedIndex((prev) => {
+              const next = Math.min(prev + 1, status.files.length - 1);
+              console.log(`Navigation down: ${prev} -> ${next} (max: ${status.files.length - 1})`);
+              return next;
+            });
+            break;
+
+          case "k":
+          case "up":
+            setSelectedIndex((prev) => {
+              const next = Math.max(prev - 1, 0);
+              console.log(`Navigation up: ${prev} -> ${next}`);
+              return next;
+            });
+            break;
+
+          // Stage/unstage current file
+          case " ":
+          case "space":
+            const file = status.files[selectedIndex()];
+            if (file) {
+              if (file.staged) {
+                console.log(`Unstaging: ${file.path}`);
+                await gitService.unstageFile(file.path);
+                toast.info(`Unstaged: ${file.path}`);
+              } else {
+                console.log(`Staging: ${file.path}`);
+                await gitService.stageFile(file.path);
+                toast.info(`Staged: ${file.path}`);
+              }
+              await refetch();
+            }
+            break;
+
+          // Stage all
+          case "a":
+            console.log("Staging all files");
+            await gitService.stageAll();
+            toast.success("Staged all files");
+            await refetch();
+            break;
+
+          // Unstage all
+          case "u":
+            console.log("Unstaging all files");
+            await gitService.unstageAll();
+            toast.info("Unstaged all files");
+            await refetch();
+            break;
+
+          // Refresh
+          case "r":
+            console.log("Refreshing git status");
+            await refetch();
+            await refetchBranches();
+            toast.info("Refreshed");
+            break;
+
+          // Commit
+          case "c":
+            const stagedFiles = status.files.filter((f) => f.staged);
+            if (stagedFiles.length === 0) {
+              console.log("No staged files to commit");
+              toast.warning("No staged files to commit");
+              break;
+            }
+            console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
+            dialog.show(
+              () => (
+                <CommitDialog
+                  stagedCount={stagedFiles.length}
+                  onCommit={async (message) => {
+                    try {
+                      console.log(`Committing with message: ${message}`);
+                      await gitService.commit(message);
+                      console.log("Commit successful");
+                      toast.success("Commit successful");
+                      await refetch();
+                    } catch (error) {
+                      console.error("Commit failed:", error);
+                      toast.error(error instanceof Error ? error.message : "Commit failed");
+                      setErrorMessage(error instanceof Error ? error.message : "Commit failed");
+                    }
+                  }}
+                  onCancel={() => {
+                    console.log("Commit cancelled");
+                  }}
+                />
+              ),
+              () => console.log("Dialog closed")
+            );
+            break;
+
+          // New branch (also available from files panel)
+          case "n":
+            showNewBranchDialog(status.current, false);
+            break;
+        }
       }
     } catch (error) {
       console.error("Error handling key press:", error);
@@ -371,13 +481,24 @@ function AppContent() {
       >
         <Header status={() => gitStatus() || null} />
         <box flexDirection="row" flexGrow={1} gap={0}>
-          <box width="40%" flexDirection="column">
-            <FileList
-              files={() => gitStatus()?.files || []}
-              selectedIndex={selectedIndex}
-            />
+          <box width="30%" flexDirection="column">
+            <box height="60%" flexDirection="column">
+              <FileList
+                files={() => gitStatus()?.files || []}
+                selectedIndex={selectedIndex}
+                isActive={() => activePanel() === "files"}
+              />
+            </box>
+            <box height="40%" flexDirection="column">
+              <BranchList
+                branches={localBranches}
+                currentBranch={() => branches()?.current || ""}
+                selectedIndex={branchSelectedIndex}
+                isActive={() => activePanel() === "branches"}
+              />
+            </box>
           </box>
-          <box width="60%" flexDirection="column">
+          <box width="70%" flexDirection="column">
             <DiffViewer
               diff={() => diffContent() || null}
               filePath={() => selectedFile()?.path || null}
@@ -385,7 +506,7 @@ function AppContent() {
             />
           </box>
         </box>
-        <Footer />
+        <Footer activePanel={activePanel} />
       </Show>
     </box>
   );
