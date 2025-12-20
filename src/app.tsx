@@ -205,8 +205,8 @@ function AppContent() {
       return;
     }
 
-    // Toggle between panels with 'b'
-    if (key === "b") {
+    // Toggle between panels with Tab
+    if (key === "tab") {
       setActivePanel((prev) => prev === "files" ? "branches" : "files");
       return;
     }
