@@ -16,7 +16,7 @@ export function BranchSwitcherDialog(props: BranchSwitcherDialogProps) {
   const dialog = useDialog();
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
-  // Get list of branches (excluding current)
+  // Get list of branches (current branch first, remote branches filtered out)
   const branchList = () => {
     const current = props.branches.current;
     return props.branches.all

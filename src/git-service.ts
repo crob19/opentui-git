@@ -277,6 +277,14 @@ export class GitService {
   }
 
   /**
+   * Merge a branch into the current branch
+   * @param branchName - Name of the branch to merge into the current branch
+   */
+  async mergeBranch(branchName: string): Promise<void> {
+    await this.git.merge([branchName]);
+  }
+
+  /**
    * Get repository root path
    * @returns Promise<string> - Path to repository root
    */
