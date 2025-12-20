@@ -1,16 +1,61 @@
-import { For, type Accessor } from "solid-js";
-import type { GitFileStatus } from "../types.js";
+import { For, createMemo, type Accessor } from "solid-js";
+import type { GitFileStatus, FileTreeNode } from "../types.js";
 
 /**
  * FileList component - Displays the list of changed files with colors and selection
  */
 export interface FileListProps {
   files: Accessor<GitFileStatus[]>;
+  flatNodes: Accessor<FileTreeNode[]>;
   selectedIndex: Accessor<number>;
   isActive: Accessor<boolean>;
 }
 
 export function FileList(props: FileListProps) {
+  // Calculate visible window of nodes to show (virtual scrolling)
+  const visibleNodes = createMemo(() => {
+    const nodes = props.flatNodes();
+    const selected = props.selectedIndex();
+    const maxVisible = 20; // Maximum number of items to show at once
+    
+    if (nodes.length <= maxVisible) {
+      return nodes;
+    }
+    
+    // Calculate scroll window to keep selected item visible
+    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
+    let end = start + maxVisible;
+    
+    // Adjust if we're near the end
+    if (end > nodes.length) {
+      end = nodes.length;
+      start = Math.max(0, end - maxVisible);
+    }
+    
+    return nodes.slice(start, end);
+  });
+  
+  // Calculate the starting index for proper selection highlighting
+  const startIndex = createMemo(() => {
+    const nodes = props.flatNodes();
+    const selected = props.selectedIndex();
+    const maxVisible = 20;
+    
+    if (nodes.length <= maxVisible) {
+      return 0;
+    }
+    
+    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
+    let end = start + maxVisible;
+    
+    if (end > nodes.length) {
+      end = nodes.length;
+      start = Math.max(0, end - maxVisible);
+    }
+    
+    return start;
+  });
+
   return (
     <box
       borderStyle="single"
@@ -27,11 +72,25 @@ export function FileList(props: FileListProps) {
         Files ({props.files().length})
       </text>
       
-      <box flexDirection="column" gap={0}>
-        <For each={props.files()}>
-          {(file, index) => {
-            const isSelected = () => index() === props.selectedIndex();
-            const stagedIndicator = file.staged ? "●" : " ";
+      <box flexDirection="column" gap={0} overflow="hidden">
+        <For each={visibleNodes()}>
+          {(node, index) => {
+            const actualIndex = () => startIndex() + index();
+            const isSelected = () => actualIndex() === props.selectedIndex();
+            
+            // Create indentation based on depth
+            const indent = "  ".repeat(node.depth);
+            
+            // Determine icon for folders
+            const icon = node.type === 'folder' 
+              ? (node.expanded ? "▼ " : "▶ ")
+              : "  ";
+            
+            // Display name with appropriate prefix
+            const displayName = `${indent}${icon}${node.name}`;
+            
+            // Use folder color or file color
+            const color = node.color || "#FFFFFF";
             
             return (
               <box
@@ -43,14 +102,8 @@ export function FileList(props: FileListProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={file.color}>
-                  {stagedIndicator}
-                </text>
-                <text fg={file.color}>
-                  {" " + file.statusText.padEnd(10)}
-                </text>
-                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : file.color}>
-                  {file.path}
+                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : color}>
+                  {displayName}
                 </text>
               </box>
             );

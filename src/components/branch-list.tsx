@@ -1,4 +1,4 @@
-import { For, type Accessor } from "solid-js";
+import { For, createMemo, type Accessor } from "solid-js";
 
 /**
  * BranchList component - Displays the list of local branches with selection
@@ -11,6 +11,50 @@ export interface BranchListProps {
 }
 
 export function BranchList(props: BranchListProps) {
+  // Calculate visible window of branches to show (virtual scrolling)
+  const visibleBranches = createMemo(() => {
+    const branches = props.branches();
+    const selected = props.selectedIndex();
+    const maxVisible = 10; // Maximum number of branches to show at once
+    
+    if (branches.length <= maxVisible) {
+      return branches;
+    }
+    
+    // Calculate scroll window to keep selected item visible
+    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
+    let end = start + maxVisible;
+    
+    // Adjust if we're near the end
+    if (end > branches.length) {
+      end = branches.length;
+      start = Math.max(0, end - maxVisible);
+    }
+    
+    return branches.slice(start, end);
+  });
+  
+  // Calculate the starting index for proper selection highlighting
+  const startIndex = createMemo(() => {
+    const branches = props.branches();
+    const selected = props.selectedIndex();
+    const maxVisible = 10;
+    
+    if (branches.length <= maxVisible) {
+      return 0;
+    }
+    
+    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
+    let end = start + maxVisible;
+    
+    if (end > branches.length) {
+      end = branches.length;
+      start = Math.max(0, end - maxVisible);
+    }
+    
+    return start;
+  });
+
   return (
     <box
       borderStyle="single"
@@ -27,10 +71,11 @@ export function BranchList(props: BranchListProps) {
         Branches ({props.branches().length})
       </text>
       
-      <box flexDirection="column" gap={0}>
-        <For each={props.branches()}>
+      <box flexDirection="column" gap={0} overflow="hidden">
+        <For each={visibleBranches()}>
           {(branch, index) => {
-            const isSelected = () => index() === props.selectedIndex();
+            const actualIndex = () => startIndex() + index();
+            const isSelected = () => actualIndex() === props.selectedIndex();
             const isCurrent = () => branch === props.currentBranch();
             
             return (
