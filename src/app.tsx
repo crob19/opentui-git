@@ -97,14 +97,6 @@ function AppContent() {
     }
   );
 
-  // Refetch diff when selected file changes
-  createEffect(() => {
-    const file = selectedFile();
-    if (file) {
-      refetchDiff();
-    }
-  });
-
   // Keyboard handler
   const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
     // Skip all key handling when dialog is open (let dialog handle its own keys)
