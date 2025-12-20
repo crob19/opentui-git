@@ -62,6 +62,14 @@ export class GitService {
       const filePath = file.to || file.from;
       files.push(this.createFileStatus(filePath, true, "R"));
       processedFiles.add(filePath);
+
+      // Ensure both old and new paths are marked as processed to avoid duplicates
+      if (file.from && file.from !== filePath) {
+        processedFiles.add(file.from);
+      }
+      if (file.to && file.to !== filePath) {
+        processedFiles.add(file.to);
+      }
     }
 
     // Process files in the staging area that weren't already processed
