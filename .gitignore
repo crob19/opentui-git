@@ -1,0 +1,28 @@
+# Bun
+node_modules/
+bun.lockb
+*.bun
+
+# Build outputs
+dist/
+build/
+*.js
+*.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local

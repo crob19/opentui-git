@@ -1,0 +1,34 @@
+{
+  "name": "opentui-git",
+  "version": "0.1.0",
+  "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
+  "type": "module",
+  "main": "src/index.tsx",
+  "scripts": {
+    "dev": "bun run src/index.tsx",
+    "start": "bun run src/index.tsx",
+    "build": "bun build src/index.tsx --outdir ./dist --target bun",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "git",
+    "tui",
+    "terminal",
+    "opentui",
+    "solidjs",
+    "bun",
+    "lazygit"
+  ],
+  "author": "opentui-git",
+  "license": "MIT",
+  "dependencies": {
+    "@opentui/core": "^0.1.62",
+    "@opentui/solid": "^0.1.62",
+    "simple-git": "^3.30.0",
+    "solid-js": "^1.9.9"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}
