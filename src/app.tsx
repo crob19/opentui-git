@@ -13,6 +13,10 @@ import type { GitStatusSummary } from "./types.js";
 export function App() {
   const gitService = new GitService();
   
+  // Log startup
+  console.log("opentui-git started");
+  console.log("Press Ctrl+\\ to toggle console overlay for logs");
+  
   // State
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [isGitRepo, setIsGitRepo] = createSignal(true);
@@ -70,8 +74,10 @@ export function App() {
           const file = status.files[selectedIndex()];
           if (file) {
             if (file.staged) {
+              console.log(`Unstaging: ${file.path}`);
               await gitService.unstageFile(file.path);
             } else {
+              console.log(`Staging: ${file.path}`);
               await gitService.stageFile(file.path);
             }
             await refetch();
@@ -80,18 +86,21 @@ export function App() {
 
         // Stage all
         case "a":
+          console.log("Staging all files");
           await gitService.stageAll();
           await refetch();
           break;
 
         // Unstage all
         case "u":
+          console.log("Unstaging all files");
           await gitService.unstageAll();
           await refetch();
           break;
 
         // Refresh
         case "r":
+          console.log("Refreshing git status");
           await refetch();
           break;
 
