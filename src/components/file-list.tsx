@@ -1,4 +1,4 @@
-import { For, type Accessor } from "solid-js";
+import { For, createMemo, type Accessor } from "solid-js";
 import type { GitFileStatus } from "../types.js";
 
 /**
@@ -29,7 +29,7 @@ export function FileList(props: FileListProps) {
       <box flexDirection="column" gap={0}>
         <For each={props.files()}>
           {(file, index) => {
-            const isSelected = () => index() === props.selectedIndex();
+            const isSelected = createMemo(() => index() === props.selectedIndex());
             const stagedIndicator = file.staged ? "●" : " ";
             
             return (
