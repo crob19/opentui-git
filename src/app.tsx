@@ -4,6 +4,8 @@ import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
 import { FileList } from "./components/file-list.js";
 import { Footer } from "./components/footer.js";
+import { DialogProvider, useDialog } from "./components/dialog.js";
+import { CommitDialog } from "./components/commit-dialog.js";
 import type { GitStatusSummary } from "./types.js";
 
 /**
@@ -11,8 +13,17 @@ import type { GitStatusSummary } from "./types.js";
  * Handles git operations, keyboard input, and UI state
  */
 export function App() {
+  return (
+    <DialogProvider>
+      <AppContent />
+    </DialogProvider>
+  );
+}
+
+function AppContent() {
   const gitService = new GitService();
   const renderer = useRenderer();
+  const dialog = useDialog();
   
   // Log startup
   console.log("opentui-git started");
@@ -54,6 +65,11 @@ export function App() {
 
   // Keyboard handler
   const handleKeyPress = async (key: string, ctrl: boolean) => {
+    // Skip all key handling when dialog is open (let dialog handle its own keys)
+    if (dialog.isOpen) {
+      return;
+    }
+    
     console.log(`Key pressed: "${key}", ctrl: ${ctrl}`);
     // Handle console/debug toggles (work regardless of git status)
     if (ctrl) {
@@ -133,6 +149,38 @@ export function App() {
           await refetch();
           break;
 
+        // Commit
+        case "c":
+          const stagedFiles = status.files.filter((f) => f.staged);
+          if (stagedFiles.length === 0) {
+            console.log("No staged files to commit");
+            break;
+          }
+          console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
+          dialog.show(
+            () => (
+              <CommitDialog
+                stagedCount={stagedFiles.length}
+                onCommit={async (message) => {
+                  try {
+                    console.log(`Committing with message: ${message}`);
+                    await gitService.commit(message);
+                    console.log("Commit successful");
+                    await refetch();
+                  } catch (error) {
+                    console.error("Commit failed:", error);
+                    setErrorMessage(error instanceof Error ? error.message : "Commit failed");
+                  }
+                }}
+                onCancel={() => {
+                  console.log("Commit cancelled");
+                }}
+              />
+            ),
+            () => console.log("Dialog closed")
+          );
+          break;
+
         // Quit
         case "q":
           if (!ctrl) {
@@ -181,7 +229,7 @@ export function App() {
           </box>
         }
       >
-        <Header status={gitStatus() || null} />
+        <Header status={() => gitStatus() || null} />
         <FileList
           files={() => gitStatus()?.files || []}
           selectedIndex={selectedIndex}

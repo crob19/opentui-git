@@ -1,5 +1,6 @@
 import { render } from "@opentui/solid";
 import { App } from "./app.js";
+import { Clipboard } from "./utils/clipboard.js";
 
 /**
  * Entry point for opentui-git
@@ -25,8 +26,9 @@ render(
     consoleOptions: {
       keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
       onCopySelection: (text) => {
-        // Copy selection from console overlay to clipboard
-        console.log(`Copied ${text.length} characters to clipboard`);
+        Clipboard.copy(text)
+          .then(() => console.log(`Copied ${text.length} characters to clipboard`))
+          .catch((err) => console.error("Copy failed:", err));
       },
     },
   }
