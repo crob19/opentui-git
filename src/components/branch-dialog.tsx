@@ -1,5 +1,6 @@
 import { onMount } from "solid-js";
 import { useDialog } from "./dialog.js";
+import { useToast } from "./toast.js";
 import type { TextareaRenderable } from "@opentui/core";
 
 /**
@@ -13,6 +14,7 @@ export interface BranchDialogProps {
 
 export function BranchDialog(props: BranchDialogProps) {
   const dialog = useDialog();
+  const toast = useToast();
   let textareaRef: TextareaRenderable | undefined;
 
   onMount(() => {
@@ -30,7 +32,7 @@ export function BranchDialog(props: BranchDialogProps) {
         props.onCreateBranch(branchName);
         dialog.close();
       } else {
-        console.log("Invalid branch name. Use alphanumeric, hyphens, underscores, slashes.");
+        toast.error("Invalid branch name. Use alphanumeric, hyphens, underscores, slashes.");
       }
     }
   };
