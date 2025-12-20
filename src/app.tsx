@@ -331,13 +331,6 @@ function AppContent() {
             toast.error("Failed to load branches");
           }
           break;
-
-        // Quit
-        case "q":
-          if (!ctrl) {
-            process.exit(0);
-          }
-          break;
       }
     } catch (error) {
       console.error("Error handling key press:", error);
