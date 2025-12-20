@@ -1,4 +1,10 @@
-import { createSignal, createResource, createEffect, Show } from "solid-js";
+import {
+  createSignal,
+  createResource,
+  createEffect,
+  Show,
+  onCleanup,
+} from "solid-js";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
@@ -33,56 +39,63 @@ function AppContent() {
   const renderer = useRenderer();
   const dialog = useDialog();
   const toast = useToast();
-  
+
   // Log startup
   console.log("opentui-git started");
   console.log("Press Ctrl+\\ to toggle console overlay");
   console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
-  
+
   // State
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [branchSelectedIndex, setBranchSelectedIndex] = createSignal(0);
-  const [activePanel, setActivePanel] = createSignal<"files" | "branches">("files");
+  const [activePanel, setActivePanel] = createSignal<"files" | "branches">(
+    "files",
+  );
   const [isGitRepo, setIsGitRepo] = createSignal(true);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
 
   // Load git status
-  const [gitStatus, { refetch }] = createResource<GitStatusSummary>(async () => {
-    try {
-      // Check if we're in a git repo
-      const inRepo = await gitService.isRepo();
-      setIsGitRepo(inRepo);
-      
-      if (!inRepo) {
-        setErrorMessage("Not a git repository");
-        throw new Error("Not a git repository");
-      }
+  const [gitStatus, { refetch }] = createResource<GitStatusSummary>(
+    async () => {
+      try {
+        // Check if we're in a git repo
+        const inRepo = await gitService.isRepo();
+        setIsGitRepo(inRepo);
 
-      const status = await gitService.getStatus();
-      setErrorMessage(null);
-      
-      // Reset selected index if files list changed
-      if (selectedIndex() >= status.files.length) {
-        setSelectedIndex(Math.max(0, status.files.length - 1));
+        if (!inRepo) {
+          setErrorMessage("Not a git repository");
+          throw new Error("Not a git repository");
+        }
+
+        const status = await gitService.getStatus();
+        setErrorMessage(null);
+
+        // Reset selected index if files list changed
+        if (selectedIndex() >= status.files.length) {
+          setSelectedIndex(Math.max(0, status.files.length - 1));
+        }
+
+        return status;
+      } catch (error) {
+        console.error("Error loading git status:", error);
+        setErrorMessage(
+          error instanceof Error ? error.message : "Unknown error",
+        );
+        throw error;
       }
-      
-      return status;
-    } catch (error) {
-      console.error("Error loading git status:", error);
-      setErrorMessage(error instanceof Error ? error.message : "Unknown error");
-      throw error;
-    }
-  });
+    },
+  );
 
   // Load branches
-  const [branches, { refetch: refetchBranches }] = createResource<GitBranchInfo>(async () => {
-    try {
-      return await gitService.getBranches();
-    } catch (error) {
-      console.error("Error loading branches:", error);
-      throw error;
-    }
-  });
+  const [branches, { refetch: refetchBranches }] =
+    createResource<GitBranchInfo>(async () => {
+      try {
+        return await gitService.getBranches();
+      } catch (error) {
+        console.error("Error loading branches:", error);
+        throw error;
+      }
+    });
 
   // Get local branches only (filter out remotes)
   const localBranches = () => {
@@ -111,6 +124,9 @@ function AppContent() {
     return status.files[selectedIndex()] || null;
   };
 
+  // Track the current diff source to avoid unnecessary refetches
+  let lastDiffSource: { path: string; staged: boolean } | null = null;
+
   // Load diff for selected file
   const [diffContent, { refetch: refetchDiff }] = createResource(
     () => selectedFile()?.path,
@@ -126,19 +142,30 @@ function AppContent() {
         console.error("Error loading diff:", error);
         return null;
       }
-    }
+    },
   );
 
-  // Refetch diff when selected file changes
+  // Refetch diff when selected file changes (path or staged state)
   createEffect(() => {
     const file = selectedFile();
     if (file) {
-      refetchDiff();
+      // Only refetch if the path or staged state actually changed
+      if (!lastDiffSource || lastDiffSource.path !== file.path || lastDiffSource.staged !== file.staged) {
+        // Update lastDiffSource synchronously before triggering refetch to prevent race conditions
+        lastDiffSource = { path: file.path, staged: file.staged };
+        refetchDiff();
+      }
+    } else {
+      // Clear tracking when no file is selected
+      lastDiffSource = null;
     }
   });
 
   // Helper function to show the new branch dialog
-  const showNewBranchDialog = (currentBranchName: string, shouldSelectNewBranch: boolean = false) => {
+  const showNewBranchDialog = (
+    currentBranchName: string,
+    shouldSelectNewBranch: boolean = false,
+  ) => {
     console.log("Opening new branch dialog");
     dialog.show(
       () => (
@@ -159,8 +186,16 @@ function AppContent() {
               }
             } catch (error) {
               console.error("Failed to create branch:", error);
-              toast.error(error instanceof Error ? error.message : "Failed to create branch");
-              setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
+              toast.error(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to create branch",
+              );
+              setErrorMessage(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to create branch",
+              );
             }
           }}
           onCancel={() => {
@@ -168,7 +203,7 @@ function AppContent() {
           }}
         />
       ),
-      () => console.log("Branch dialog closed")
+      () => console.log("Branch dialog closed"),
     );
   };
 
@@ -178,7 +213,7 @@ function AppContent() {
     if (dialog.isOpen) {
       return;
     }
-    
+
     console.log(`Key pressed: "${key}", ctrl: ${ctrl}, shift: ${shift}`);
     // Handle console/debug toggles (work regardless of git status)
     if (ctrl) {
@@ -201,12 +236,12 @@ function AppContent() {
     const status = gitStatus();
     const branchList = localBranches();
     const currentBranch = branches()?.current || "";
-    
+
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
       process.exit(0);
     }
-    
+
     // Handle pull/push regardless of file status
     if (key === "p" || key === "P") {
       if (shift) {
@@ -221,7 +256,9 @@ function AppContent() {
         } catch (error) {
           console.error("Push failed:", error);
           toast.error(error instanceof Error ? error.message : "Push failed");
-          setErrorMessage(error instanceof Error ? error.message : "Push failed");
+          setErrorMessage(
+            error instanceof Error ? error.message : "Push failed",
+          );
         }
       } else {
         // Pull
@@ -235,7 +272,9 @@ function AppContent() {
         } catch (error) {
           console.error("Pull failed:", error);
           toast.error(error instanceof Error ? error.message : "Pull failed");
-          setErrorMessage(error instanceof Error ? error.message : "Pull failed");
+          setErrorMessage(
+            error instanceof Error ? error.message : "Pull failed",
+          );
         }
       }
       return;
@@ -243,7 +282,7 @@ function AppContent() {
 
     // Toggle between panels with Tab
     if (key === "tab") {
-      setActivePanel((prev) => prev === "files" ? "branches" : "files");
+      setActivePanel((prev) => (prev === "files" ? "branches" : "files"));
       return;
     }
 
@@ -254,7 +293,9 @@ function AppContent() {
         switch (key) {
           case "j":
           case "down":
-            setBranchSelectedIndex((prev) => Math.min(prev + 1, branchList.length - 1));
+            setBranchSelectedIndex((prev) =>
+              Math.min(prev + 1, branchList.length - 1),
+            );
             break;
 
           case "k":
@@ -277,7 +318,11 @@ function AppContent() {
                 await refetchBranches();
               } catch (error) {
                 console.error("Failed to switch branch:", error);
-                toast.error(error instanceof Error ? error.message : "Failed to switch branch");
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to switch branch",
+                );
               }
             } else if (branch === currentBranch) {
               toast.info("Already on this branch");
@@ -288,13 +333,15 @@ function AppContent() {
           case "d":
             const branchToDelete = selectedBranch();
             if (!branchToDelete) break;
-            
+
             if (branchToDelete === currentBranch) {
               toast.warning("Cannot delete the current branch");
               break;
             }
-            
-            console.log(`Opening delete confirmation for branch: ${branchToDelete}`);
+
+            console.log(
+              `Opening delete confirmation for branch: ${branchToDelete}`,
+            );
             dialog.show(
               () => (
                 <DeleteBranchDialog
@@ -313,7 +360,11 @@ function AppContent() {
                       }
                     } catch (error) {
                       console.error("Failed to delete branch:", error);
-                      toast.error(error instanceof Error ? error.message : "Failed to delete branch");
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to delete branch",
+                      );
                     }
                   }}
                   onCancel={() => {
@@ -321,7 +372,7 @@ function AppContent() {
                   }}
                 />
               ),
-              () => console.log("Delete branch dialog closed")
+              () => console.log("Delete branch dialog closed"),
             );
             break;
 
@@ -329,19 +380,20 @@ function AppContent() {
           case "n":
             showNewBranchDialog(currentBranch, true);
             break;
-
           // Merge branch with 'M' (Shift+m)
           case "m":
             if (!shift) break; // Only trigger on Shift+m
             const branchToMerge = selectedBranch();
             if (!branchToMerge) break;
-            
+
             if (branchToMerge === currentBranch) {
               toast.warning("Cannot merge a branch into itself");
               break;
             }
-            
-            console.log(`Opening merge confirmation for branch: ${branchToMerge} into ${currentBranch}`);
+
+            console.log(
+              `Opening merge confirmation for branch: ${branchToMerge} into ${currentBranch}`,
+            );
             dialog.show(
               () => (
                 <MergeBranchDialog
@@ -349,20 +401,30 @@ function AppContent() {
                   targetBranch={currentBranch}
                   onConfirm={async () => {
                     try {
-                      console.log(`Merging branch: ${branchToMerge} into ${currentBranch}`);
-                      const result = await gitService.mergeBranch(branchToMerge);
+                      console.log(
+                        `Merging branch: ${branchToMerge} into ${currentBranch}`,
+                      );
+                      const result =
+                        await gitService.mergeBranch(branchToMerge);
                       console.log(`Merge result:`, result);
-                      
-                      if (result.files.length === 0 && result.merges.length === 0) {
+
+                      if (
+                        result.files.length === 0 &&
+                        result.merges.length === 0
+                      ) {
                         toast.info("Already up to date");
                       } else {
-                        toast.success(`Merged ${branchToMerge} into ${currentBranch}`);
+                        toast.success(
+                          `Merged ${branchToMerge} into ${currentBranch}`,
+                        );
                       }
                       await refetch();
                       await refetchBranches();
                     } catch (error) {
                       console.error("Failed to merge branch:", error);
-                      toast.error(error instanceof Error ? error.message : "Merge failed");
+                      toast.error(
+                        error instanceof Error ? error.message : "Merge failed",
+                      );
                     }
                   }}
                   onCancel={() => {
@@ -370,13 +432,13 @@ function AppContent() {
                   }}
                 />
               ),
-              () => console.log("Merge branch dialog closed")
+              () => console.log("Merge branch dialog closed"),
             );
             break;
         }
       } else {
         // Files panel keys
-        if ((!status || status.files.length === 0) && key !== "n" && key !== "r") return;
+        if ((!status || status.files.length === 0) && key !== "n") return;
 
         switch (key) {
           // Navigation
@@ -384,7 +446,9 @@ function AppContent() {
           case "down":
             setSelectedIndex((prev) => {
               const next = Math.min(prev + 1, status.files.length - 1);
-              console.log(`Navigation down: ${prev} -> ${next} (max: ${status.files.length - 1})`);
+              console.log(
+                `Navigation down: ${prev} -> ${next} (max: ${status.files.length - 1})`,
+              );
               return next;
             });
             break;
@@ -432,14 +496,6 @@ function AppContent() {
             await refetch();
             break;
 
-          // Refresh
-          case "r":
-            console.log("Refreshing git status");
-            await refetch();
-            await refetchBranches();
-            toast.info("Refreshed");
-            break;
-
           // Commit
           case "c":
             const stagedFiles = status.files.filter((f) => f.staged);
@@ -448,7 +504,9 @@ function AppContent() {
               toast.warning("No staged files to commit");
               break;
             }
-            console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
+            console.log(
+              `Opening commit dialog for ${stagedFiles.length} staged files`,
+            );
             dialog.show(
               () => (
                 <CommitDialog
@@ -462,8 +520,16 @@ function AppContent() {
                       await refetch();
                     } catch (error) {
                       console.error("Commit failed:", error);
-                      toast.error(error instanceof Error ? error.message : "Commit failed");
-                      setErrorMessage(error instanceof Error ? error.message : "Commit failed");
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Commit failed",
+                      );
+                      setErrorMessage(
+                        error instanceof Error
+                          ? error.message
+                          : "Commit failed",
+                      );
                     }
                   }}
                   onCancel={() => {
@@ -471,7 +537,7 @@ function AppContent() {
                   }}
                 />
               ),
-              () => console.log("Dialog closed")
+              () => console.log("Dialog closed"),
             );
             break;
 
@@ -496,12 +562,36 @@ function AppContent() {
     handleKeyPress(key, ctrl, shift);
   });
 
+  // Track whether an auto-refresh is currently in progress to avoid overlapping git calls
+  let isAutoRefreshing = false;
+
+  // Auto-refresh git status (similar to lazygit's approach)
+  // Using createEffect ensures proper Solid.js lifecycle management
+  createEffect(() => {
+    const refreshInterval = setInterval(() => {
+      // Skip refresh when a dialog is open or a previous auto-refresh is still running
+      if (dialog.isOpen || isAutoRefreshing) {
+        return;
+      }
+
+      isAutoRefreshing = true;
+
+      Promise.all([refetch(), refetchBranches()])
+        .catch((error) => {
+          console.error("Error during auto-refresh:", error);
+        })
+        .finally(() => {
+          isAutoRefreshing = false;
+        });
+    }, 1000);
+
+    onCleanup(() => {
+      clearInterval(refreshInterval);
+    });
+  });
+
   return (
-    <box
-      width="100%"
-      height="100%"
-      flexDirection="column"
-    >
+    <box width="100%" height="100%" flexDirection="column">
       <Show
         when={isGitRepo() && !errorMessage()}
         fallback={
@@ -512,15 +602,9 @@ function AppContent() {
             justifyContent="center"
             alignItems="center"
           >
-            <text fg="#FF4444">
-              Error
-            </text>
-            <text fg="#AAAAAA">
-              {errorMessage() || "Not a git repository"}
-            </text>
-            <text fg="#888888">
-              Press 'q' to quit
-            </text>
+            <text fg="#FF4444">Error</text>
+            <text fg="#AAAAAA">{errorMessage() || "Not a git repository"}</text>
+            <text fg="#888888">Press 'q' to quit</text>
           </box>
         }
       >
