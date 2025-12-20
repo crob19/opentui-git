@@ -72,25 +72,12 @@ export function FileList(props: FileListProps) {
         Files ({props.files().length})
       </text>
       
-      <box flexDirection="column" gap={0} overflow="hidden">
-        <For each={visibleNodes()}>
-          {(node, index) => {
-            const actualIndex = () => startIndex() + index();
-            const isSelected = () => actualIndex() === props.selectedIndex();
-            
-            // Create indentation based on depth
-            const indent = "  ".repeat(node.depth);
-            
-            // Determine icon for folders
-            const icon = node.type === 'folder' 
-              ? (node.expanded ? "▼ " : "▶ ")
-              : "  ";
-            
-            // Display name with appropriate prefix
-            const displayName = `${indent}${icon}${node.name}`;
-            
-            // Use folder color or file color
-            const color = node.color || "#FFFFFF";
+      <box flexDirection="column" gap={0}>
+        <For each={props.files()}>
+          {(file, index) => {
+            const isSelected = () => index() === props.selectedIndex();
+            // Staged files are green, unstaged use their status color
+            const fileColor = () => file.staged ? "#44FF44" : file.color;
             
             return (
               <box
