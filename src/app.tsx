@@ -1,8 +1,9 @@
-import { createSignal, createResource, Show } from "solid-js";
+import { createSignal, createResource, createEffect, Show } from "solid-js";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
 import { FileList } from "./components/file-list.js";
+import { DiffViewer } from "./components/diff-viewer.js";
 import { Footer } from "./components/footer.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { CommitDialog } from "./components/commit-dialog.js";
@@ -61,6 +62,39 @@ function AppContent() {
       console.error("Error loading git status:", error);
       setErrorMessage(error instanceof Error ? error.message : "Unknown error");
       throw error;
+    }
+  });
+
+  // Track the selected file for diff loading
+  const selectedFile = () => {
+    const status = gitStatus();
+    if (!status || status.files.length === 0) return null;
+    return status.files[selectedIndex()] || null;
+  };
+
+  // Load diff for selected file
+  const [diffContent, { refetch: refetchDiff }] = createResource(
+    () => selectedFile()?.path,
+    async (filePath) => {
+      if (!filePath) return null;
+      try {
+        const file = selectedFile();
+        const staged = file?.staged || false;
+        console.log(`Loading diff for: ${filePath} (staged: ${staged})`);
+        const diff = await gitService.getDiff(filePath, staged);
+        return diff || null;
+      } catch (error) {
+        console.error("Error loading diff:", error);
+        return null;
+      }
+    }
+  );
+
+  // Refetch diff when selected file changes
+  createEffect(() => {
+    const file = selectedFile();
+    if (file) {
+      refetchDiff();
     }
   });
 
@@ -284,10 +318,21 @@ function AppContent() {
         }
       >
         <Header status={() => gitStatus() || null} />
-        <FileList
-          files={() => gitStatus()?.files || []}
-          selectedIndex={selectedIndex}
-        />
+        <box flexDirection="row" flexGrow={1} gap={0}>
+          <box width="40%" flexDirection="column">
+            <FileList
+              files={() => gitStatus()?.files || []}
+              selectedIndex={selectedIndex}
+            />
+          </box>
+          <box width="60%" flexDirection="column">
+            <DiffViewer
+              diff={() => diffContent() || null}
+              filePath={() => selectedFile()?.path || null}
+              isLoading={() => diffContent.loading}
+            />
+          </box>
+        </box>
         <Footer />
       </Show>
     </box>
