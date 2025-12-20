@@ -139,7 +139,7 @@ function AppContent() {
     }
     
     // Handle pull/push regardless of file status
-    if (key === "p" || key === "P") {
+    if (key.toLowerCase() === "p") {
       if (shift) {
         // Push
         console.log("Pushing to remote...");
