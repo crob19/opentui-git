@@ -150,7 +150,11 @@ function AppContent() {
     const file = selectedFile();
     if (file) {
       // Only refetch if the path or staged state actually changed
-      if (!lastDiffSource || lastDiffSource.path !== file.path || lastDiffSource.staged !== file.staged) {
+      if (
+        !lastDiffSource ||
+        lastDiffSource.path !== file.path ||
+        lastDiffSource.staged !== file.staged
+      ) {
         // Update lastDiffSource synchronously before triggering refetch to prevent race conditions
         lastDiffSource = { path: file.path, staged: file.staged };
         refetchDiff();
@@ -380,6 +384,7 @@ function AppContent() {
           case "n":
             showNewBranchDialog(currentBranch, true);
             break;
+          // changes
           // Merge branch with 'M' (Shift+m)
           case "m":
             if (!shift) break; // Only trigger on Shift+m
