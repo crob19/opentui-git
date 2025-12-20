@@ -79,14 +79,16 @@ function AppContent() {
 
   // Load diff for selected file
   const [diffContent, { refetch: refetchDiff }] = createResource(
-    () => selectedFile()?.path,
-    async (filePath) => {
-      if (!filePath) return null;
+    () => {
+      const file = selectedFile();
+      return file ? { path: file.path, staged: file.staged ?? false } : null;
+    },
+    async (file) => {
+      if (!file) return null;
+      const { path, staged } = file;
       try {
-        const file = selectedFile();
-        const staged = file?.staged || false;
-        console.log(`Loading diff for: ${filePath} (staged: ${staged})`);
-        const diff = await gitService.getDiff(filePath, staged);
+        console.log(`Loading diff for: ${path} (staged: ${staged})`);
+        const diff = await gitService.getDiff(path, staged);
         return diff || null;
       } catch (error) {
         console.error("Error loading diff:", error);
