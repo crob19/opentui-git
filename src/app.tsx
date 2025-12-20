@@ -110,7 +110,7 @@ function AppContent() {
       return;
     }
     
-    console.log(`Key pressed: "${key}", ctrl: ${ctrl}`);
+    console.log(`Key pressed: "${key}", ctrl: ${ctrl}, shift: ${shift}`);
     // Handle console/debug toggles (work regardless of git status)
     if (ctrl) {
       switch (key) {
@@ -340,6 +340,7 @@ function AppContent() {
 
   // Set up keyboard listener using OpenTUI hook
   useKeyboard((event) => {
+    console.log("Raw event:", JSON.stringify(event));
     const key = event.name || event.sequence;
     const ctrl = event.ctrl || false;
     const shift = event.shift || false;
