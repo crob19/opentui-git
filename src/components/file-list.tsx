@@ -31,7 +31,8 @@ export function FileList(props: FileListProps) {
         <For each={props.files()}>
           {(file, index) => {
             const isSelected = () => index() === props.selectedIndex();
-            const stagedIndicator = file.staged ? "●" : " ";
+            // Staged files are green, unstaged use their status color
+            const fileColor = () => file.staged ? "#44FF44" : file.color;
             
             return (
               <box
@@ -43,13 +44,7 @@ export function FileList(props: FileListProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={file.color}>
-                  {stagedIndicator}
-                </text>
-                <text fg={file.color}>
-                  {" " + file.statusText.padEnd(10)}
-                </text>
-                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : file.color}>
+                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : fileColor()}>
                   {file.path}
                 </text>
               </box>
