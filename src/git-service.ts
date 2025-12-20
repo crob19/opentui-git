@@ -253,6 +253,16 @@ export class GitService {
   }
 
   /**
+   * Delete a local branch
+   * @param branchName - Name of the branch to delete
+   * @param force - Force delete even if not fully merged (default: false)
+   */
+  async deleteBranch(branchName: string, force: boolean = false): Promise<void> {
+    const flag = force ? "-D" : "-d";
+    await this.git.branch([flag, branchName]);
+  }
+
+  /**
    * Get repository root path
    * @returns Promise<string> - Path to repository root
    */

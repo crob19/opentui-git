@@ -1,16 +1,16 @@
 import { For, type Accessor } from "solid-js";
-import type { GitFileStatus } from "../types.js";
 
 /**
- * FileList component - Displays the list of changed files with colors and selection
+ * BranchList component - Displays the list of local branches with selection
  */
-export interface FileListProps {
-  files: Accessor<GitFileStatus[]>;
+export interface BranchListProps {
+  branches: Accessor<string[]>;
+  currentBranch: Accessor<string>;
   selectedIndex: Accessor<number>;
   isActive: Accessor<boolean>;
 }
 
-export function FileList(props: FileListProps) {
+export function BranchList(props: BranchListProps) {
   return (
     <box
       borderStyle="single"
@@ -24,14 +24,14 @@ export function FileList(props: FileListProps) {
       paddingBottom={1}
     >
       <text fg={props.isActive() ? "#00AAFF" : "#AAAAAA"}>
-        Files ({props.files().length})
+        Branches ({props.branches().length})
       </text>
       
       <box flexDirection="column" gap={0}>
-        <For each={props.files()}>
-          {(file, index) => {
+        <For each={props.branches()}>
+          {(branch, index) => {
             const isSelected = () => index() === props.selectedIndex();
-            const stagedIndicator = file.staged ? "●" : " ";
+            const isCurrent = () => branch === props.currentBranch();
             
             return (
               <box
@@ -43,23 +43,20 @@ export function FileList(props: FileListProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={file.color}>
-                  {stagedIndicator}
+                <text fg={isCurrent() ? "#44FF44" : isSelected() && props.isActive() ? "#FFFFFF" : "#AAAAAA"}>
+                  {isCurrent() ? "* " : "  "}
                 </text>
-                <text fg={file.color}>
-                  {" " + file.statusText.padEnd(10)}
-                </text>
-                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : file.color}>
-                  {file.path}
+                <text fg={isCurrent() ? "#44FF44" : isSelected() && props.isActive() ? "#FFFFFF" : "#AAAAAA"}>
+                  {branch}
                 </text>
               </box>
             );
           }}
         </For>
         
-        {props.files().length === 0 && (
+        {props.branches().length === 0 && (
           <text fg="#888888">
-            No changes
+            No branches
           </text>
         )}
       </box>
