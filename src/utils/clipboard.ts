@@ -38,6 +38,10 @@ export namespace Clipboard {
           proc.stdin.write(text);
           proc.stdin.end();
           await proc.exited;
+        } else {
+          console.warn(
+            "Clipboard copy skipped: no suitable clipboard utility found (expected 'wl-copy' for Wayland or 'xclip' for X11)."
+          );
         }
       } else if (os === "win32") {
         // Windows - use powershell
