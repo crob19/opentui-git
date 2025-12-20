@@ -111,3 +111,25 @@ export const STATUS_COLORS = {
   UNMERGED: "#FF00FF",    // Magenta
   DEFAULT: "#FFFFFF",     // White
 } as const;
+
+/**
+ * File tree node - represents either a file or folder in the tree
+ */
+export interface FileTreeNode {
+  /** Node type */
+  type: 'file' | 'folder';
+  /** Display name (just the filename/folder name, not full path) */
+  name: string;
+  /** Full path from repository root */
+  path: string;
+  /** Indentation depth in the tree */
+  depth: number;
+  /** Whether the folder is expanded (only for folders) */
+  expanded?: boolean;
+  /** Child nodes (only for folders) */
+  children?: FileTreeNode[];
+  /** File status information (only for files) */
+  fileStatus?: GitFileStatus;
+  /** Aggregated color for folders based on child statuses */
+  color?: string;
+}

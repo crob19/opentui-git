@@ -1,4 +1,8 @@
-import { For, type Accessor } from "solid-js";
+import { For, createMemo, type Accessor } from "solid-js";
+import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
+
+// Maximum number of branches to show at once in the virtual scroll window
+const MAX_VISIBLE_BRANCHES = 10;
 
 /**
  * BranchList component - Displays the list of local branches with selection
@@ -11,6 +15,15 @@ export interface BranchListProps {
 }
 
 export function BranchList(props: BranchListProps) {
+  // Calculate visible window of branches to show (virtual scrolling)
+  const scrollWindow = createMemo(() =>
+    calculateVirtualScrollWindow(
+      props.branches(),
+      props.selectedIndex(),
+      MAX_VISIBLE_BRANCHES,
+    ),
+  );
+
   return (
     <box
       borderStyle="single"
@@ -27,10 +40,11 @@ export function BranchList(props: BranchListProps) {
         Branches ({props.branches().length})
       </text>
       
-      <box flexDirection="column" gap={0}>
-        <For each={props.branches()}>
+      <box flexDirection="column" gap={0} overflow="hidden">
+        <For each={scrollWindow().visibleItems}>
           {(branch, index) => {
-            const isSelected = () => index() === props.selectedIndex();
+            const actualIndex = () => scrollWindow().start + index();
+            const isSelected = () => actualIndex() === props.selectedIndex();
             const isCurrent = () => branch === props.currentBranch();
             
             return (
