@@ -230,10 +230,24 @@ export class GitService {
 
   /**
    * Push to remote
+   * Automatically sets upstream for new branches
    * @returns Promise<void>
    */
   async push(): Promise<void> {
-    await this.git.push();
+    try {
+      await this.git.push();
+    } catch (error) {
+      // If push fails due to no upstream, try with --set-upstream
+      if (error instanceof Error && error.message.includes("no upstream branch")) {
+        const status = await this.git.status();
+        const currentBranch = status.current;
+        if (currentBranch) {
+          await this.git.push(["--set-upstream", "origin", currentBranch]);
+          return;
+        }
+      }
+      throw error;
+    }
   }
 
   /**
