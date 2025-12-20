@@ -324,7 +324,7 @@ function AppContent() {
         }
       } else {
         // Files panel keys
-        if (!status || status.files.length === 0) return;
+        if ((!status || status.files.length === 0) && key !== "n" && key !== "r") return;
 
         switch (key) {
           // Navigation
