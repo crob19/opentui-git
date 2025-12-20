@@ -32,7 +32,7 @@ export function BranchDialog(props: BranchDialogProps) {
         props.onCreateBranch(branchName);
         dialog.close();
       } else {
-        toast.error("Invalid branch name. Use alphanumeric, hyphens, underscores, slashes.");
+        toast.error("Invalid branch name. Use alphanumeric, hyphens, underscores, slashes, and dots.");
       }
     }
   };
