@@ -303,6 +303,9 @@ function AppContent() {
                       toast.success(`Switched to new branch: ${branchName}`);
                       await refetch();
                       await refetchBranches();
+                      // After creating and checking out the new branch, it will be
+                      // sorted to the top of the branch list; select it explicitly.
+                      setBranchSelectedIndex(0);
                     } catch (error) {
                       console.error("Failed to create branch:", error);
                       toast.error(error instanceof Error ? error.message : "Failed to create branch");
