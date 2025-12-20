@@ -1,4 +1,4 @@
-import { createSignal, createResource, createEffect, Show } from "solid-js";
+import { createSignal, createResource, createEffect, Show, onCleanup } from "solid-js";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
@@ -376,7 +376,7 @@ function AppContent() {
         }
       } else {
         // Files panel keys
-        if ((!status || status.files.length === 0) && key !== "n" && key !== "r") return;
+        if ((!status || status.files.length === 0) && key !== "n") return;
 
         switch (key) {
           // Navigation
@@ -430,14 +430,6 @@ function AppContent() {
             await gitService.unstageAll();
             toast.info("Unstaged all files");
             await refetch();
-            break;
-
-          // Refresh
-          case "r":
-            console.log("Refreshing git status");
-            await refetch();
-            await refetchBranches();
-            toast.info("Refreshed");
             break;
 
           // Commit
@@ -494,6 +486,18 @@ function AppContent() {
     const ctrl = event.ctrl || false;
     const shift = event.shift || false;
     handleKeyPress(key, ctrl, shift);
+  });
+
+  // Auto-refresh git status every 1 second (similar to lazygit's approach)
+  const refreshInterval = setInterval(() => {
+    if (!dialog.isOpen) {
+      refetch();
+      refetchBranches();
+    }
+  }, 1000);
+
+  onCleanup(() => {
+    clearInterval(refreshInterval);
   });
 
   return (
