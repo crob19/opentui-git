@@ -89,11 +89,11 @@ function AppContent() {
     if (!b) return [];
     return b.all
       .filter((name) => !name.startsWith("remotes/"))
-      .sort((a, c) => {
+      .sort((a, bName) => {
         // Put current branch first
         if (a === b.current) return -1;
-        if (c === b.current) return 1;
-        return a.localeCompare(c);
+        if (bName === b.current) return 1;
+        return a.localeCompare(bName);
       });
   };
 
