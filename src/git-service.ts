@@ -41,37 +41,52 @@ export class GitService {
     logger.debug("Git status.current:", status.current);
     
     const files: GitFileStatus[] = [];
+    const processedFiles = new Set<string>();
 
-    // Process files in the staging area (index)
-    for (const file of status.staged) {
-      files.push(this.createFileStatus(file, true, "A"));
-    }
-
-    // Process modified files
+    // Process modified files (may be staged or unstaged)
     for (const file of status.modified) {
       const staged = status.staged.includes(file);
       files.push(this.createFileStatus(file, staged, "M"));
+      processedFiles.add(file);
     }
 
     // Process deleted files
     for (const file of status.deleted) {
       const staged = status.staged.includes(file);
       files.push(this.createFileStatus(file, staged, "D"));
+      processedFiles.add(file);
     }
 
     // Process renamed files
     for (const file of status.renamed) {
-      files.push(this.createFileStatus(file.to || file.from, true, "R"));
+      const filePath = file.to || file.from;
+      files.push(this.createFileStatus(filePath, true, "R"));
+      processedFiles.add(filePath);
+    }
+
+    // Process files in the staging area that weren't already processed
+    // (these are newly added files, not modifications)
+    for (const file of status.staged) {
+      if (!processedFiles.has(file)) {
+        files.push(this.createFileStatus(file, true, "A"));
+        processedFiles.add(file);
+      }
     }
 
     // Process untracked files
     for (const file of status.not_added) {
-      files.push(this.createFileStatus(file, false, "?"));
+      if (!processedFiles.has(file)) {
+        files.push(this.createFileStatus(file, false, "?"));
+        processedFiles.add(file);
+      }
     }
 
     // Process conflicted files
     for (const file of status.conflicted) {
-      files.push(this.createFileStatus(file, false, "U"));
+      if (!processedFiles.has(file)) {
+        files.push(this.createFileStatus(file, false, "U"));
+        processedFiles.add(file);
+      }
     }
 
     return {

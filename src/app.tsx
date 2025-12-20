@@ -470,11 +470,9 @@ function AppContent() {
               if (file.staged) {
                 console.log(`Unstaging: ${file.path}`);
                 await gitService.unstageFile(file.path);
-                toast.info(`Unstaged: ${file.path}`);
               } else {
                 console.log(`Staging: ${file.path}`);
                 await gitService.stageFile(file.path);
-                toast.info(`Staged: ${file.path}`);
               }
               await refetch();
             }
