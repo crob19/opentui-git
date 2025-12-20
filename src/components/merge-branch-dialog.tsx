@@ -34,7 +34,7 @@ export function MergeBranchDialog(props: MergeBranchDialogProps) {
 
   return (
     <box flexDirection="column" gap={1}>
-      <text fg="#44AAFF">
+      <text fg="#00AAFF">
         Merge Branch
       </text>
       
