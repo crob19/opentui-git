@@ -1,5 +1,5 @@
 import { createSignal, createResource, Show } from "solid-js";
-import { useKeyboard } from "@opentui/solid";
+import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
 import { FileList } from "./components/file-list.js";
@@ -12,10 +12,12 @@ import type { GitStatusSummary } from "./types.js";
  */
 export function App() {
   const gitService = new GitService();
+  const renderer = useRenderer();
   
   // Log startup
   console.log("opentui-git started");
-  console.log("Press Ctrl+\\ to toggle console overlay for logs");
+  console.log("Press Ctrl+\\ to toggle console overlay");
+  console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
   
   // State
   const [selectedIndex, setSelectedIndex] = createSignal(0);
@@ -52,6 +54,25 @@ export function App() {
 
   // Keyboard handler
   const handleKeyPress = async (key: string, ctrl: boolean) => {
+    console.log(`Key pressed: "${key}", ctrl: ${ctrl}`);
+    // Handle console/debug toggles (work regardless of git status)
+    if (ctrl) {
+      switch (key) {
+        case "\\":
+          // Toggle console overlay (Ctrl+\)
+          renderer.console.toggle();
+          return;
+        case "d":
+          // Toggle debug overlay (Ctrl+D)
+          renderer.toggleDebugOverlay();
+          return;
+        case "c":
+          // Ctrl+C quits
+          process.exit(0);
+          return;
+      }
+    }
+
     const status = gitStatus();
     if (!status || status.files.length === 0) return;
 
@@ -60,12 +81,20 @@ export function App() {
         // Navigation
         case "j":
         case "down":
-          setSelectedIndex((prev) => Math.min(prev + 1, status.files.length - 1));
+          setSelectedIndex((prev) => {
+            const next = Math.min(prev + 1, status.files.length - 1);
+            console.log(`Navigation down: ${prev} -> ${next} (max: ${status.files.length - 1})`);
+            return next;
+          });
           break;
 
         case "k":
         case "up":
-          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          setSelectedIndex((prev) => {
+            const next = Math.max(prev - 1, 0);
+            console.log(`Navigation up: ${prev} -> ${next}`);
+            return next;
+          });
           break;
 
         // Stage/unstage current file
@@ -107,13 +136,6 @@ export function App() {
         // Quit
         case "q":
           if (!ctrl) {
-            process.exit(0);
-          }
-          break;
-
-        // Ctrl+C always quits
-        case "c":
-          if (ctrl) {
             process.exit(0);
           }
           break;
@@ -161,8 +183,8 @@ export function App() {
       >
         <Header status={gitStatus() || null} />
         <FileList
-          files={gitStatus()?.files || []}
-          selectedIndex={selectedIndex()}
+          files={() => gitStatus()?.files || []}
+          selectedIndex={selectedIndex}
         />
         <Footer />
       </Show>

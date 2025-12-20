@@ -9,6 +9,8 @@ export function Footer() {
     { key: "a", desc: "stage all" },
     { key: "u", desc: "unstage all" },
     { key: "r", desc: "refresh" },
+    { key: "^\\", desc: "console" },
+    { key: "^D", desc: "debug" },
     { key: "q", desc: "quit" },
   ];
 

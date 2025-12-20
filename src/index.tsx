@@ -15,5 +15,19 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-// Render the app
-render(() => <App />);
+// Render the app with console overlay configuration
+render(
+  () => <App />,
+  {
+    targetFps: 60,
+    gatherStats: false,
+    exitOnCtrlC: false,
+    consoleOptions: {
+      keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
+      onCopySelection: (text) => {
+        // Copy selection from console overlay to clipboard
+        console.log(`Copied ${text.length} characters to clipboard`);
+      },
+    },
+  }
+);
