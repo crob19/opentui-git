@@ -124,6 +124,9 @@ function AppContent() {
     return status.files[selectedIndex()] || null;
   };
 
+  // Track the current diff source to avoid unnecessary refetches
+  let lastDiffSource: { path: string; staged: boolean } | null = null;
+
   // Load diff for selected file
   const [diffContent, { refetch: refetchDiff }] = createResource(
     () => selectedFile()?.path,
@@ -133,6 +136,7 @@ function AppContent() {
         const file = selectedFile();
         const staged = file?.staged || false;
         console.log(`Loading diff for: ${filePath} (staged: ${staged})`);
+        lastDiffSource = { path: filePath, staged };
         const diff = await gitService.getDiff(filePath, staged);
         return diff || null;
       } catch (error) {
@@ -142,11 +146,14 @@ function AppContent() {
     },
   );
 
-  // Refetch diff when selected file changes
+  // Refetch diff when selected file changes (path or staged state)
   createEffect(() => {
     const file = selectedFile();
     if (file) {
-      refetchDiff();
+      // Only refetch if the path or staged state actually changed
+      if (!lastDiffSource || lastDiffSource.path !== file.path || lastDiffSource.staged !== file.staged) {
+        refetchDiff();
+      }
     }
   });
 
