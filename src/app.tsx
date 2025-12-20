@@ -136,7 +136,6 @@ function AppContent() {
         const file = selectedFile();
         const staged = file?.staged || false;
         console.log(`Loading diff for: ${filePath} (staged: ${staged})`);
-        lastDiffSource = { path: filePath, staged };
         const diff = await gitService.getDiff(filePath, staged);
         return diff || null;
       } catch (error) {
@@ -152,8 +151,13 @@ function AppContent() {
     if (file) {
       // Only refetch if the path or staged state actually changed
       if (!lastDiffSource || lastDiffSource.path !== file.path || lastDiffSource.staged !== file.staged) {
+        // Update lastDiffSource synchronously before triggering refetch to prevent race conditions
+        lastDiffSource = { path: file.path, staged: file.staged };
         refetchDiff();
       }
+    } else {
+      // Clear tracking when no file is selected
+      lastDiffSource = null;
     }
   });
 
@@ -558,16 +562,32 @@ function AppContent() {
     handleKeyPress(key, ctrl, shift);
   });
 
-  // Auto-refresh git status every 1 second (similar to lazygit's approach)
-  const refreshInterval = setInterval(() => {
-    if (!dialog.isOpen) {
-      refetch();
-      refetchBranches();
-    }
-  }, 1000);
+  // Track whether an auto-refresh is currently in progress to avoid overlapping git calls
+  let isAutoRefreshing = false;
 
-  onCleanup(() => {
-    clearInterval(refreshInterval);
+  // Auto-refresh git status (similar to lazygit's approach)
+  // Using createEffect ensures proper Solid.js lifecycle management
+  createEffect(() => {
+    const refreshInterval = setInterval(() => {
+      // Skip refresh when a dialog is open or a previous auto-refresh is still running
+      if (dialog.isOpen || isAutoRefreshing) {
+        return;
+      }
+
+      isAutoRefreshing = true;
+
+      Promise.all([refetch(), refetchBranches()])
+        .catch((error) => {
+          console.error("Error during auto-refresh:", error);
+        })
+        .finally(() => {
+          isAutoRefreshing = false;
+        });
+    }, 1000);
+
+    onCleanup(() => {
+      clearInterval(refreshInterval);
+    });
   });
 
   return (
