@@ -1,4 +1,4 @@
-import { createResource, createEffect, type Accessor, type Resource } from "solid-js";
+import { createResource, createEffect, createSignal, type Accessor, type Resource } from "solid-js";
 import type { GitService } from "../git-service.js";
 import type { GitFileStatus } from "../types.js";
 
@@ -25,8 +25,8 @@ export function useGitDiff(
   gitService: GitService,
   selectedFile: Accessor<GitFileStatus | null>,
 ): UseGitDiffResult {
-  // Track the current diff source to avoid unnecessary refetches
-  let lastDiffSource: { path: string; staged: boolean } | null = null;
+  // Track the current diff source with proper reactivity
+  const [lastDiffSource, setLastDiffSource] = createSignal<{ path: string; staged: boolean } | null>(null);
 
   // Load diff for selected file
   const [diffContent, { refetch: refetchDiff }] = createResource(
@@ -50,15 +50,16 @@ export function useGitDiff(
   createEffect(() => {
     const file = selectedFile();
     if (file) {
+      const currentSource = lastDiffSource();
       // Only refetch if the path or staged state actually changed
-      if (!lastDiffSource || lastDiffSource.path !== file.path || lastDiffSource.staged !== file.staged) {
-        // Update lastDiffSource synchronously before triggering refetch to prevent race conditions
-        lastDiffSource = { path: file.path, staged: file.staged };
+      if (!currentSource || currentSource.path !== file.path || currentSource.staged !== file.staged) {
+        // Update tracking before triggering refetch to prevent race conditions
+        setLastDiffSource({ path: file.path, staged: file.staged });
         refetchDiff();
       }
     } else {
       // Clear tracking when no file is selected
-      lastDiffSource = null;
+      setLastDiffSource(null);
     }
   });
 

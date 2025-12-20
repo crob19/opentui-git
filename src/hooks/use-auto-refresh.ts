@@ -1,4 +1,4 @@
-import { createEffect, onCleanup } from "solid-js";
+import { createEffect, createSignal, onCleanup } from "solid-js";
 import type { DialogContext } from "../components/dialog.js";
 
 /**
@@ -15,26 +15,26 @@ export function useAutoRefresh(
   refetchBranches: () => Promise<unknown>,
   interval: number = 1000,
 ): void {
-  // Track whether an auto-refresh is currently in progress to avoid overlapping git calls
-  let isAutoRefreshing = false;
+  // Track whether an auto-refresh is currently in progress with proper reactivity
+  const [isAutoRefreshing, setIsAutoRefreshing] = createSignal(false);
 
   // Auto-refresh git status (similar to lazygit's approach)
   // Using createEffect ensures proper Solid.js lifecycle management
   createEffect(() => {
     const refreshInterval = setInterval(() => {
       // Skip refresh when a dialog is open or a previous auto-refresh is still running
-      if (dialog.isOpen || isAutoRefreshing) {
+      if (dialog.isOpen || isAutoRefreshing()) {
         return;
       }
 
-      isAutoRefreshing = true;
+      setIsAutoRefreshing(true);
 
       Promise.all([refetchStatus(), refetchBranches()])
         .catch((error) => {
           console.error("Error during auto-refresh:", error);
         })
         .finally(() => {
-          isAutoRefreshing = false;
+          setIsAutoRefreshing(false);
         });
     }, interval);
 

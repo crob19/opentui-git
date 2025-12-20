@@ -1,5 +1,9 @@
 import { For, createMemo, type Accessor } from "solid-js";
 import type { GitFileStatus, FileTreeNode } from "../types.js";
+import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
+
+// Maximum number of file items to show at once in the virtual scroll window
+const MAX_VISIBLE_FILES = 20;
 
 /**
  * FileList component - Displays the list of changed files with colors and selection
@@ -13,48 +17,13 @@ export interface FileListProps {
 
 export function FileList(props: FileListProps) {
   // Calculate visible window of nodes to show (virtual scrolling)
-  const visibleNodes = createMemo(() => {
-    const nodes = props.flatNodes();
-    const selected = props.selectedIndex();
-    const maxVisible = 20; // Maximum number of items to show at once
-    
-    if (nodes.length <= maxVisible) {
-      return nodes;
-    }
-    
-    // Calculate scroll window to keep selected item visible
-    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
-    let end = start + maxVisible;
-    
-    // Adjust if we're near the end
-    if (end > nodes.length) {
-      end = nodes.length;
-      start = Math.max(0, end - maxVisible);
-    }
-    
-    return nodes.slice(start, end);
-  });
-  
-  // Calculate the starting index for proper selection highlighting
-  const startIndex = createMemo(() => {
-    const nodes = props.flatNodes();
-    const selected = props.selectedIndex();
-    const maxVisible = 20;
-    
-    if (nodes.length <= maxVisible) {
-      return 0;
-    }
-    
-    let start = Math.max(0, selected - Math.floor(maxVisible / 2));
-    let end = start + maxVisible;
-    
-    if (end > nodes.length) {
-      end = nodes.length;
-      start = Math.max(0, end - maxVisible);
-    }
-    
-    return start;
-  });
+  const scrollWindow = createMemo(() =>
+    calculateVirtualScrollWindow(
+      props.flatNodes(),
+      props.selectedIndex(),
+      MAX_VISIBLE_FILES,
+    ),
+  );
 
   return (
     <box
@@ -73,11 +42,29 @@ export function FileList(props: FileListProps) {
       </text>
       
       <box flexDirection="column" gap={0}>
-        <For each={props.files()}>
-          {(file, index) => {
-            const isSelected = () => index() === props.selectedIndex();
-            // Staged files are green, unstaged use their status color
-            const fileColor = () => file.staged ? "#44FF44" : file.color;
+        <For each={scrollWindow().visibleItems}>
+          {(node, index) => {
+            const actualIndex = () => scrollWindow().start + index();
+            const isSelected = () => actualIndex() === props.selectedIndex();
+            
+            // Determine display properties based on node type
+            const displayName = () => {
+              if (node.type === 'folder') {
+                const indicator = node.expanded ? '▼' : '▶';
+                return `${'  '.repeat(node.depth)}${indicator} ${node.name}/`;
+              } else {
+                return `${'  '.repeat(node.depth)}  ${node.name}`;
+              }
+            };
+            
+            const color = () => {
+              // File nodes show staged status or status color
+              if (node.type === 'file' && node.fileStatus) {
+                return node.fileStatus.staged ? "#44FF44" : node.color;
+              }
+              // Folder nodes use their calculated color
+              return node.color || "#AAAAAA";
+            };
             
             return (
               <box
@@ -89,8 +76,8 @@ export function FileList(props: FileListProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : color}>
-                  {displayName}
+                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : color()}>
+                  {displayName()}
                 </text>
               </box>
             );

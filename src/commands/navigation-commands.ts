@@ -10,11 +10,7 @@ export function navigateUp(
   selectedIndex: Accessor<number>,
   setSelectedIndex: Setter<number>,
 ): void {
-  setSelectedIndex((prev) => {
-    const next = Math.max(prev - 1, 0);
-    console.log(`Navigation up: ${prev} -> ${next}`);
-    return next;
-  });
+  setSelectedIndex((prev) => Math.max(prev - 1, 0));
 }
 
 /**
@@ -28,11 +24,7 @@ export function navigateDown(
   setSelectedIndex: Setter<number>,
   maxIndex: number,
 ): void {
-  setSelectedIndex((prev) => {
-    const next = Math.min(prev + 1, maxIndex);
-    console.log(`Navigation down: ${prev} -> ${next} (max: ${maxIndex})`);
-    return next;
-  });
+  setSelectedIndex((prev) => Math.min(prev + 1, maxIndex));
 }
 
 /**

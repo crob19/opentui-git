@@ -10,6 +10,7 @@ import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
 import * as navCommands from "../commands/navigation-commands.js";
+import { getFilesInFolder } from "../utils/file-tree.js";
 
 /**
  * Options for the command handler hook
@@ -310,16 +311,13 @@ async function handleFilePanelKeys(
       if (!node) break;
 
       if (node.type === 'folder') {
-        // Determine if we should stage or unstage
-        // Check if any files in folder are unstaged - if so, stage all
-        // If all are staged, unstage all
-        const files = node.children || [];
-        const hasUnstaged = files.some((child: any) => {
-          if (child.type === 'file' && child.fileStatus) {
-            return !child.fileStatus.staged;
-          }
-          return false;
-        });
+        // Get all files in the folder recursively
+        const filesInFolder = getFilesInFolder(node);
+        
+        // Check if any files in folder (including nested files) are unstaged
+        const hasUnstaged = status?.files.some((file) => {
+          return filesInFolder.includes(file.path) && !file.staged;
+        }) || false;
 
         if (hasUnstaged) {
           await fileCommands.stageFolder(node, context);

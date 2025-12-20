@@ -24,7 +24,8 @@ function getHighestPriorityColor(colors: string[]): string {
   let result: string = STATUS_COLORS.DEFAULT;
   
   for (const color of colors) {
-    const priority = STATUS_PRIORITY.indexOf(color as any);
+    // Use type assertion to specific STATUS_COLORS type instead of any
+    const priority = STATUS_PRIORITY.indexOf(color as typeof STATUS_PRIORITY[number]);
     if (priority > highestPriority) {
       highestPriority = priority;
       result = color;
@@ -40,12 +41,20 @@ function getHighestPriorityColor(colors: string[]): string {
  * @returns Root-level tree nodes (all expanded by default)
  */
 export function buildFileTree(files: GitFileStatus[]): FileTreeNode[] {
-  // Use a temporary structure to store child maps during building
-  interface TempNode extends FileTreeNode {
-    _childrenMap?: Map<string, TempNode>;
+  // Temporary builder node that includes _childrenMap during construction
+  interface BuilderNode {
+    type: 'file' | 'folder';
+    name: string;
+    path: string;
+    depth: number;
+    expanded?: boolean;
+    color?: string;
+    fileStatus?: GitFileStatus;
+    children?: BuilderNode[];
+    _childrenMap?: Map<string, BuilderNode>;
   }
   
-  const root: Map<string, TempNode> = new Map();
+  const root: Map<string, BuilderNode> = new Map();
   
   // Sort files by path to ensure consistent ordering
   const sortedFiles = [...files].sort((a, b) => a.path.localeCompare(b.path));
@@ -63,7 +72,7 @@ export function buildFileTree(files: GitFileStatus[]): FileTreeNode[] {
       
       if (isLastPart) {
         // This is a file
-        const fileNode: TempNode = {
+        const fileNode: BuilderNode = {
           type: 'file',
           name: part,
           path: currentPath,
@@ -75,7 +84,7 @@ export function buildFileTree(files: GitFileStatus[]): FileTreeNode[] {
       } else {
         // This is a folder
         if (!currentMap.has(part)) {
-          const folderNode: TempNode = {
+          const folderNode: BuilderNode = {
             type: 'folder',
             name: part,
             path: currentPath,
@@ -99,21 +108,41 @@ export function buildFileTree(files: GitFileStatus[]): FileTreeNode[] {
   }
   
   // Convert all maps to children arrays recursively
-  function convertMapsToArrays(nodeMap: Map<string, TempNode>): FileTreeNode[] {
+  function convertMapsToArrays(nodeMap: Map<string, BuilderNode>): FileTreeNode[] {
     const result: FileTreeNode[] = [];
     
     for (const node of nodeMap.values()) {
-      // If this node is a folder with a children map, convert it
-      if (node._childrenMap && node._childrenMap.size > 0) {
-        node.children = convertMapsToArrays(node._childrenMap);
-        delete node._childrenMap;
-      } else if (node.type === 'folder') {
-        // Folder with no children
-        node.children = [];
-        delete node._childrenMap;
+      // Create final node without the temporary _childrenMap property
+      if (node.type === 'folder') {
+        // Determine children for folder nodes
+        const children =
+          node._childrenMap && node._childrenMap.size > 0
+            ? convertMapsToArrays(node._childrenMap)
+            : [];
+
+        // Create clean folder node without temporary properties
+        const folderNode: FileTreeNode = {
+          type: 'folder',
+          name: node.name,
+          path: node.path,
+          depth: node.depth,
+          expanded: node.expanded ?? true,
+          children,
+          color: node.color,
+        };
+        result.push(folderNode);
+      } else {
+        // File nodes don't have children
+        const fileNode: FileTreeNode = {
+          type: 'file',
+          name: node.name,
+          path: node.path,
+          depth: node.depth,
+          fileStatus: node.fileStatus,
+          color: node.color,
+        };
+        result.push(fileNode);
       }
-      
-      result.push(node);
     }
     
     return result;

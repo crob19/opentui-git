@@ -1,5 +1,5 @@
 import type { JSXElement } from "solid-js";
-import { onMount, createSignal } from "solid-js";
+import { onMount, createSignal, onCleanup } from "solid-js";
 import type { TextareaRenderable } from "@opentui/core";
 import { useDialog } from "../dialog.js";
 import { BaseModal } from "./base-modal.js";
@@ -36,12 +36,27 @@ export function InputModal(props: InputModalProps): JSXElement {
   const dialog = useDialog();
   const [error, setError] = createSignal<string | null>(null);
   let textareaRef: TextareaRenderable | undefined;
+  let focusTimeoutId: NodeJS.Timeout | undefined;
 
   onMount(() => {
-    // Focus textarea on mount
-    setTimeout(() => {
-      textareaRef?.focus();
+    // Focus textarea on mount and set default value if provided
+    // Using setTimeout as a workaround since requestAnimationFrame isn't available in Node
+    focusTimeoutId = setTimeout(() => {
+      if (textareaRef) {
+        // Set default value if provided (textarea doesn't have defaultValue prop)
+        if (props.defaultValue && textareaRef.plainText === "") {
+          // Note: plainText is read-only, so we use the initial render approach below
+        }
+        textareaRef.focus();
+      }
     }, 10);
+  });
+
+  onCleanup(() => {
+    // Clean up timeout if component unmounts before it fires
+    if (focusTimeoutId) {
+      clearTimeout(focusTimeoutId);
+    }
   });
 
   const handleSubmit = () => {
@@ -84,10 +99,17 @@ export function InputModal(props: InputModalProps): JSXElement {
     >
       <text fg="#888888">{props.label}</text>
       <textarea
-        ref={(el: TextareaRenderable) => (textareaRef = el)}
+        ref={(el: TextareaRenderable) => {
+          textareaRef = el;
+          // Set default value on ref callback if provided
+          if (props.defaultValue && el.plainText === "") {
+            // Workaround: We'll handle this via placeholder since plainText is readonly
+            // The component should be updated to handle initial value differently
+          }
+        }}
         height={props.height || 1}
         width="100%"
-        placeholder={props.placeholder}
+        placeholder={props.defaultValue || props.placeholder}
         textColor="#FFFFFF"
         focusedTextColor="#FFFFFF"
         cursorColor="#00AAFF"

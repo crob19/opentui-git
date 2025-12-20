@@ -182,12 +182,26 @@ export async function stageFolder(
 
   console.log(`Staging ${files.length} files in folder: ${folderNode.path}`);
   
-  // Stage each file
+  // Stage each file with error handling
+  let successCount = 0;
+  let errorCount = 0;
+  
   for (const filepath of files) {
-    await context.gitService.stageFile(filepath);
+    try {
+      await context.gitService.stageFile(filepath);
+      successCount++;
+    } catch (error) {
+      console.error(`Failed to stage ${filepath}:`, error);
+      errorCount++;
+    }
   }
 
-  context.toast.info(`Staged ${files.length} file${files.length !== 1 ? "s" : ""} in ${folderNode.name}`);
+  if (errorCount > 0) {
+    context.toast.warning(`Staged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`);
+  } else {
+    context.toast.info(`Staged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`);
+  }
+  
   await context.refetch();
 }
 
@@ -209,11 +223,25 @@ export async function unstageFolder(
 
   console.log(`Unstaging ${files.length} files in folder: ${folderNode.path}`);
   
-  // Unstage each file
+  // Unstage each file with error handling
+  let successCount = 0;
+  let errorCount = 0;
+  
   for (const filepath of files) {
-    await context.gitService.unstageFile(filepath);
+    try {
+      await context.gitService.unstageFile(filepath);
+      successCount++;
+    } catch (error) {
+      console.error(`Failed to unstage ${filepath}:`, error);
+      errorCount++;
+    }
   }
 
-  context.toast.info(`Unstaged ${files.length} file${files.length !== 1 ? "s" : ""} in ${folderNode.name}`);
+  if (errorCount > 0) {
+    context.toast.warning(`Unstaged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`);
+  } else {
+    context.toast.info(`Unstaged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`);
+  }
+  
   await context.refetch();
 }

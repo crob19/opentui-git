@@ -197,8 +197,8 @@ export function showDeleteBranchDialog(
       onConfirm: async () => {
         await deleteBranch(branchName, context);
         await context.refetchBranches();
-        // Reset selection index to safe value
-        context.setBranchSelectedIndex((prev: number) => Math.max(0, prev - 1));
+        // Reset selection index to the first branch after refetch
+        context.setBranchSelectedIndex(0);
       },
       onCancel: () => {
         console.log("Branch deletion cancelled");

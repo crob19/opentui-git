@@ -114,9 +114,10 @@ export function useGitStatus(gitService: GitService): UseGitStatusResult {
 
   // Toggle folder expand/collapse
   const toggleFolderExpand = (path: string) => {
-    setTreeNodes(toggleFolder(treeNodes(), path));
+    const updatedTree = toggleFolder(treeNodes(), path);
+    setTreeNodes(updatedTree);
     // After toggling, ensure selected index is still valid
-    const newFlat = flattenTree(toggleFolder(treeNodes(), path));
+    const newFlat = flattenTree(updatedTree);
     if (selectedIndex() >= newFlat.length) {
       setSelectedIndex(Math.max(0, newFlat.length - 1));
     }

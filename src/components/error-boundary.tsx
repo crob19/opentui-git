@@ -28,11 +28,7 @@ function DefaultFallback(props: { error: Error; reset: () => void }): JSXElement
       <text fg="#888888">
         {props.error.stack?.split('\n')[1] || 'No stack trace available'}
       </text>
-      <box flexDirection="row" gap={1}>
-        <text fg="#00AAFF">Press 'r' to reload</text>
-        <text fg="#888888">or</text>
-        <text fg="#00AAFF">'q' to quit</text>
-      </box>
+      <text fg="#00AAFF">Please restart the application</text>
     </box>
   );
 }
