@@ -369,7 +369,6 @@ function AppContent() {
           case "n":
             showNewBranchDialog(currentBranch, true);
             break;
-          // testing
           // Merge branch with 'M' (Shift+m)
           case "m":
             if (!shift) break; // Only trigger on Shift+m
