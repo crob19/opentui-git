@@ -37,6 +37,8 @@ export class GitService {
   async getStatus(): Promise<GitStatusSummary> {
     const status: StatusResult = await this.git.status();
     
+    console.log("Git status.current:", status.current);
+    
     const files: GitFileStatus[] = [];
 
     // Process files in the staging area (index)

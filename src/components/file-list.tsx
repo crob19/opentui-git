@@ -1,12 +1,12 @@
-import { For } from "solid-js";
+import { For, createMemo, type Accessor } from "solid-js";
 import type { GitFileStatus } from "../types.js";
 
 /**
  * FileList component - Displays the list of changed files with colors and selection
  */
 export interface FileListProps {
-  files: GitFileStatus[];
-  selectedIndex: number;
+  files: Accessor<GitFileStatus[]>;
+  selectedIndex: Accessor<number>;
 }
 
 export function FileList(props: FileListProps) {
@@ -23,18 +23,18 @@ export function FileList(props: FileListProps) {
       paddingBottom={1}
     >
       <text fg="#AAAAAA">
-        Files ({props.files.length})
+        Files ({props.files().length})
       </text>
       
       <box flexDirection="column" gap={0}>
-        <For each={props.files}>
+        <For each={props.files()}>
           {(file, index) => {
-            const isSelected = index() === props.selectedIndex;
+            const isSelected = createMemo(() => index() === props.selectedIndex());
             const stagedIndicator = file.staged ? "●" : " ";
             
             return (
               <box
-                backgroundColor={isSelected ? "#333333" : "transparent"}
+                backgroundColor={isSelected() ? "#333333" : "transparent"}
                 width="100%"
                 height={1}
                 flexDirection="row"
@@ -48,7 +48,7 @@ export function FileList(props: FileListProps) {
                 <text fg={file.color}>
                   {" " + file.statusText.padEnd(10)}
                 </text>
-                <text fg={isSelected ? "#FFFFFF" : file.color}>
+                <text fg={isSelected() ? "#FFFFFF" : file.color}>
                   {file.path}
                 </text>
               </box>
@@ -56,7 +56,7 @@ export function FileList(props: FileListProps) {
           }}
         </For>
         
-        {props.files.length === 0 && (
+        {props.files().length === 0 && (
           <text fg="#888888">
             No changes
           </text>
