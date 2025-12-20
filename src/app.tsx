@@ -269,10 +269,11 @@ function AppContent() {
                       await gitService.deleteBranch(branchToDelete);
                       console.log(`Branch deleted: ${branchToDelete}`);
                       toast.success(`Deleted branch: ${branchToDelete}`);
-                      await refetchBranches();
+                      const updatedBranches = await refetchBranches();
+                      const branchCount = updatedBranches?.length ?? 0;
                       // Reset selection if needed
-                      if (branchSelectedIndex() >= localBranches().length) {
-                        setBranchSelectedIndex(Math.max(0, localBranches().length - 1));
+                      if (branchSelectedIndex() >= branchCount) {
+                        setBranchSelectedIndex(Math.max(0, branchCount - 1));
                       }
                     } catch (error) {
                       console.error("Failed to delete branch:", error);
