@@ -53,6 +53,17 @@ bun run /path/to/opentui-git/src/index.tsx
 bun run build
 ```
 
+### Viewing Logs
+
+OpenTUI includes a built-in console overlay for viewing logs:
+
+- **Toggle Console**: Press `Ctrl+\` to open/close the console overlay
+- **Scroll Logs**: Use arrow keys when console is focused
+- **Resize Console**: Press `+` or `-` to adjust console size
+- All `console.log()`, `console.error()`, and `console.warn()` calls appear in the overlay
+
+The console is useful for debugging git operations and viewing error messages without disrupting the TUI.
+
 ## Keyboard Shortcuts
 
 | Key | Action |
