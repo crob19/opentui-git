@@ -1,6 +1,7 @@
 import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult } from "simple-git";
 import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
+import { logger } from "./utils/logger.js";
 
 /**
  * GitService - Wrapper class for git operations using simple-git
@@ -37,7 +38,7 @@ export class GitService {
   async getStatus(): Promise<GitStatusSummary> {
     const status: StatusResult = await this.git.status();
     
-    console.log("Git status.current:", status.current);
+    logger.debug("Git status.current:", status.current);
     
     const files: GitFileStatus[] = [];
 
