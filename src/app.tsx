@@ -1,11 +1,15 @@
-import { createSignal, createResource, Show } from "solid-js";
+import { createSignal, createResource, createEffect, Show } from "solid-js";
 import { useKeyboard, useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { Header } from "./components/header.js";
 import { FileList } from "./components/file-list.js";
+import { DiffViewer } from "./components/diff-viewer.js";
 import { Footer } from "./components/footer.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
+import { ToastProvider, useToast } from "./components/toast.js";
 import { CommitDialog } from "./components/commit-dialog.js";
+import { BranchDialog } from "./components/branch-dialog.js";
+import { BranchSwitcherDialog } from "./components/branch-switcher-dialog.js";
 import type { GitStatusSummary } from "./types.js";
 
 /**
@@ -14,9 +18,11 @@ import type { GitStatusSummary } from "./types.js";
  */
 export function App() {
   return (
-    <DialogProvider>
-      <AppContent />
-    </DialogProvider>
+    <ToastProvider>
+      <DialogProvider>
+        <AppContent />
+      </DialogProvider>
+    </ToastProvider>
   );
 }
 
@@ -24,6 +30,7 @@ function AppContent() {
   const gitService = new GitService();
   const renderer = useRenderer();
   const dialog = useDialog();
+  const toast = useToast();
   
   // Log startup
   console.log("opentui-git started");
@@ -63,14 +70,41 @@ function AppContent() {
     }
   });
 
+  // Track the selected file for diff loading
+  const selectedFile = () => {
+    const status = gitStatus();
+    if (!status || status.files.length === 0) return null;
+    return status.files[selectedIndex()] || null;
+  };
+
+  // Load diff for selected file
+  const [diffContent, { refetch: refetchDiff }] = createResource(
+    () => {
+      const file = selectedFile();
+      return file ? { path: file.path, staged: file.staged ?? false } : null;
+    },
+    async (file) => {
+      if (!file) return null;
+      const { path, staged } = file;
+      try {
+        console.log(`Loading diff for: ${path} (staged: ${staged})`);
+        const diff = await gitService.getDiff(path, staged);
+        return diff || null;
+      } catch (error) {
+        console.error("Error loading diff:", error);
+        return null;
+      }
+    }
+  );
+
   // Keyboard handler
-  const handleKeyPress = async (key: string, ctrl: boolean) => {
+  const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
     // Skip all key handling when dialog is open (let dialog handle its own keys)
     if (dialog.isOpen) {
       return;
     }
     
-    console.log(`Key pressed: "${key}", ctrl: ${ctrl}`);
+    console.log(`Key pressed: "${key}", ctrl: ${ctrl}, shift: ${shift}`);
     // Handle console/debug toggles (work regardless of git status)
     if (ctrl) {
       switch (key) {
@@ -90,6 +124,46 @@ function AppContent() {
     }
 
     const status = gitStatus();
+    
+    // Handle quit regardless of status
+    if (key === "q" && !ctrl) {
+      process.exit(0);
+    }
+    
+    // Handle pull/push regardless of file status
+    if (key.toLowerCase() === "p") {
+      if (shift) {
+        // Push
+        console.log("Pushing to remote...");
+        toast.info("Pushing to remote...");
+        try {
+          await gitService.push();
+          console.log("Push successful");
+          toast.success("Push successful");
+          await refetch();
+        } catch (error) {
+          console.error("Push failed:", error);
+          toast.error(error instanceof Error ? error.message : "Push failed");
+          setErrorMessage(error instanceof Error ? error.message : "Push failed");
+        }
+      } else {
+        // Pull
+        console.log("Pulling from remote...");
+        toast.info("Pulling from remote...");
+        try {
+          await gitService.pull();
+          console.log("Pull successful");
+          toast.success("Pull successful");
+          await refetch();
+        } catch (error) {
+          console.error("Pull failed:", error);
+          toast.error(error instanceof Error ? error.message : "Pull failed");
+          setErrorMessage(error instanceof Error ? error.message : "Pull failed");
+        }
+      }
+      return;
+    }
+    
     if (!status || status.files.length === 0) return;
 
     try {
@@ -121,9 +195,11 @@ function AppContent() {
             if (file.staged) {
               console.log(`Unstaging: ${file.path}`);
               await gitService.unstageFile(file.path);
+              toast.info(`Unstaged: ${file.path}`);
             } else {
               console.log(`Staging: ${file.path}`);
               await gitService.stageFile(file.path);
+              toast.info(`Staged: ${file.path}`);
             }
             await refetch();
           }
@@ -133,6 +209,7 @@ function AppContent() {
         case "a":
           console.log("Staging all files");
           await gitService.stageAll();
+          toast.success("Staged all files");
           await refetch();
           break;
 
@@ -140,6 +217,7 @@ function AppContent() {
         case "u":
           console.log("Unstaging all files");
           await gitService.unstageAll();
+          toast.info("Unstaged all files");
           await refetch();
           break;
 
@@ -147,6 +225,7 @@ function AppContent() {
         case "r":
           console.log("Refreshing git status");
           await refetch();
+          toast.info("Refreshed");
           break;
 
         // Commit
@@ -154,6 +233,7 @@ function AppContent() {
           const stagedFiles = status.files.filter((f) => f.staged);
           if (stagedFiles.length === 0) {
             console.log("No staged files to commit");
+            toast.warning("No staged files to commit");
             break;
           }
           console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
@@ -166,9 +246,11 @@ function AppContent() {
                     console.log(`Committing with message: ${message}`);
                     await gitService.commit(message);
                     console.log("Commit successful");
+                    toast.success("Commit successful");
                     await refetch();
                   } catch (error) {
                     console.error("Commit failed:", error);
+                    toast.error(error instanceof Error ? error.message : "Commit failed");
                     setErrorMessage(error instanceof Error ? error.message : "Commit failed");
                   }
                 }}
@@ -181,10 +263,66 @@ function AppContent() {
           );
           break;
 
-        // Quit
-        case "q":
-          if (!ctrl) {
-            process.exit(0);
+        // New branch
+        case "n":
+          console.log("Opening new branch dialog");
+          dialog.show(
+            () => (
+              <BranchDialog
+                currentBranch={status.current}
+                onCreateBranch={async (branchName) => {
+                  try {
+                    console.log(`Creating branch: ${branchName}`);
+                    await gitService.createBranch(branchName);
+                    console.log(`Branch created and checked out: ${branchName}`);
+                    toast.success(`Switched to new branch: ${branchName}`);
+                    await refetch();
+                  } catch (error) {
+                    console.error("Failed to create branch:", error);
+                    toast.error(error instanceof Error ? error.message : "Failed to create branch");
+                    setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
+                  }
+                }}
+                onCancel={() => {
+                  console.log("Branch creation cancelled");
+                }}
+              />
+            ),
+            () => console.log("Branch dialog closed")
+          );
+          break;
+
+        // Switch branch
+        case "b":
+          console.log("Opening branch switcher dialog");
+          try {
+            const branches = await gitService.getBranches();
+            dialog.show(
+              () => (
+                <BranchSwitcherDialog
+                  branches={branches}
+                  onSwitch={async (branchName) => {
+                    try {
+                      console.log(`Switching to branch: ${branchName}`);
+                      await gitService.checkoutBranch(branchName);
+                      console.log(`Switched to branch: ${branchName}`);
+                      toast.success(`Switched to branch: ${branchName}`);
+                      await refetch();
+                    } catch (error) {
+                      console.error("Failed to switch branch:", error);
+                      toast.error(error instanceof Error ? error.message : "Failed to switch branch");
+                    }
+                  }}
+                  onCancel={() => {
+                    console.log("Branch switch cancelled");
+                  }}
+                />
+              ),
+              () => console.log("Branch switcher dialog closed")
+            );
+          } catch (error) {
+            console.error("Failed to load branches:", error);
+            toast.error("Failed to load branches");
           }
           break;
       }
@@ -196,9 +334,11 @@ function AppContent() {
 
   // Set up keyboard listener using OpenTUI hook
   useKeyboard((event) => {
+    console.log("Raw event:", JSON.stringify(event));
     const key = event.name || event.sequence;
     const ctrl = event.ctrl || false;
-    handleKeyPress(key, ctrl);
+    const shift = event.shift || false;
+    handleKeyPress(key, ctrl, shift);
   });
 
   return (
@@ -230,10 +370,21 @@ function AppContent() {
         }
       >
         <Header status={() => gitStatus() || null} />
-        <FileList
-          files={() => gitStatus()?.files || []}
-          selectedIndex={selectedIndex}
-        />
+        <box flexDirection="row" flexGrow={1} gap={0}>
+          <box width="40%" flexDirection="column">
+            <FileList
+              files={() => gitStatus()?.files || []}
+              selectedIndex={selectedIndex}
+            />
+          </box>
+          <box width="60%" flexDirection="column">
+            <DiffViewer
+              diff={() => diffContent() || null}
+              filePath={() => selectedFile()?.path || null}
+              isLoading={() => diffContent.loading}
+            />
+          </box>
+        </box>
         <Footer />
       </Show>
     </box>

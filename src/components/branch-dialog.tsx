@@ -1,18 +1,20 @@
 import { onMount } from "solid-js";
 import { useDialog } from "./dialog.js";
+import { useToast } from "./toast.js";
 import type { TextareaRenderable } from "@opentui/core";
 
 /**
- * CommitDialog - Modal dialog for entering commit message
+ * BranchDialog - Modal dialog for creating a new branch
  */
-export interface CommitDialogProps {
-  onCommit: (message: string) => void;
+export interface BranchDialogProps {
+  onCreateBranch: (branchName: string) => void;
   onCancel: () => void;
-  stagedCount: number;
+  currentBranch: string;
 }
 
-export function CommitDialog(props: CommitDialogProps) {
+export function BranchDialog(props: BranchDialogProps) {
   const dialog = useDialog();
+  const toast = useToast();
   let textareaRef: TextareaRenderable | undefined;
 
   onMount(() => {
@@ -23,26 +25,36 @@ export function CommitDialog(props: CommitDialogProps) {
   });
 
   const handleSubmit = () => {
-    const msg = textareaRef?.plainText?.trim();
-    if (msg) {
-      props.onCommit(msg);
-      dialog.close();
+    const branchName = textareaRef?.plainText?.trim();
+    if (branchName) {
+      // Basic validation: no spaces, no special chars at start
+      if (/^[a-zA-Z0-9][\w\-\/\.]*$/.test(branchName)) {
+        props.onCreateBranch(branchName);
+        dialog.close();
+      } else {
+        toast.error("Invalid branch name. Use alphanumeric, hyphens, underscores, slashes, and dots.");
+      }
     }
   };
 
   return (
     <box flexDirection="column" gap={1}>
       <text fg="#00AAFF">
-        Commit {props.stagedCount} staged file{props.stagedCount !== 1 ? "s" : ""}
+        Create New Branch
       </text>
       
+      <box flexDirection="row" gap={1}>
+        <text fg="#888888">From:</text>
+        <text fg="#00FF00">{props.currentBranch}</text>
+      </box>
+      
       <box flexDirection="column" gap={0}>
-        <text fg="#888888">Message:</text>
+        <text fg="#888888">Branch name:</text>
         <textarea
           ref={(el: TextareaRenderable) => (textareaRef = el)}
-          height={3}
+          height={1}
           width="100%"
-          placeholder="Enter commit message..."
+          placeholder="feature/my-new-branch"
           textColor="#FFFFFF"
           focusedTextColor="#FFFFFF"
           cursorColor="#00AAFF"
@@ -54,7 +66,7 @@ export function CommitDialog(props: CommitDialogProps) {
       <box flexDirection="row" gap={2}>
         <box flexDirection="row">
           <text fg="#00AAFF">Enter</text>
-          <text fg="#888888"> commit</text>
+          <text fg="#888888"> create</text>
         </box>
         <box flexDirection="row">
           <text fg="#00AAFF">Esc</text>

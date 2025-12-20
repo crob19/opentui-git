@@ -5,12 +5,14 @@ export function Footer() {
   const shortcuts = [
     { key: "↑/k", desc: "up" },
     { key: "↓/j", desc: "down" },
-    { key: "space", desc: "stage/unstage" },
-    { key: "a", desc: "stage all" },
-    { key: "u", desc: "unstage all" },
+    { key: "space", desc: "stage" },
+    { key: "a", desc: "all" },
+    { key: "u", desc: "unstage" },
     { key: "c", desc: "commit" },
-    { key: "r", desc: "refresh" },
-    { key: "Ctrl+\\", desc: "console" },
+    { key: "n", desc: "new branch" },
+    { key: "b", desc: "branches" },
+    { key: "p", desc: "pull" },
+    { key: "P", desc: "push" },
     { key: "q", desc: "quit" },
   ];
 

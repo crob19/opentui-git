@@ -25,13 +25,10 @@ render(
     exitOnCtrlC: false,
     consoleOptions: {
       keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
-      onCopySelection: async (text) => {
-        try {
-          await Clipboard.copy(text);
-          console.log(`Copied ${text.length} characters to clipboard`);
-        } catch (err) {
-          console.error("Copy failed:", err);
-        }
+      onCopySelection: (text) => {
+        Clipboard.copy(text)
+          .then(() => console.log(`Copied ${text.length} characters to clipboard`))
+          .catch((err) => console.error("Copy failed:", err));
       },
     },
   }
