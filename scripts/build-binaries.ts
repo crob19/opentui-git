@@ -20,22 +20,47 @@ const ROOT_DIR = path.resolve(import.meta.dir, "..");
 const DIST_DIR = path.join(ROOT_DIR, "dist");
 const ENTRY_FILE = path.join(ROOT_DIR, "src/index.tsx");
 
+// Supported architectures
+const SUPPORTED_ARCHITECTURES = ["arm64", "x64"] as const;
+type SupportedArch = (typeof SUPPORTED_ARCHITECTURES)[number];
+
 // Get version from package.json
 const pkg = await Bun.file(path.join(ROOT_DIR, "package.json")).json();
 const VERSION = pkg.version;
 const NAME = pkg.name;
 
-// Parse command line arguments
-function getTargetArch(): string {
+// Parse and validate command line arguments
+function getTargetArch(): SupportedArch {
   const archIndex = process.argv.indexOf("--arch");
+  let arch: string;
+
   if (archIndex !== -1 && process.argv[archIndex + 1]) {
-    return process.argv[archIndex + 1];
+    arch = process.argv[archIndex + 1];
+  } else {
+    arch = process.arch;
   }
-  return process.arch; // Default to current architecture
+
+  // Validate architecture
+  if (!SUPPORTED_ARCHITECTURES.includes(arch as SupportedArch)) {
+    console.error(`Error: Unsupported architecture "${arch}"`);
+    console.error(`Supported architectures: ${SUPPORTED_ARCHITECTURES.join(", ")}`);
+    process.exit(1);
+  }
+
+  return arch as SupportedArch;
 }
 
 const TARGET_ARCH = getTargetArch();
 const PLATFORM = "darwin";
+
+// Warn if cross-compiling
+if (TARGET_ARCH !== process.arch) {
+  console.warn(`\nWarning: Cross-compilation detected.`);
+  console.warn(`  Host architecture: ${process.arch}`);
+  console.warn(`  Target architecture: ${TARGET_ARCH}`);
+  console.warn(`  Cross-compilation may not work reliably with native dependencies.`);
+  console.warn(`  For reliable builds, use GitHub Actions with native runners.\n`);
+}
 
 async function clean() {
   console.log("Cleaning dist directory...");
@@ -94,9 +119,29 @@ async function compileBinary(bundlePath: string): Promise<string> {
 
   const exitCode = await proc.exited;
 
+  // Capture both stdout and stderr for better debugging
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+
   if (exitCode !== 0) {
-    const stderr = await new Response(proc.stderr).text();
-    console.error("Compile failed:", stderr);
+    console.error("Compile failed with exit code", exitCode);
+    if (stdout.trim()) {
+      console.error("Compiler stdout:\n", stdout);
+    }
+    if (stderr.trim()) {
+      console.error("Compiler stderr:\n", stderr);
+    }
+    process.exit(1);
+  }
+
+  // Log compiler output if present (useful for warnings)
+  if (stdout.trim()) {
+    console.log("Compiler output:\n", stdout);
+  }
+
+  // Verify binary was created
+  if (!existsSync(outputPath)) {
+    console.error(`Compile reported success, but binary not found at: ${outputPath}`);
     process.exit(1);
   }
 
@@ -117,7 +162,8 @@ async function createTarball(binaryPath: string) {
 
   console.log(`\nCreating tarball: ${tarballName}`);
 
-  const proc = Bun.spawn(["tar", "-czvf", tarballPath, "-C", DIST_DIR, binaryName], {
+  // Use -czf instead of -czvf since we're not displaying the output
+  const proc = Bun.spawn(["tar", "-czf", tarballPath, "-C", DIST_DIR, binaryName], {
     stdout: "pipe",
     stderr: "pipe",
   });
