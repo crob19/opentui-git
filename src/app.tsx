@@ -104,7 +104,7 @@ function AppContent() {
   });
 
   // Keyboard handler
-  const handleKeyPress = async (key: string, ctrl: boolean) => {
+  const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
     // Skip all key handling when dialog is open (let dialog handle its own keys)
     if (dialog.isOpen) {
       return;
@@ -229,35 +229,37 @@ function AppContent() {
           );
           break;
 
-        // Pull
+        // Pull (p) or Push (Shift+P)
         case "p":
-          console.log("Pulling from remote...");
-          toast.info("Pulling from remote...");
-          try {
-            await gitService.pull();
-            console.log("Pull successful");
-            toast.success("Pull successful");
-            await refetch();
-          } catch (error) {
-            console.error("Pull failed:", error);
-            toast.error(error instanceof Error ? error.message : "Pull failed");
-            setErrorMessage(error instanceof Error ? error.message : "Pull failed");
-          }
-          break;
-
-        // Push
         case "P":
-          console.log("Pushing to remote...");
-          toast.info("Pushing to remote...");
-          try {
-            await gitService.push();
-            console.log("Push successful");
-            toast.success("Push successful");
-            await refetch();
-          } catch (error) {
-            console.error("Push failed:", error);
-            toast.error(error instanceof Error ? error.message : "Push failed");
-            setErrorMessage(error instanceof Error ? error.message : "Push failed");
+          if (shift) {
+            // Push
+            console.log("Pushing to remote...");
+            toast.info("Pushing to remote...");
+            try {
+              await gitService.push();
+              console.log("Push successful");
+              toast.success("Push successful");
+              await refetch();
+            } catch (error) {
+              console.error("Push failed:", error);
+              toast.error(error instanceof Error ? error.message : "Push failed");
+              setErrorMessage(error instanceof Error ? error.message : "Push failed");
+            }
+          } else {
+            // Pull
+            console.log("Pulling from remote...");
+            toast.info("Pulling from remote...");
+            try {
+              await gitService.pull();
+              console.log("Pull successful");
+              toast.success("Pull successful");
+              await refetch();
+            } catch (error) {
+              console.error("Pull failed:", error);
+              toast.error(error instanceof Error ? error.message : "Pull failed");
+              setErrorMessage(error instanceof Error ? error.message : "Pull failed");
+            }
           }
           break;
 
@@ -341,7 +343,8 @@ function AppContent() {
   useKeyboard((event) => {
     const key = event.name || event.sequence;
     const ctrl = event.ctrl || false;
-    handleKeyPress(key, ctrl);
+    const shift = event.shift || false;
+    handleKeyPress(key, ctrl, shift);
   });
 
   return (
