@@ -11,6 +11,7 @@ import { ToastProvider, useToast } from "./components/toast.js";
 import { CommitDialog } from "./components/commit-dialog.js";
 import { BranchDialog } from "./components/branch-dialog.js";
 import { DeleteBranchDialog } from "./components/delete-branch-dialog.js";
+import { MergeBranchDialog } from "./components/merge-branch-dialog.js";
 import type { GitStatusSummary, GitBranchInfo } from "./types.js";
 
 /**
@@ -315,6 +316,44 @@ function AppContent() {
                 />
               ),
               () => console.log("Branch dialog closed")
+            );
+            break;
+
+          // Merge branch with 'M' (Shift+m)
+          case "M":
+            const branchToMerge = selectedBranch();
+            if (!branchToMerge) break;
+            
+            if (branchToMerge === currentBranch) {
+              toast.warning("Cannot merge a branch into itself");
+              break;
+            }
+            
+            console.log(`Opening merge confirmation for branch: ${branchToMerge} into ${currentBranch}`);
+            dialog.show(
+              () => (
+                <MergeBranchDialog
+                  sourceBranch={branchToMerge}
+                  targetBranch={currentBranch}
+                  onConfirm={async () => {
+                    try {
+                      console.log(`Merging branch: ${branchToMerge} into ${currentBranch}`);
+                      await gitService.mergeBranch(branchToMerge);
+                      console.log(`Branch merged: ${branchToMerge}`);
+                      toast.success(`Merged ${branchToMerge} into ${currentBranch}`);
+                      await refetch();
+                      await refetchBranches();
+                    } catch (error) {
+                      console.error("Failed to merge branch:", error);
+                      toast.error(error instanceof Error ? error.message : "Merge failed");
+                    }
+                  }}
+                  onCancel={() => {
+                    console.log("Branch merge cancelled");
+                  }}
+                />
+              ),
+              () => console.log("Merge branch dialog closed")
             );
             break;
         }
