@@ -331,7 +331,8 @@ function AppContent() {
             break;
 
           // Merge branch with 'M' (Shift+m)
-          case "M":
+          case "m":
+            if (!shift) break; // Only trigger on Shift+m
             const branchToMerge = selectedBranch();
             if (!branchToMerge) break;
             
