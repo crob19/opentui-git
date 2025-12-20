@@ -1,4 +1,3 @@
-import { $ } from "bun";
 import { platform } from "os";
 
 /**
@@ -39,11 +38,18 @@ export namespace Clipboard {
           proc.stdin.write(text);
           proc.stdin.end();
           await proc.exited;
+        } else {
+          console.warn(
+            "Clipboard copy skipped: no suitable clipboard utility found (expected 'wl-copy' for Wayland or 'xclip' for X11)."
+          );
         }
       } else if (os === "win32") {
         // Windows - use powershell
         const escaped = text.replace(/"/g, '""');
-        await $`powershell -command "Set-Clipboard -Value \"${escaped}\""`.nothrow().quiet();
+        const result = await $`powershell -command "Set-Clipboard -Value \"${escaped}\""`.nothrow().quiet();
+        if (!result.success) {
+          throw new Error(`Failed to copy text to clipboard (exit code ${result.exitCode})`);
+        }
       }
     } catch (error) {
       console.error("Clipboard copy failed:", error);

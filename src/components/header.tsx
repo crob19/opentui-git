@@ -1,4 +1,4 @@
-import type { Accessor } from "solid-js";
+import { createMemo, type Accessor } from "solid-js";
 import type { GitStatusSummary } from "../types.js";
 
 /**
@@ -15,7 +15,7 @@ export function Header(props: HeaderProps) {
   const fileCount = () => props.status()?.files.length || 0;
   const isClean = () => props.status()?.isClean ?? true;
 
-  const statusText = () => {
+  const statusText = createMemo(() => {
     if (isClean()) {
       return "clean";
     }
@@ -24,7 +24,7 @@ export function Header(props: HeaderProps) {
     if (ahead() > 0) parts.push(`↑${ahead()}`);
     if (behind() > 0) parts.push(`↓${behind()}`);
     return parts.join(" ");
-  };
+  });
 
   return (
     <box
