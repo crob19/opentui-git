@@ -17,9 +17,7 @@ export function CommitDialog(props: CommitDialogProps) {
 
   onMount(() => {
     // Focus textarea on mount
-    setTimeout(() => {
-      textareaRef?.focus();
-    }, 10);
+    textareaRef?.focus();
   });
 
   const handleSubmit = () => {
