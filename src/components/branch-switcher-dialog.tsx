@@ -1,4 +1,4 @@
-import { createSignal, createResource, For, onMount, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { useKeyboard } from "@opentui/solid";
 import { useDialog } from "./dialog.js";
 import type { GitBranchInfo } from "../types.js";

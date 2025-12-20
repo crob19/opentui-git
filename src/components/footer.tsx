@@ -10,9 +10,9 @@ export function Footer() {
     { key: "u", desc: "unstage" },
     { key: "c", desc: "commit" },
     { key: "n", desc: "new branch" },
+    { key: "b", desc: "branches" },
     { key: "p", desc: "pull" },
     { key: "P", desc: "push" },
-    { key: "r", desc: "refresh" },
     { key: "q", desc: "quit" },
   ];
 

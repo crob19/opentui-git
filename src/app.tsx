@@ -6,8 +6,10 @@ import { FileList } from "./components/file-list.js";
 import { DiffViewer } from "./components/diff-viewer.js";
 import { Footer } from "./components/footer.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
+import { ToastProvider, useToast } from "./components/toast.js";
 import { CommitDialog } from "./components/commit-dialog.js";
 import { BranchDialog } from "./components/branch-dialog.js";
+import { BranchSwitcherDialog } from "./components/branch-switcher-dialog.js";
 import type { GitStatusSummary } from "./types.js";
 
 /**
@@ -16,9 +18,11 @@ import type { GitStatusSummary } from "./types.js";
  */
 export function App() {
   return (
-    <DialogProvider>
-      <AppContent />
-    </DialogProvider>
+    <ToastProvider>
+      <DialogProvider>
+        <AppContent />
+      </DialogProvider>
+    </ToastProvider>
   );
 }
 
@@ -26,6 +30,7 @@ function AppContent() {
   const gitService = new GitService();
   const renderer = useRenderer();
   const dialog = useDialog();
+  const toast = useToast();
   
   // Log startup
   console.log("opentui-git started");
@@ -156,9 +161,11 @@ function AppContent() {
             if (file.staged) {
               console.log(`Unstaging: ${file.path}`);
               await gitService.unstageFile(file.path);
+              toast.info(`Unstaged: ${file.path}`);
             } else {
               console.log(`Staging: ${file.path}`);
               await gitService.stageFile(file.path);
+              toast.info(`Staged: ${file.path}`);
             }
             await refetch();
           }
@@ -168,6 +175,7 @@ function AppContent() {
         case "a":
           console.log("Staging all files");
           await gitService.stageAll();
+          toast.success("Staged all files");
           await refetch();
           break;
 
@@ -175,6 +183,7 @@ function AppContent() {
         case "u":
           console.log("Unstaging all files");
           await gitService.unstageAll();
+          toast.info("Unstaged all files");
           await refetch();
           break;
 
@@ -182,6 +191,7 @@ function AppContent() {
         case "r":
           console.log("Refreshing git status");
           await refetch();
+          toast.info("Refreshed");
           break;
 
         // Commit
@@ -189,6 +199,7 @@ function AppContent() {
           const stagedFiles = status.files.filter((f) => f.staged);
           if (stagedFiles.length === 0) {
             console.log("No staged files to commit");
+            toast.warning("No staged files to commit");
             break;
           }
           console.log(`Opening commit dialog for ${stagedFiles.length} staged files`);
@@ -201,9 +212,11 @@ function AppContent() {
                     console.log(`Committing with message: ${message}`);
                     await gitService.commit(message);
                     console.log("Commit successful");
+                    toast.success("Commit successful");
                     await refetch();
                   } catch (error) {
                     console.error("Commit failed:", error);
+                    toast.error(error instanceof Error ? error.message : "Commit failed");
                     setErrorMessage(error instanceof Error ? error.message : "Commit failed");
                   }
                 }}
@@ -219,12 +232,15 @@ function AppContent() {
         // Pull
         case "p":
           console.log("Pulling from remote...");
+          toast.info("Pulling from remote...");
           try {
             await gitService.pull();
             console.log("Pull successful");
+            toast.success("Pull successful");
             await refetch();
           } catch (error) {
             console.error("Pull failed:", error);
+            toast.error(error instanceof Error ? error.message : "Pull failed");
             setErrorMessage(error instanceof Error ? error.message : "Pull failed");
           }
           break;
@@ -232,12 +248,15 @@ function AppContent() {
         // Push
         case "P":
           console.log("Pushing to remote...");
+          toast.info("Pushing to remote...");
           try {
             await gitService.push();
             console.log("Push successful");
+            toast.success("Push successful");
             await refetch();
           } catch (error) {
             console.error("Push failed:", error);
+            toast.error(error instanceof Error ? error.message : "Push failed");
             setErrorMessage(error instanceof Error ? error.message : "Push failed");
           }
           break;
@@ -254,9 +273,11 @@ function AppContent() {
                     console.log(`Creating branch: ${branchName}`);
                     await gitService.createBranch(branchName);
                     console.log(`Branch created and checked out: ${branchName}`);
+                    toast.success(`Switched to new branch: ${branchName}`);
                     await refetch();
                   } catch (error) {
                     console.error("Failed to create branch:", error);
+                    toast.error(error instanceof Error ? error.message : "Failed to create branch");
                     setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
                   }
                 }}
@@ -267,6 +288,40 @@ function AppContent() {
             ),
             () => console.log("Branch dialog closed")
           );
+          break;
+
+        // Switch branch
+        case "b":
+          console.log("Opening branch switcher dialog");
+          try {
+            const branches = await gitService.getBranches();
+            dialog.show(
+              () => (
+                <BranchSwitcherDialog
+                  branches={branches}
+                  onSwitch={async (branchName) => {
+                    try {
+                      console.log(`Switching to branch: ${branchName}`);
+                      await gitService.checkoutBranch(branchName);
+                      console.log(`Switched to branch: ${branchName}`);
+                      toast.success(`Switched to branch: ${branchName}`);
+                      await refetch();
+                    } catch (error) {
+                      console.error("Failed to switch branch:", error);
+                      toast.error(error instanceof Error ? error.message : "Failed to switch branch");
+                    }
+                  }}
+                  onCancel={() => {
+                    console.log("Branch switch cancelled");
+                  }}
+                />
+              ),
+              () => console.log("Branch switcher dialog closed")
+            );
+          } catch (error) {
+            console.error("Failed to load branches:", error);
+            toast.error("Failed to load branches");
+          }
           break;
 
         // Quit
