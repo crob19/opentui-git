@@ -136,6 +136,41 @@ function AppContent() {
     }
   });
 
+  // Helper function to show the new branch dialog
+  const showNewBranchDialog = (currentBranchName: string, shouldSelectNewBranch: boolean = false) => {
+    console.log("Opening new branch dialog");
+    dialog.show(
+      () => (
+        <BranchDialog
+          currentBranch={currentBranchName}
+          onCreateBranch={async (branchName: string) => {
+            try {
+              console.log(`Creating branch: ${branchName}`);
+              await gitService.createBranch(branchName);
+              console.log(`Branch created and checked out: ${branchName}`);
+              toast.success(`Switched to new branch: ${branchName}`);
+              await refetch();
+              await refetchBranches();
+              // After creating and checking out the new branch from the branches panel,
+              // it will be sorted to the top of the branch list; select it explicitly.
+              if (shouldSelectNewBranch) {
+                setBranchSelectedIndex(0);
+              }
+            } catch (error) {
+              console.error("Failed to create branch:", error);
+              toast.error(error instanceof Error ? error.message : "Failed to create branch");
+              setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
+            }
+          }}
+          onCancel={() => {
+            console.log("Branch creation cancelled");
+          }}
+        />
+      ),
+      () => console.log("Branch dialog closed")
+    );
+  };
+
   // Keyboard handler
   const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
     // Skip all key handling when dialog is open (let dialog handle its own keys)
@@ -270,7 +305,7 @@ function AppContent() {
                       console.log(`Branch deleted: ${branchToDelete}`);
                       toast.success(`Deleted branch: ${branchToDelete}`);
                       const updatedBranches = await refetchBranches();
-                      const branchCount = updatedBranches?.length ?? 0;
+                      const branchCount = updatedBranches?.all?.length ?? 0;
                       // Reset selection if needed
                       if (branchSelectedIndex() >= branchCount) {
                         setBranchSelectedIndex(Math.max(0, branchCount - 1));
@@ -291,35 +326,7 @@ function AppContent() {
 
           // New branch
           case "n":
-            console.log("Opening new branch dialog");
-            dialog.show(
-              () => (
-                <BranchDialog
-                  currentBranch={currentBranch}
-                  onCreateBranch={async (branchName: string) => {
-                    try {
-                      console.log(`Creating branch: ${branchName}`);
-                      await gitService.createBranch(branchName);
-                      console.log(`Branch created and checked out: ${branchName}`);
-                      toast.success(`Switched to new branch: ${branchName}`);
-                      await refetch();
-                      await refetchBranches();
-                      // After creating and checking out the new branch, it will be
-                      // sorted to the top of the branch list; select it explicitly.
-                      setBranchSelectedIndex(0);
-                    } catch (error) {
-                      console.error("Failed to create branch:", error);
-                      toast.error(error instanceof Error ? error.message : "Failed to create branch");
-                      setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
-                    }
-                  }}
-                  onCancel={() => {
-                    console.log("Branch creation cancelled");
-                  }}
-                />
-              ),
-              () => console.log("Branch dialog closed")
-            );
+            showNewBranchDialog(currentBranch, true);
             break;
         }
       } else {
@@ -425,32 +432,7 @@ function AppContent() {
 
           // New branch (also available from files panel)
           case "n":
-            console.log("Opening new branch dialog");
-            dialog.show(
-              () => (
-                <BranchDialog
-                  currentBranch={status.current}
-                  onCreateBranch={async (branchName: string) => {
-                    try {
-                      console.log(`Creating branch: ${branchName}`);
-                      await gitService.createBranch(branchName);
-                      console.log(`Branch created and checked out: ${branchName}`);
-                      toast.success(`Switched to new branch: ${branchName}`);
-                      await refetch();
-                      await refetchBranches();
-                    } catch (error) {
-                      console.error("Failed to create branch:", error);
-                      toast.error(error instanceof Error ? error.message : "Failed to create branch");
-                      setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
-                    }
-                  }}
-                  onCancel={() => {
-                    console.log("Branch creation cancelled");
-                  }}
-                />
-              ),
-              () => console.log("Branch dialog closed")
-            );
+            showNewBranchDialog(status.current, false);
             break;
         }
       }
