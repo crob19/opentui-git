@@ -130,6 +130,12 @@ function AppContent() {
     }
 
     const status = gitStatus();
+    
+    // Handle quit regardless of status
+    if (key === "q" && !ctrl) {
+      process.exit(0);
+    }
+    
     if (!status || status.files.length === 0) return;
 
     try {
