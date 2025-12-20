@@ -1,4 +1,4 @@
-import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult } from "simple-git";
+import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult, MergeResult } from "simple-git";
 import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
 import { logger } from "./utils/logger.js";
@@ -279,9 +279,10 @@ export class GitService {
   /**
    * Merge a branch into the current branch
    * @param branchName - Name of the branch to merge into the current branch
+   * @returns Promise<MergeResult> - Result of the merge operation
    */
-  async mergeBranch(branchName: string): Promise<void> {
-    await this.git.merge([branchName]);
+  async mergeBranch(branchName: string): Promise<MergeResult> {
+    return await this.git.merge([branchName]);
   }
 
   /**
