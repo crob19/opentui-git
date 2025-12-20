@@ -6,6 +6,7 @@ import { FileList } from "./components/file-list.js";
 import { Footer } from "./components/footer.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { CommitDialog } from "./components/commit-dialog.js";
+import { BranchDialog } from "./components/branch-dialog.js";
 import type { GitStatusSummary } from "./types.js";
 
 /**
@@ -178,6 +179,59 @@ function AppContent() {
               />
             ),
             () => console.log("Dialog closed")
+          );
+          break;
+
+        // Pull
+        case "p":
+          console.log("Pulling from remote...");
+          try {
+            await gitService.pull();
+            console.log("Pull successful");
+            await refetch();
+          } catch (error) {
+            console.error("Pull failed:", error);
+            setErrorMessage(error instanceof Error ? error.message : "Pull failed");
+          }
+          break;
+
+        // Push
+        case "P":
+          console.log("Pushing to remote...");
+          try {
+            await gitService.push();
+            console.log("Push successful");
+            await refetch();
+          } catch (error) {
+            console.error("Push failed:", error);
+            setErrorMessage(error instanceof Error ? error.message : "Push failed");
+          }
+          break;
+
+        // New branch
+        case "n":
+          console.log("Opening new branch dialog");
+          dialog.show(
+            () => (
+              <BranchDialog
+                currentBranch={status.current}
+                onCreateBranch={async (branchName) => {
+                  try {
+                    console.log(`Creating branch: ${branchName}`);
+                    await gitService.createBranch(branchName);
+                    console.log(`Branch created and checked out: ${branchName}`);
+                    await refetch();
+                  } catch (error) {
+                    console.error("Failed to create branch:", error);
+                    setErrorMessage(error instanceof Error ? error.message : "Failed to create branch");
+                  }
+                }}
+                onCancel={() => {
+                  console.log("Branch creation cancelled");
+                }}
+              />
+            ),
+            () => console.log("Branch dialog closed")
           );
           break;
 
