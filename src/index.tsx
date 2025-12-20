@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { render } from "@opentui/solid";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
