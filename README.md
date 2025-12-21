@@ -2,14 +2,6 @@
 
 A lazygit-style terminal UI git client built with Bun, SolidJS, and OpenTUI.
 
-## Features
-
-- 🎨 Beautiful terminal UI with color-coded file statuses
-- ⌨️ Vim-style keyboard navigation (j/k or arrow keys)
-- 🚀 Fast and responsive using Bun runtime
-- 📦 Single-process application with reactive state management
-- 🎯 Simple and intuitive git operations
-
 ## Tech Stack
 
 - **[Bun](https://bun.sh)** - Fast JavaScript runtime
