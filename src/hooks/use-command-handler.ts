@@ -230,7 +230,7 @@ async function handleBranchPanelKeys(
     // Create tag
     case "t": {
       const commitHash = await context.gitService.getCurrentCommitHash();
-      tagCommands.showTagDialog(currentBranch, commitHash, context);
+      await tagCommands.showTagDialog(currentBranch, commitHash, context);
       break;
     }
 
@@ -280,7 +280,7 @@ async function handleFilePanelKeys(
   // Allow 't' (create tag) even without files
   if (key === "t") {
     const commitHash = await context.gitService.getCurrentCommitHash();
-    tagCommands.showTagDialog(currentBranch, commitHash, context);
+    await tagCommands.showTagDialog(currentBranch, commitHash, context);
     return;
   }
 

@@ -11,6 +11,40 @@ export interface TagCommandContext extends CommandContext {
 }
 
 /**
+ * Validate a tag name according to git tag naming rules
+ * @param value - The tag name to validate
+ * @param existingTags - Array of existing tag names to check against
+ * @returns Error message if invalid, null if valid
+ */
+export function validateTagName(value: string, existingTags: string[] = []): string | null {
+  const tagName = value;
+  
+  if (!tagName.trim()) {
+    return "Tag name cannot be empty";
+  }
+  if (tagName.includes(" ")) {
+    return "Tag name cannot contain spaces";
+  }
+  if (tagName.startsWith("-")) {
+    return "Tag name cannot start with '-'";
+  }
+  if (tagName.includes("..")) {
+    return "Tag name cannot contain '..'";
+  }
+  if (/[~^:?*[\\]/.test(tagName)) {
+    return "Tag name contains invalid characters (:, .., ^, ~, ?, *, [, \\)";
+  }
+  if (tagName.endsWith(".lock")) {
+    return "Tag name cannot end with '.lock'";
+  }
+  if (existingTags.includes(tagName)) {
+    return `Tag '${tagName}' already exists`;
+  }
+  
+  return null;
+}
+
+/**
  * Create a lightweight tag at HEAD
  * @param tagName - Name of the tag to create
  * @param context - Command context with git service, toast, and refetch functions
@@ -43,12 +77,21 @@ export async function createTag(
  * @param commitHash - Current commit hash (short format)
  * @param context - Command context
  */
-export function showTagDialog(
+export async function showTagDialog(
   currentBranch: string,
   commitHash: string,
   context: TagCommandContext,
-): void {
+): Promise<void> {
   console.log("Opening tag dialog");
+
+  // Fetch existing tags for validation
+  let existingTags: string[] = [];
+  try {
+    existingTags = await context.gitService.getTags();
+  } catch (error) {
+    console.error("Failed to fetch existing tags:", error);
+    // Continue with empty array - validation will still work for other rules
+  }
 
   context.dialog.show(
     () => {
@@ -62,15 +105,7 @@ export function showTagDialog(
         onCancel: () => {
           console.log("Tag creation cancelled");
         },
-        validate: (value: string) => {
-          if (!value.trim()) {
-            return "Tag name cannot be empty";
-          }
-          if (value.includes(" ")) {
-            return "Tag name cannot contain spaces";
-          }
-          return null;
-        },
+        validate: (value: string) => validateTagName(value, existingTags),
       });
       return modal;
     },

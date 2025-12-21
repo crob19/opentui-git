@@ -326,6 +326,15 @@ export class GitService {
   }
 
   /**
+   * Get all tags in the repository
+   * @returns Promise<string[]> - Array of tag names
+   */
+  async getTags(): Promise<string[]> {
+    const tags = await this.git.tags();
+    return tags.all;
+  }
+
+  /**
    * Get the current commit hash (short format)
    * @returns Promise<string> - Short commit hash
    */
