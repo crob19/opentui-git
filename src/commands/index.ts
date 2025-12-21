@@ -6,3 +6,4 @@ export * from "./file-commands.js";
 export * from "./branch-commands.js";
 export * from "./remote-commands.js";
 export * from "./navigation-commands.js";
+export * from "./tag-commands.js";

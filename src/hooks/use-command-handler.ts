@@ -10,6 +10,7 @@ import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
 import * as navCommands from "../commands/navigation-commands.js";
+import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 
 /**
@@ -226,6 +227,13 @@ async function handleBranchPanelKeys(
       });
       break;
 
+    // Create tag
+    case "t": {
+      const commitHash = await context.gitService.getCurrentCommitHash();
+      tagCommands.showTagDialog(currentBranch, commitHash, context);
+      break;
+    }
+
     // Merge branch with 'M' (Shift+m)
     case "m": {
       if (!shift) break; // Only trigger on Shift+m
@@ -266,6 +274,13 @@ async function handleFilePanelKeys(
       ...context,
       refetchBranches: async () => {}, // Not needed in file panel context
     });
+    return;
+  }
+
+  // Allow 't' (create tag) even without files
+  if (key === "t") {
+    const commitHash = await context.gitService.getCurrentCommitHash();
+    tagCommands.showTagDialog(currentBranch, commitHash, context);
     return;
   }
 

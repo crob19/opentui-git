@@ -316,4 +316,21 @@ export class GitService {
     const result = await this.git.revparse(["--show-toplevel"]);
     return result.trim();
   }
+
+  /**
+   * Create a lightweight tag at HEAD
+   * @param tagName - Name of the tag to create
+   */
+  async createTag(tagName: string): Promise<void> {
+    await this.git.tag([tagName]);
+  }
+
+  /**
+   * Get the current commit hash (short format)
+   * @returns Promise<string> - Short commit hash
+   */
+  async getCurrentCommitHash(): Promise<string> {
+    const log = await this.git.log({ maxCount: 1 });
+    return log.latest?.hash.substring(0, 7) || 'unknown';
+  }
 }
