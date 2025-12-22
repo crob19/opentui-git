@@ -85,6 +85,8 @@ export async function pushTag(
   if (result !== null) {
     console.log(`Tag pushed: ${tagName}`);
     context.toast.success(`Pushed tag: ${tagName}`);
+    await context.refetch();
+    await context.refetchTags();
   }
 }
 
