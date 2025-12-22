@@ -193,7 +193,7 @@ function DiffLineView(props: DiffLineViewProps) {
         <text fg="#666666">{newNum}</text>
       </box>
       <box paddingLeft={1} flexGrow={1} flexDirection="row">
-        <For each={tokens.slice(0, 20)}>
+        <For each={tokens}>
           {(token) => <text fg={token.color}>{token.text}</text>}
         </For>
       </box>
