@@ -76,7 +76,7 @@ function parseDiffLines(diff: string): DiffLine[] {
     } else {
       oldLineNum++;
       newLineNum++;
-      return { content: line.slice(1) || line, type: "context" as const, oldLineNum, newLineNum };
+      return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
     }
   });
 }
