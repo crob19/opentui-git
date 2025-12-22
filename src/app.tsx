@@ -8,11 +8,17 @@ import { AppLayout } from "./components/app-layout.js";
 import {
   useGitStatus,
   useGitBranches,
+  useGitTags,
   useGitDiff,
   useAutoRefresh,
   useCommandHandler,
 } from "./hooks/index.js";
 import type { PanelType } from "./commands/types.js";
+
+/**
+ * Tab types for the branches panel
+ */
+export type BranchPanelTab = "branches" | "tags";
 
 /**
  * Main application component
@@ -48,10 +54,14 @@ function AppContent() {
 
   // Panel navigation state
   const [activePanel, setActivePanel] = createSignal<PanelType>("files");
+  
+  // Branch panel tab state (branches vs tags)
+  const [branchPanelTab, setBranchPanelTab] = createSignal<BranchPanelTab>("branches");
 
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
   const gitBranches = useGitBranches(gitService);
+  const gitTags = useGitTags(gitService);
   const gitDiff = useGitDiff(gitService, gitStatus.selectedFile);
 
   // Command handler sets up all keyboard bindings
@@ -63,22 +73,28 @@ function AppContent() {
     setActivePanel,
     gitStatus,
     gitBranches,
+    gitTags,
+    branchPanelTab,
+    setBranchPanelTab,
     renderer,
   });
 
-  // Auto-refresh git status and branches every second
-  useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches);
+  // Auto-refresh git status, branches, and tags every second
+  useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
 
   return (
     <AppLayout
       gitStatus={gitStatus.gitStatus}
       localBranches={gitBranches.localBranches}
       currentBranch={gitBranches.currentBranch}
+      allTags={gitTags.allTags}
       diffContent={gitDiff.diffContent}
       selectedFile={gitStatus.selectedFile}
       selectedIndex={gitStatus.selectedIndex}
       branchSelectedIndex={gitBranches.selectedIndex}
+      tagSelectedIndex={gitTags.selectedIndex}
       activePanel={activePanel}
+      branchPanelTab={branchPanelTab}
       isGitRepo={gitStatus.isGitRepo}
       errorMessage={gitStatus.errorMessage}
       isDiffLoading={gitDiff.isLoading}

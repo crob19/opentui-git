@@ -316,4 +316,34 @@ export class GitService {
     const result = await this.git.revparse(["--show-toplevel"]);
     return result.trim();
   }
+
+  /**
+   * Create a lightweight tag at HEAD
+   * @param tagName - Name of the tag to create
+   */
+  async createTag(tagName: string): Promise<void> {
+    await this.git.tag([tagName]);
+  }
+
+  /**
+   * Get all tags in the repository
+   * @returns Promise<string[]> - Array of tag names
+   */
+  async getTags(): Promise<string[]> {
+    const tags = await this.git.tags();
+    return tags.all;
+  }
+
+  /**
+   * Get the current commit hash (short format)
+   * @returns Promise<string> - Short commit hash
+   * @throws Error if the repository has no commits
+   */
+  async getCurrentCommitHash(): Promise<string> {
+    const log = await this.git.log({ maxCount: 1 });
+    if (!log.latest) {
+      throw new Error("No commits found in the repository.");
+    }
+    return log.latest.hash.substring(0, 7);
+  }
 }

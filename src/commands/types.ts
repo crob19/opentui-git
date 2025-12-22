@@ -55,3 +55,13 @@ export interface RemoteCommandContext extends CommandContext {
   /** Function to refetch git status */
   refetch: () => Promise<unknown>;
 }
+
+/**
+ * Context for tag-related commands (create tag)
+ */
+export interface TagCommandContext extends CommandContext {
+  /** Function to refetch git status */
+  refetch: () => Promise<unknown>;
+  /** Function to refetch tags list */
+  refetchTags: () => Promise<unknown>;
+}
