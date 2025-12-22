@@ -24,7 +24,7 @@ export function validateTagName(value: string, existingTags: string[] = []): str
     return "Tag name cannot contain '..'";
   }
   if (/[~^:?*[\\]/.test(tagName)) {
-    return "Tag name contains invalid characters (:, .., ^, ~, ?, *, [, \\)";
+    return "Tag name contains invalid characters (:, ^, ~, ?, *, [, \\)";
   }
   if (tagName.endsWith(".lock")) {
     return "Tag name cannot end with '.lock'";
