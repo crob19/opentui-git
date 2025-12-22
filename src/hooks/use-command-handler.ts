@@ -205,10 +205,14 @@ async function handleBranchPanelKeys(
   switch (key) {
     // Tab navigation with [ and ]
     case "[":
+      // Reset selection when switching to branches tab
+      gitBranches.setSelectedIndex(0);
       setBranchPanelTab("branches");
       break;
     
     case "]":
+      // Reset selection when switching to tags tab
+      gitTags.setSelectedIndex(0);
       setBranchPanelTab("tags");
       break;
 
