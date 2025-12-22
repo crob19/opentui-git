@@ -1,4 +1,5 @@
 import type { Accessor } from "solid-js";
+import { getVersionString } from "../utils/version.js";
 
 /**
  * Footer component - Displays keyboard shortcuts and help text
@@ -44,17 +45,20 @@ export function Footer(props: FooterProps) {
       height={3}
       flexDirection="row"
       alignItems="center"
+      justifyContent="space-between"
       paddingLeft={1}
       paddingRight={1}
-      gap={2}
     >
-      {shortcuts().map((shortcut, idx) => (
-        <>
-          <text fg="#00AAFF">{shortcut.key}</text>
-          <text fg="#AAAAAA">{shortcut.desc}</text>
-          {idx < shortcuts().length - 1 && <text fg="#444444">│</text>}
-        </>
-      ))}
+      <box flexDirection="row" alignItems="center" gap={2}>
+        {shortcuts().map((shortcut, idx) => (
+          <>
+            <text fg="#00AAFF">{shortcut.key}</text>
+            <text fg="#AAAAAA">{shortcut.desc}</text>
+            {idx < shortcuts().length - 1 && <text fg="#444444">│</text>}
+          </>
+        ))}
+      </box>
+      <text fg="#666666">{getVersionString()}</text>
     </box>
   );
 }
