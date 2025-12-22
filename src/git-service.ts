@@ -335,6 +335,15 @@ export class GitService {
   }
 
   /**
+   * Push a specific tag to remote repository
+   * @param tagName - Name of the tag to push
+   * @param remote - Name of the remote to push to (defaults to "origin")
+   */
+  async pushTag(tagName: string, remote: string = "origin"): Promise<void> {
+    await this.git.push([remote, tagName]);
+  }
+
+  /**
    * Get the current commit hash (short format)
    * @returns Promise<string> - Short commit hash
    * @throws Error if the repository has no commits

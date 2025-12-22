@@ -62,6 +62,35 @@ export async function createTag(
 }
 
 /**
+ * Push a tag to remote repository
+ * @param tagName - Name of the tag to push
+ * @param context - Command context with git service, toast, and refetch functions
+ */
+export async function pushTag(
+  tagName: string,
+  context: TagCommandContext,
+): Promise<void> {
+  console.log(`Pushing tag: ${tagName}`);
+  context.toast.info(`Pushing tag: ${tagName}...`);
+
+  const result = await handleAsyncOperation(
+    () => context.gitService.pushTag(tagName),
+    {
+      toast: context.toast,
+      setErrorMessage: context.setErrorMessage,
+      operation: "Push tag",
+    },
+  );
+
+  if (result !== null) {
+    console.log(`Tag pushed: ${tagName}`);
+    context.toast.success(`Pushed tag: ${tagName}`);
+    await context.refetch();
+    await context.refetchTags();
+  }
+}
+
+/**
  * Show dialog to create a new tag
  * @param currentBranch - Current branch name
  * @param commitHash - Current commit hash (short format)
