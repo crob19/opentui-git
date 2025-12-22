@@ -210,6 +210,10 @@ function DiffLineView(props: DiffLineViewProps) {
   );
 }
 
+// Memoize highlighted tokens to avoid re-highlighting the same lines
+// Moved outside component to persist across renders
+const highlightCache = new Map<string, HighlightedToken[]>();
+
 export function DiffViewer(props: DiffViewerProps) {
   const diffLines = () => {
     const diff = props.diff();
@@ -225,20 +229,20 @@ export function DiffViewer(props: DiffViewerProps) {
     return path ? getLanguageFromPath(path) : "javascript";
   });
 
-  // Memoize highlighted tokens to avoid re-highlighting the same lines
-  const highlightCache = new Map<string, HighlightedToken[]>();
-  
-  const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
-    if (!hl) return [{ text: code, color: "#CCCCCC" }];
-    
-    const cacheKey = `${lang}:${code}`;
-    const cached = highlightCache.get(cacheKey);
-    if (cached) return cached;
-    
-    const tokens = highlightCode(code, lang, hl);
-    highlightCache.set(cacheKey, tokens);
-    return tokens;
-  };
+  // Memoize getHighlightedTokens function to maintain referential equality
+  const getHighlightedTokens = createMemo(() => {
+    return (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+      if (!hl) return [{ text: code, color: "#CCCCCC" }];
+      
+      const cacheKey = `${lang}:${code}`;
+      const cached = highlightCache.get(cacheKey);
+      if (cached) return cached;
+      
+      const tokens = highlightCode(code, lang, hl);
+      highlightCache.set(cacheKey, tokens);
+      return tokens;
+    };
+  });
 
   return (
     <box
@@ -287,7 +291,7 @@ export function DiffViewer(props: DiffViewerProps) {
                   line={line}
                   language={language()}
                   highlighter={highlighter()}
-                  getHighlightedTokens={getHighlightedTokens}
+                  getHighlightedTokens={getHighlightedTokens()}
                 />
               )}
             </For>
