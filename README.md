@@ -11,12 +11,47 @@ A lazygit-style terminal UI git client built with Bun, SolidJS, and OpenTUI.
 
 ## Installation
 
-### Prerequisites
+### For Users
+
+#### Homebrew (macOS) - Recommended
+
+```bash
+brew tap crob19/tap
+brew install opentui-git
+```
+
+**Upgrade:**
+```bash
+brew update
+brew upgrade opentui-git
+```
+
+#### Direct Download
+
+Check the [releases page](https://github.com/crob19/opentui-git/releases/latest) for the latest version number, then download:
+
+**Intel Mac:**
+```bash
+# Replace VERSION with the latest version (e.g., 0.1.1)
+curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-x64.tar.gz | tar xz
+sudo mv opentui-git-darwin-x64 /usr/local/bin/opentui-git
+```
+
+**Apple Silicon (M1/M2/M3/M4):**
+```bash
+# Replace VERSION with the latest version (e.g., 0.1.1)
+curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-arm64.tar.gz | tar xz
+sudo mv opentui-git-darwin-arm64 /usr/local/bin/opentui-git
+```
+
+### For Development
+
+#### Prerequisites
 
 - [Bun](https://bun.sh) v1.3.5 or later
 - Git installed on your system
 
-### Install Dependencies
+#### Install Dependencies
 
 ```bash
 bun install
@@ -24,7 +59,13 @@ bun install
 
 ## Usage
 
-### Run in Development Mode
+Run in any git repository:
+
+```bash
+opentui-git
+```
+
+### Development Mode
 
 Navigate to a git repository and run:
 
@@ -120,6 +161,35 @@ See [TODO.md](./TODO.md) for upcoming features including:
 - And more!
 
 ## Development
+
+### Releasing New Versions
+
+The project uses a Makefile for standardized releases:
+
+```bash
+# Patch release (0.1.0 → 0.1.1) - Bug fixes
+make release-patch
+
+# Minor release (0.1.0 → 0.2.0) - New features
+make release-minor
+
+# Major release (0.1.0 → 1.0.0) - Breaking changes
+make release-major
+```
+
+The release script will:
+1. ✅ Verify working directory is clean
+2. ✅ Confirm you're on the main branch
+3. ✅ Check remote is up to date
+4. ✅ Bump version in `package.json`
+5. ✅ Create a conventional commit (`chore: release vX.Y.Z`)
+6. ✅ Create and push a git tag
+7. ✅ Trigger GitHub Actions to build and publish
+
+**After release:**
+- GitHub Actions builds binaries for both architectures
+- Creates a GitHub Release with downloadable tarballs
+- Update the Homebrew formula with new SHA256 checksums (see script output)
 
 ### TypeScript Configuration
 
