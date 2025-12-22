@@ -23,16 +23,11 @@ interface HighlightedToken {
 }
 
 // Initialize Shiki highlighter
-let highlighterInstance: Highlighter | null = null;
-
 async function getHighlighter(): Promise<Highlighter> {
-  if (!highlighterInstance) {
-    highlighterInstance = await createHighlighter({
-      themes: ["dark-plus"],
-      langs: ["javascript", "typescript", "python", "go", "rust", "c", "cpp", "tsx", "jsx"],
-    });
-  }
-  return highlighterInstance;
+  return createHighlighter({
+    themes: ["dark-plus"],
+    langs: ["javascript", "typescript", "python", "go", "rust", "c", "cpp", "tsx", "jsx"],
+  });
 }
 
 // Map file extensions to Shiki languages
@@ -64,10 +59,10 @@ function parseDiffLines(diff: string): DiffLine[] {
   return lines.map((line) => {
     // Parse @@ header to get line numbers
     if (line.startsWith("@@")) {
-      const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
+      const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
       if (match) {
         oldLineNum = parseInt(match[1]) - 1;
-        newLineNum = parseInt(match[2]) - 1;
+        newLineNum = parseInt(match[3]) - 1;
       }
       return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
     } else if (line.startsWith("+++") || line.startsWith("---")) {
@@ -126,9 +121,84 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
       color: token.color || "#CCCCCC",
     })) || [{ text: code, color: "#CCCCCC" }];
   } catch (error) {
+    // Log the error to aid in debugging highlighting issues, but still fall back gracefully.
+    console.error("Failed to highlight code with shiki highlighter.", {
+      language,
+      error,
+    });
     // Fallback if highlighting fails
     return [{ text: code, color: "#CCCCCC" }];
   }
+}
+
+/**
+ * DiffLineView - Separate component to render a single diff line
+ * This prevents the render function from being recreated on every parent render
+ */
+interface DiffLineViewProps {
+  line: DiffLine;
+  language: string;
+  highlighter: Highlighter | undefined;
+  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+}
+
+function DiffLineView(props: DiffLineViewProps) {
+  // For header lines, just render as plain text
+  if (props.line.type === "header") {
+    return (
+      <box
+        backgroundColor={getBackgroundColor(props.line.type)}
+        width="100%"
+        height={1}
+        flexDirection="row"
+      >
+        <box
+          backgroundColor={getLineNumberBgColor(props.line.type)}
+          width={10}
+          paddingLeft={1}
+          paddingRight={1}
+        >
+          <text fg="#666666">...</text>
+        </box>
+        <box paddingLeft={1} flexGrow={1}>
+          <text fg="#00AAFF">{props.line.content.slice(0, 100)}</text>
+        </box>
+      </box>
+    );
+  }
+
+  // Get highlighted tokens (memoized)
+  const tokens = props.getHighlightedTokens(props.line.content, props.language, props.highlighter);
+  
+  // Format line numbers
+  const oldNum = props.line.oldLineNum !== null ? String(props.line.oldLineNum).padStart(4, " ") : "    ";
+  const newNum = props.line.newLineNum !== null ? String(props.line.newLineNum).padStart(4, " ") : "    ";
+
+  return (
+    <box
+      backgroundColor={getBackgroundColor(props.line.type)}
+      width="100%"
+      height={1}
+      flexDirection="row"
+    >
+      <box
+        backgroundColor={getLineNumberBgColor(props.line.type)}
+        width={10}
+        paddingLeft={1}
+        paddingRight={1}
+        flexDirection="row"
+        gap={1}
+      >
+        <text fg="#666666">{oldNum}</text>
+        <text fg="#666666">{newNum}</text>
+      </box>
+      <box paddingLeft={1} flexGrow={1} flexDirection="row">
+        <For each={tokens.slice(0, 20)}>
+          {(token) => <text fg={token.color}>{token.text}</text>}
+        </For>
+      </box>
+    </box>
+  );
 }
 
 export function DiffViewer(props: DiffViewerProps) {
@@ -146,66 +216,19 @@ export function DiffViewer(props: DiffViewerProps) {
     return path ? getLanguageFromPath(path) : "javascript";
   });
 
-  // Render a single diff line with syntax highlighting
-  const renderDiffLine = (line: DiffLine) => {
-    const hl = highlighter();
+  // Memoize highlighted tokens to avoid re-highlighting the same lines
+  const highlightCache = new Map<string, HighlightedToken[]>();
+  
+  const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+    if (!hl) return [{ text: code, color: "#CCCCCC" }];
     
-    // For header lines, just render as plain text
-    if (line.type === "header") {
-      return (
-        <box
-          backgroundColor={getBackgroundColor(line.type)}
-          width="100%"
-          height={1}
-          flexDirection="row"
-        >
-          <box
-            backgroundColor={getLineNumberBgColor(line.type)}
-            width={10}
-            paddingLeft={1}
-            paddingRight={1}
-          >
-            <text fg="#666666">...</text>
-          </box>
-          <box paddingLeft={1} flexGrow={1}>
-            <text fg="#00AAFF">{line.content.slice(0, 100)}</text>
-          </box>
-        </box>
-      );
-    }
-
-    // Get highlighted tokens
-    const tokens = hl ? highlightCode(line.content, language(), hl) : [{ text: line.content, color: "#CCCCCC" }];
+    const cacheKey = `${lang}:${code}`;
+    const cached = highlightCache.get(cacheKey);
+    if (cached) return cached;
     
-    // Format line numbers
-    const oldNum = line.oldLineNum !== null ? String(line.oldLineNum).padStart(4, " ") : "    ";
-    const newNum = line.newLineNum !== null ? String(line.newLineNum).padStart(4, " ") : "    ";
-
-    return (
-      <box
-        backgroundColor={getBackgroundColor(line.type)}
-        width="100%"
-        height={1}
-        flexDirection="row"
-      >
-        <box
-          backgroundColor={getLineNumberBgColor(line.type)}
-          width={10}
-          paddingLeft={1}
-          paddingRight={1}
-          flexDirection="row"
-          gap={1}
-        >
-          <text fg="#666666">{oldNum}</text>
-          <text fg="#666666">{newNum}</text>
-        </box>
-        <box paddingLeft={1} flexGrow={1} flexDirection="row">
-          <For each={tokens.slice(0, 20)}>
-            {(token) => <text fg={token.color}>{token.text}</text>}
-          </For>
-        </box>
-      </box>
-    );
+    const tokens = highlightCode(code, lang, hl);
+    highlightCache.set(cacheKey, tokens);
+    return tokens;
   };
 
   return (
@@ -237,10 +260,27 @@ export function DiffViewer(props: DiffViewerProps) {
       </Show>
 
       <Show when={!props.isLoading() && props.diff()}>
-        <Show when={!highlighter.loading} fallback={<text fg="#888888">Loading syntax highlighter...</text>}>
+        <Show
+          when={!highlighter.loading && !highlighter.error}
+          fallback={
+            <Show
+              when={highlighter.error}
+              fallback={<text fg="#888888">Loading syntax highlighter...</text>}
+            >
+              <text fg="#FF5555">Failed to load syntax highlighter</text>
+            </Show>
+          }
+        >
           <box flexDirection="column" overflow="hidden">
             <For each={diffLines().slice(0, 40)}>
-              {(line) => renderDiffLine(line)}
+              {(line) => (
+                <DiffLineView
+                  line={line}
+                  language={language()}
+                  highlighter={highlighter()}
+                  getHighlightedTokens={getHighlightedTokens}
+                />
+              )}
             </For>
             <Show when={diffLines().length > 40}>
               <text fg="#888888">... {diffLines().length - 40} more lines (press 'd' to view full diff)</text>
