@@ -173,11 +173,11 @@ async function commitAndTag() {
     console.log(`   ✓ Staged package.json`);
     
     // Commit with conventional commit format
-    await $`git commit -m ${"chore: release v" + newVersion}`;
+    await $`git commit -m ${`chore: release v${newVersion}`}`;
     console.log(`   ✓ Created commit: "chore: release v${newVersion}"`);
     
     // Create annotated tag
-    await $`git tag -a v${newVersion} -m ${"chore: release v" + newVersion}`;
+    await $`git tag -a ${`v${newVersion}`} -m ${`chore: release v${newVersion}`}`;
     console.log(`   ✓ Created tag v${newVersion}`);
   } catch (err) {
     console.error("❌ Error creating commit/tag:", err);
@@ -196,7 +196,7 @@ async function pushToRemote() {
     console.log(`   ✓ Pushed ${branch} branch`);
     
     // Push tag
-    await $`git push origin v${newVersion}`;
+    await $`git push origin ${`v${newVersion}`}`;
     console.log(`   ✓ Pushed tag v${newVersion}`);
   } catch (err) {
     console.error("❌ Error pushing to remote:", err);
