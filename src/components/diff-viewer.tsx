@@ -161,6 +161,8 @@ interface DiffLineViewProps {
   language: string;
   highlighter: Highlighter | undefined;
   getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  lineNumberWidth: number;
+  lineNumberPadding: number;
 }
 
 function DiffLineView(props: DiffLineViewProps) {
@@ -175,7 +177,7 @@ function DiffLineView(props: DiffLineViewProps) {
       >
         <box
           backgroundColor={getLineNumberBgColor(props.line.type)}
-          width={10}
+          width={props.lineNumberWidth}
           paddingLeft={1}
           paddingRight={1}
         >
@@ -191,9 +193,9 @@ function DiffLineView(props: DiffLineViewProps) {
   // Get highlighted tokens (memoized)
   const tokens = props.getHighlightedTokens(props.line.content, props.language, props.highlighter);
   
-  // Format line numbers
-  const oldNum = props.line.oldLineNum !== null ? String(props.line.oldLineNum).padStart(4, " ") : "    ";
-  const newNum = props.line.newLineNum !== null ? String(props.line.newLineNum).padStart(4, " ") : "    ";
+  // Format line numbers with dynamic padding
+  const oldNum = props.line.oldLineNum !== null ? String(props.line.oldLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
+  const newNum = props.line.newLineNum !== null ? String(props.line.newLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
 
   return (
     <box
@@ -204,7 +206,7 @@ function DiffLineView(props: DiffLineViewProps) {
     >
       <box
         backgroundColor={getLineNumberBgColor(props.line.type)}
-        width={10}
+        width={props.lineNumberWidth}
         paddingLeft={1}
         paddingRight={1}
         flexDirection="row"
@@ -240,6 +242,38 @@ export function DiffViewer(props: DiffViewerProps) {
     const path = props.filePath();
     return path ? getLanguageFromPath(path) : "javascript";
   });
+
+
+  // Calculate the maximum line number to determine width needed
+  const maxLineNumber = createMemo(() => {
+    const lines = diffLines();
+    let max = 0;
+    for (const line of lines) {
+      if (line.oldLineNum !== null && line.oldLineNum > max) {
+        max = line.oldLineNum;
+      }
+      if (line.newLineNum !== null && line.newLineNum > max) {
+        max = line.newLineNum;
+      }
+    }
+    return max;
+  });
+
+  // Calculate line number padding (number of digits needed)
+  const lineNumberPadding = createMemo(() => {
+    const max = maxLineNumber();
+    return max > 0 ? Math.max(String(max).length, 4) : 4; // minimum 4 for readability
+  });
+
+  // Calculate total width for line number column
+  // Formula: padding * 2 (for old and new line numbers) + 3 (2 for paddingLeft/paddingRight + 1 for gap)
+  const lineNumberWidth = createMemo(() => {
+    return lineNumberPadding() * 2 + 3;
+  });
+
+  // Memoize highlighted tokens to avoid re-highlighting the same lines
+  const highlightCache = new Map<string, HighlightedToken[]>();
+  
 
   // Memoize getHighlightedTokens function to maintain referential equality
   const getHighlightedTokens = createMemo(() => {
@@ -303,6 +337,8 @@ export function DiffViewer(props: DiffViewerProps) {
                   line={line}
                   language={language()}
                   highlighter={highlighter()}
+                  lineNumberWidth={lineNumberWidth()}
+                  lineNumberPadding={lineNumberPadding()}
                   getHighlightedTokens={getHighlightedTokens()}
                 />
               )}
