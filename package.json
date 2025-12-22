@@ -1,6 +1,6 @@
 {
   "name": "opentui-git",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
   "type": "module",
   "main": "src/index.tsx",
