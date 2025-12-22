@@ -102,7 +102,27 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     }
 
     // Handle pull/push regardless of file status
+    // Special case: Shift+P on tags tab pushes the selected tag
     if (key === "p" || key === "P") {
+      // If in branches panel on tags tab with Shift, push the selected tag
+      if (shift && activePanel() === "branches" && branchPanelTab() === "tags") {
+        const selectedTag = gitTags.selectedTag();
+        if (selectedTag) {
+          await tagCommands.pushTag(selectedTag, {
+            gitService,
+            toast,
+            dialog,
+            setErrorMessage: gitStatus.setErrorMessage,
+            refetch: gitStatus.refetch,
+            refetchTags: gitTags.refetchTags,
+          });
+        } else {
+          toast.info("No tag selected");
+        }
+        return;
+      }
+
+      // Default push/pull behavior
       const context = {
         gitService,
         toast,
