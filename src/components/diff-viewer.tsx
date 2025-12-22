@@ -240,7 +240,7 @@ export function DiffViewer(props: DiffViewerProps) {
   });
 
   // Calculate total width for line number column
-  // Formula: padding * 2 (for old and new line numbers) + 2 (for paddingLeft and paddingRight) + 1 (for gap)
+  // Formula: padding * 2 (for old and new line numbers) + 3 (2 for paddingLeft/paddingRight + 1 for gap)
   const lineNumberWidth = createMemo(() => {
     return lineNumberPadding() * 2 + 3;
   });
