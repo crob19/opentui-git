@@ -28,6 +28,7 @@
   "dependencies": {
     "@opentui/core": "^0.1.62",
     "@opentui/solid": "^0.1.62",
+    "shiki": "^3.20.0",
     "simple-git": "^3.30.0",
     "solid-js": "^1.9.9"
   },
