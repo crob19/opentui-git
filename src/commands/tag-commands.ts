@@ -1,14 +1,6 @@
-import type { CommandContext } from "./types.js";
+import type { TagCommandContext } from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
-
-/**
- * Context for tag-related commands
- */
-export interface TagCommandContext extends CommandContext {
-  /** Function to refetch git status */
-  refetch: () => Promise<unknown>;
-}
 
 /**
  * Validate a tag name according to git tag naming rules
