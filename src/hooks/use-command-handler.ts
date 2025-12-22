@@ -320,8 +320,16 @@ async function handleFilePanelKeys(
 
   // Allow 't' (create tag) even without files
   if (key === "t") {
-    const commitHash = await context.gitService.getCurrentCommitHash();
-    await tagCommands.showTagDialog(currentBranch, commitHash, context);
+    try {
+      const commitHash = await context.gitService.getCurrentCommitHash();
+      await tagCommands.showTagDialog(currentBranch, commitHash, context);
+    } catch (error) {
+      // Handle case where there is no current commit (for example, empty repository)
+      console.error("Failed to get current commit hash for tag creation:", error);
+      context.setErrorMessage(
+        "Cannot create a tag because the repository has no commits yet.",
+      );
+    }
     return;
   }
 
