@@ -22,6 +22,9 @@ interface HighlightedToken {
   color: string;
 }
 
+// Default fallback color for syntax highlighting when no color is available
+const DEFAULT_FALLBACK_COLOR = "#CCCCCC";
+
 // Initialize Shiki highlighter
 async function getHighlighter(): Promise<Highlighter> {
   return createHighlighter({
@@ -118,8 +121,8 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
 
     return tokens[0]?.map((token) => ({
       text: token.content,
-      color: token.color || "#CCCCCC",
-    })) || [{ text: code, color: "#CCCCCC" }];
+      color: token.color || DEFAULT_FALLBACK_COLOR,
+    })) || [{ text: code, color: DEFAULT_FALLBACK_COLOR }];
   } catch (error) {
     // Log the error to aid in debugging highlighting issues, but still fall back gracefully.
     console.error("Failed to highlight code with shiki highlighter.", {
@@ -127,7 +130,7 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
       error,
     });
     // Fallback if highlighting fails
-    return [{ text: code, color: "#CCCCCC" }];
+    return [{ text: code, color: DEFAULT_FALLBACK_COLOR }];
   }
 }
 
@@ -220,7 +223,7 @@ export function DiffViewer(props: DiffViewerProps) {
   const highlightCache = new Map<string, HighlightedToken[]>();
   
   const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
-    if (!hl) return [{ text: code, color: "#CCCCCC" }];
+    if (!hl) return [{ text: code, color: DEFAULT_FALLBACK_COLOR }];
     
     const cacheKey = `${lang}:${code}`;
     const cached = highlightCache.get(cacheKey);
