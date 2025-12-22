@@ -337,9 +337,13 @@ export class GitService {
   /**
    * Get the current commit hash (short format)
    * @returns Promise<string> - Short commit hash
+   * @throws Error if the repository has no commits
    */
   async getCurrentCommitHash(): Promise<string> {
     const log = await this.git.log({ maxCount: 1 });
-    return log.latest?.hash.substring(0, 7) || 'unknown';
+    if (!log.latest) {
+      throw new Error("No commits found in the repository.");
+    }
+    return log.latest.hash.substring(0, 7);
   }
 }
