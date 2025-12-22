@@ -161,7 +161,7 @@ function DiffLineView(props: DiffLineViewProps) {
           <text fg="#666666">...</text>
         </box>
         <box paddingLeft={1} flexGrow={1}>
-          <text fg="#00AAFF">{props.line.content.slice(0, 100)}</text>
+          <text fg="#00AAFF">{props.line.content}</text>
         </box>
       </box>
     );
