@@ -271,11 +271,8 @@ export function DiffViewer(props: DiffViewerProps) {
     return lineNumberPadding() * 2 + 3;
   });
 
-  // Memoize highlighted tokens to avoid re-highlighting the same lines
-  const highlightCache = new Map<string, HighlightedToken[]>();
-  
-
   // Memoize getHighlightedTokens function to maintain referential equality
+  // Uses module-level highlightCache (line 229) that persists across renders
   const getHighlightedTokens = createMemo(() => {
     return (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
       if (!hl) return [{ text: code, color: "#CCCCCC" }];
