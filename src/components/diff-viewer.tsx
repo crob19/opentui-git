@@ -1,5 +1,5 @@
 import { For, Show, type Accessor, createMemo, createResource } from "solid-js";
-import { createHighlighter, type Highlighter } from "shiki";
+import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -21,6 +21,18 @@ interface HighlightedToken {
   text: string;
   color: string;
 }
+
+// Background color constants for diff lines
+const DIFF_BG_COLOR_ADD = "#1F3F1F"; // Dark green background
+const DIFF_BG_COLOR_REMOVE = "#3F1F1F"; // Dark red background
+const DIFF_BG_COLOR_HEADER = "#1F2F3F"; // Dark blue background
+const DIFF_BG_COLOR_CONTEXT = "transparent";
+
+// Line number background color constants for diff lines
+const DIFF_LINE_NUM_BG_COLOR_ADD = "#0F2F0F"; // Darker green
+const DIFF_LINE_NUM_BG_COLOR_REMOVE = "#2F0F0F"; // Darker red
+const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F"; // Darker blue
+const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A"; // Dark gray
 
 // Initialize Shiki highlighter
 async function getHighlighter(): Promise<Highlighter> {
@@ -84,35 +96,44 @@ function parseDiffLines(diff: string): DiffLine[] {
 function getBackgroundColor(type: DiffLine["type"]): string {
   switch (type) {
     case "add":
-      return "#1F3F1F"; // Dark green background
+      return DIFF_BG_COLOR_ADD;
     case "remove":
-      return "#3F1F1F"; // Dark red background
+      return DIFF_BG_COLOR_REMOVE;
     case "header":
-      return "#1F2F3F"; // Dark blue background
+      return DIFF_BG_COLOR_HEADER;
     case "context":
     default:
-      return "transparent";
+      return DIFF_BG_COLOR_CONTEXT;
   }
 }
 
 function getLineNumberBgColor(type: DiffLine["type"]): string {
   switch (type) {
     case "add":
-      return "#0F2F0F"; // Darker green
+      return DIFF_LINE_NUM_BG_COLOR_ADD;
     case "remove":
-      return "#2F0F0F"; // Darker red
+      return DIFF_LINE_NUM_BG_COLOR_REMOVE;
     case "header":
-      return "#0F1F2F"; // Darker blue
+      return DIFF_LINE_NUM_BG_COLOR_HEADER;
     case "context":
     default:
-      return "#1A1A1A"; // Dark gray
+      return DIFF_LINE_NUM_BG_COLOR_CONTEXT;
   }
 }
 
 function highlightCode(code: string, language: string, highlighter: Highlighter): HighlightedToken[] {
   try {
+    // Check if the language is loaded in the highlighter
+    const loadedLanguages = highlighter.getLoadedLanguages();
+    
+    // If the language is not loaded, fall back to plain text
+    if (!loadedLanguages.includes(language)) {
+      return [{ text: code, color: "#CCCCCC" }];
+    }
+
+    // Use the language with proper type - it's validated above
     const tokens = highlighter.codeToTokensBase(code, {
-      lang: language as any,
+      lang: language as BundledLanguage,
       theme: "dark-plus",
     });
 
@@ -133,7 +154,7 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
 
 /**
  * DiffLineView - Separate component to render a single diff line
- * This prevents the render function from being recreated on every parent render
+ * Helps keep the code organized and enables granular reactivity for each diff line
  */
 interface DiffLineViewProps {
   line: DiffLine;
@@ -203,6 +224,10 @@ function DiffLineView(props: DiffLineViewProps) {
   );
 }
 
+// Memoize highlighted tokens to avoid re-highlighting the same lines
+// Moved outside component to persist across renders
+const highlightCache = new Map<string, HighlightedToken[]>();
+
 export function DiffViewer(props: DiffViewerProps) {
   const diffLines = () => {
     const diff = props.diff();
@@ -217,6 +242,7 @@ export function DiffViewer(props: DiffViewerProps) {
     const path = props.filePath();
     return path ? getLanguageFromPath(path) : "javascript";
   });
+
 
   // Calculate the maximum line number to determine width needed
   const maxLineNumber = createMemo(() => {
@@ -248,17 +274,21 @@ export function DiffViewer(props: DiffViewerProps) {
   // Memoize highlighted tokens to avoid re-highlighting the same lines
   const highlightCache = new Map<string, HighlightedToken[]>();
   
-  const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
-    if (!hl) return [{ text: code, color: "#CCCCCC" }];
-    
-    const cacheKey = `${lang}:${code}`;
-    const cached = highlightCache.get(cacheKey);
-    if (cached) return cached;
-    
-    const tokens = highlightCode(code, lang, hl);
-    highlightCache.set(cacheKey, tokens);
-    return tokens;
-  };
+
+  // Memoize getHighlightedTokens function to maintain referential equality
+  const getHighlightedTokens = createMemo(() => {
+    return (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+      if (!hl) return [{ text: code, color: "#CCCCCC" }];
+      
+      const cacheKey = `${lang}:${code}`;
+      const cached = highlightCache.get(cacheKey);
+      if (cached) return cached;
+      
+      const tokens = highlightCode(code, lang, hl);
+      highlightCache.set(cacheKey, tokens);
+      return tokens;
+    };
+  });
 
   return (
     <box
@@ -307,9 +337,9 @@ export function DiffViewer(props: DiffViewerProps) {
                   line={line}
                   language={language()}
                   highlighter={highlighter()}
-                  getHighlightedTokens={getHighlightedTokens}
                   lineNumberWidth={lineNumberWidth()}
                   lineNumberPadding={lineNumberPadding()}
+                  getHighlightedTokens={getHighlightedTokens()}
                 />
               )}
             </For>
