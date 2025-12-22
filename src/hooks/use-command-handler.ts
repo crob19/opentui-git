@@ -5,7 +5,9 @@ import type { DialogContext } from "../components/dialog.js";
 import type { PanelType } from "../commands/types.js";
 import type { UseGitStatusResult } from "./use-git-status.js";
 import type { UseGitBranchesResult } from "./use-git-branches.js";
+import type { UseGitTagsResult } from "./use-git-tags.js";
 import type { Accessor, Setter } from "solid-js";
+import type { BranchPanelTab } from "../app.js";
 import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
@@ -31,6 +33,12 @@ export interface UseCommandHandlerOptions {
   gitStatus: UseGitStatusResult;
   /** Git branches hook result */
   gitBranches: UseGitBranchesResult;
+  /** Git tags hook result */
+  gitTags: UseGitTagsResult;
+  /** Branch panel tab accessor (branches/tags) */
+  branchPanelTab: Accessor<BranchPanelTab>;
+  /** Branch panel tab setter */
+  setBranchPanelTab: Setter<BranchPanelTab>;
   /** Renderer result from OpenTUI */
   renderer: ReturnType<typeof import("@opentui/solid").useRenderer>;
 }
@@ -49,6 +57,9 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setActivePanel,
     gitStatus,
     gitBranches,
+    gitTags,
+    branchPanelTab,
+    setBranchPanelTab,
     renderer,
   } = options;
 
@@ -121,12 +132,16 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           branchList,
           currentBranch,
           gitBranches,
+          gitTags,
+          branchPanelTab,
+          setBranchPanelTab,
           gitService,
           toast,
           dialog,
           setErrorMessage: gitStatus.setErrorMessage,
           refetch: gitStatus.refetch,
           refetchBranches: gitBranches.refetchBranches,
+          refetchTags: gitTags.refetchTags,
         });
       } else {
         // Files panel keys
@@ -139,6 +154,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           dialog,
           setErrorMessage: gitStatus.setErrorMessage,
           refetch: gitStatus.refetch,
+          refetchTags: gitTags.refetchTags,
         });
       }
     } catch (error) {
@@ -167,55 +183,77 @@ async function handleBranchPanelKeys(
     branchList: string[];
     currentBranch: string;
     gitBranches: UseGitBranchesResult;
+    gitTags: UseGitTagsResult;
+    branchPanelTab: Accessor<BranchPanelTab>;
+    setBranchPanelTab: Setter<BranchPanelTab>;
     gitService: GitService;
     toast: ToastContext;
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
     refetch: () => Promise<unknown>;
     refetchBranches: () => Promise<unknown>;
+    refetchTags: () => Promise<unknown>;
   },
 ): Promise<void> {
-  const { branchList, currentBranch, gitBranches } = context;
+  const { branchList, currentBranch, gitBranches, gitTags, branchPanelTab, setBranchPanelTab } = context;
+
+  // Get the current list and selection based on active tab
+  const currentList = branchPanelTab() === "branches" ? branchList : gitTags.allTags();
+  const currentSelectedIndex = branchPanelTab() === "branches" ? gitBranches.selectedIndex : gitTags.selectedIndex;
+  const currentSetSelectedIndex = branchPanelTab() === "branches" ? gitBranches.setSelectedIndex : gitTags.setSelectedIndex;
 
   switch (key) {
+    // Tab navigation with [ and ]
+    case "[":
+      setBranchPanelTab("branches");
+      break;
+    
+    case "]":
+      setBranchPanelTab("tags");
+      break;
+
     case "j":
     case "down":
       navCommands.navigateDown(
-        gitBranches.selectedIndex,
-        gitBranches.setSelectedIndex,
-        branchList.length - 1,
+        currentSelectedIndex,
+        currentSetSelectedIndex,
+        currentList.length - 1,
       );
       break;
 
     case "k":
     case "up":
       navCommands.navigateUp(
-        gitBranches.selectedIndex,
-        gitBranches.setSelectedIndex,
+        currentSelectedIndex,
+        currentSetSelectedIndex,
       );
       break;
 
-    // Checkout branch with space
+    // Checkout branch with space (only on branches tab)
     case " ":
     case "space": {
-      const branch = gitBranches.selectedBranch();
-      if (branch && branch !== currentBranch) {
-        await branchCommands.checkoutBranch(branch, context);
-      } else if (branch === currentBranch) {
-        context.toast.info("Already on this branch");
+      if (branchPanelTab() === "branches") {
+        const branch = gitBranches.selectedBranch();
+        if (branch && branch !== currentBranch) {
+          await branchCommands.checkoutBranch(branch, context);
+        } else if (branch === currentBranch) {
+          context.toast.info("Already on this branch");
+        }
       }
       break;
     }
 
-    // Delete branch with 'd'
+    // Delete branch with 'd' (only on branches tab)
     case "d": {
-      const branchToDelete = gitBranches.selectedBranch();
-      if (!branchToDelete) break;
+      if (branchPanelTab() === "branches") {
+        const branchToDelete = gitBranches.selectedBranch();
+        if (!branchToDelete) break;
 
-      branchCommands.showDeleteBranchDialog(branchToDelete, currentBranch, {
-        ...context,
-        setBranchSelectedIndex: gitBranches.setSelectedIndex,
-      });
+        branchCommands.showDeleteBranchDialog(branchToDelete, currentBranch, {
+          ...context,
+          setBranchSelectedIndex: gitBranches.setSelectedIndex,
+        });
+      }
       break;
     }
 
@@ -234,17 +272,19 @@ async function handleBranchPanelKeys(
       break;
     }
 
-    // Merge branch with 'M' (Shift+m)
+    // Merge branch with 'M' (Shift+m, only on branches tab)
     case "m": {
       if (!shift) break; // Only trigger on Shift+m
-      const branchToMerge = gitBranches.selectedBranch();
-      if (!branchToMerge) break;
+      if (branchPanelTab() === "branches") {
+        const branchToMerge = gitBranches.selectedBranch();
+        if (!branchToMerge) break;
 
-      branchCommands.showMergeBranchDialog(
-        branchToMerge,
-        currentBranch,
-        context,
-      );
+        branchCommands.showMergeBranchDialog(
+          branchToMerge,
+          currentBranch,
+          context,
+        );
+      }
       break;
     }
   }
@@ -264,6 +304,7 @@ async function handleFilePanelKeys(
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
     refetch: () => Promise<unknown>;
+    refetchTags: () => Promise<unknown>;
   },
 ): Promise<void> {
   const { status, currentBranch, gitStatus } = context;

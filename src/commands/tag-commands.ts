@@ -60,6 +60,7 @@ export async function createTag(
     console.log(`Tag created: ${tagName}`);
     context.toast.success(`Created tag: ${tagName}`);
     await context.refetch();
+    await context.refetchTags();
   }
 }
 

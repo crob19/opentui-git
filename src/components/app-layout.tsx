@@ -1,6 +1,7 @@
 import { Show, type Accessor, type Resource, type JSXElement } from "solid-js";
 import type { GitStatusSummary, GitFileStatus, FileTreeNode } from "../types.js";
 import type { PanelType } from "../commands/types.js";
+import type { BranchPanelTab } from "../app.js";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
@@ -17,6 +18,8 @@ export interface AppLayoutProps {
   localBranches: Accessor<string[]>;
   /** Current branch name */
   currentBranch: Accessor<string>;
+  /** All tags list */
+  allTags: Accessor<string[]>;
   /** Diff content resource */
   diffContent: Resource<string | null>;
   /** Currently selected file */
@@ -25,8 +28,12 @@ export interface AppLayoutProps {
   selectedIndex: Accessor<number>;
   /** Selected branch index */
   branchSelectedIndex: Accessor<number>;
+  /** Selected tag index */
+  tagSelectedIndex: Accessor<number>;
   /** Active panel (files or branches) */
   activePanel: Accessor<PanelType>;
+  /** Branch panel tab (branches or tags) */
+  branchPanelTab: Accessor<BranchPanelTab>;
   /** Whether in a git repository */
   isGitRepo: Accessor<boolean>;
   /** Current error message if any */
@@ -78,7 +85,10 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
               <BranchList
                 branches={props.localBranches}
                 currentBranch={props.currentBranch}
-                selectedIndex={props.branchSelectedIndex}
+                branchSelectedIndex={props.branchSelectedIndex}
+                tags={props.allTags}
+                tagSelectedIndex={props.tagSelectedIndex}
+                currentTab={props.branchPanelTab}
                 isActive={() => props.activePanel() === "branches"}
               />
             </box>

@@ -62,4 +62,6 @@ export interface RemoteCommandContext extends CommandContext {
 export interface TagCommandContext extends CommandContext {
   /** Function to refetch git status */
   refetch: () => Promise<unknown>;
+  /** Function to refetch tags list */
+  refetchTags: () => Promise<unknown>;
 }

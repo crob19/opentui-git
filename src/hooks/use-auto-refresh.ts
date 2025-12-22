@@ -2,17 +2,19 @@ import { createEffect, createSignal, onCleanup } from "solid-js";
 import type { DialogContext } from "../components/dialog.js";
 
 /**
- * Custom hook for auto-refreshing git status and branches
+ * Custom hook for auto-refreshing git status, branches, and tags
  * Refreshes every second when no dialog is open to keep UI in sync with git state
  * @param dialog - Dialog context to check if modal is open
  * @param refetchStatus - Function to refetch git status
  * @param refetchBranches - Function to refetch branch information
+ * @param refetchTags - Function to refetch tag information
  * @param interval - Refresh interval in milliseconds (defaults to 1000ms)
  */
 export function useAutoRefresh(
   dialog: DialogContext,
   refetchStatus: () => Promise<unknown>,
   refetchBranches: () => Promise<unknown>,
+  refetchTags: () => Promise<unknown>,
   interval: number = 1000,
 ): void {
   // Track whether an auto-refresh is currently in progress with proper reactivity
@@ -29,7 +31,7 @@ export function useAutoRefresh(
 
       setIsAutoRefreshing(true);
 
-      Promise.all([refetchStatus(), refetchBranches()])
+      Promise.all([refetchStatus(), refetchBranches(), refetchTags()])
         .catch((error) => {
           console.error("Error during auto-refresh:", error);
         })
