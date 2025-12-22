@@ -151,8 +151,8 @@ async function commitAndTag() {
     await $`git commit -m ${"chore: release v" + newVersion}`;
     console.log(`   ✓ Created commit: "chore: release v${newVersion}"`);
     
-    // Create tag
-    await $`git tag v${newVersion}`;
+    // Create annotated tag
+    await $`git tag -a v${newVersion} -m ${"chore: release v" + newVersion}`;
     console.log(`   ✓ Created tag v${newVersion}`);
   } catch (err) {
     console.error("❌ Error creating commit/tag:", err);
