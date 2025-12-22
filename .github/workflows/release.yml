@@ -13,9 +13,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest     # ARM64 (M1/M2/M3)
+          - os: macos-latest     # ARM64 (M1/M2/M3/M4)
             arch: arm64
-          - os: macos-13         # Intel x64
+          - os: macos-15-intel   # Intel x64 (supported until Aug 2027)
             arch: x64
 
     runs-on: ${{ matrix.os }}
