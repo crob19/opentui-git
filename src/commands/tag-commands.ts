@@ -9,30 +9,27 @@ import { InputModal } from "../components/modals/input-modal.js";
  * @returns Error message if invalid, null if valid
  */
 export function validateTagName(value: string, existingTags: string[] = []): string | null {
-  const tagName = value;
-  
-  if (!tagName.trim()) {
+  if (!value.trim()) {
     return "Tag name cannot be empty";
   }
-  if (tagName.includes(" ")) {
+  if (value.includes(" ")) {
     return "Tag name cannot contain spaces";
   }
-  if (tagName.startsWith("-")) {
+  if (value.startsWith("-")) {
     return "Tag name cannot start with '-'";
   }
-  if (tagName.includes("..")) {
+  if (value.includes("..")) {
     return "Tag name cannot contain '..'";
   }
-  if (/[~^:?*[\\]/.test(tagName)) {
-    return "Tag name contains invalid characters (:, ^, ~, ?, *, [, \\)";
+  if (/[~^:?*[\\]/.test(value)) {
+    return "Tag name contains invalid characters (:, .., ^, ~, ?, *, [, \\)";
   }
-  if (tagName.endsWith(".lock")) {
+  if (value.endsWith(".lock")) {
     return "Tag name cannot end with '.lock'";
   }
-  if (existingTags.includes(tagName)) {
-    return `Tag '${tagName}' already exists`;
+  if (existingTags.includes(value)) {
+    return `Tag '${value}' already exists`;
   }
-  
   return null;
 }
 
