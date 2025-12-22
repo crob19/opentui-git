@@ -337,9 +337,10 @@ export class GitService {
   /**
    * Push a specific tag to remote repository
    * @param tagName - Name of the tag to push
+   * @param remote - Name of the remote to push to (defaults to "origin")
    */
-  async pushTag(tagName: string): Promise<void> {
-    await this.git.push(["origin", tagName]);
+  async pushTag(tagName: string, remote: string = "origin"): Promise<void> {
+    await this.git.push([remote, tagName]);
   }
 
   /**
