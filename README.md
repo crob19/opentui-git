@@ -48,7 +48,7 @@ sudo mv opentui-git-darwin-arm64 /usr/local/bin/opentui-git
 
 #### Prerequisites
 
-- [Bun](https://bun.sh) v1.2.5 or later
+- [Bun](https://bun.sh) v1.3.5 or later
 - Git installed on your system
 
 #### Install Dependencies
