@@ -22,6 +22,18 @@ interface HighlightedToken {
   color: string;
 }
 
+// Background color constants for diff lines
+const DIFF_BG_COLOR_ADD = "#1F3F1F"; // Dark green background
+const DIFF_BG_COLOR_REMOVE = "#3F1F1F"; // Dark red background
+const DIFF_BG_COLOR_HEADER = "#1F2F3F"; // Dark blue background
+const DIFF_BG_COLOR_CONTEXT = "transparent";
+
+// Line number background color constants for diff lines
+const DIFF_LINE_NUM_BG_COLOR_ADD = "#0F2F0F"; // Darker green
+const DIFF_LINE_NUM_BG_COLOR_REMOVE = "#2F0F0F"; // Darker red
+const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F"; // Darker blue
+const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A"; // Dark gray
+
 // Initialize Shiki highlighter
 async function getHighlighter(): Promise<Highlighter> {
   return createHighlighter({
@@ -84,28 +96,28 @@ function parseDiffLines(diff: string): DiffLine[] {
 function getBackgroundColor(type: DiffLine["type"]): string {
   switch (type) {
     case "add":
-      return "#1F3F1F"; // Dark green background
+      return DIFF_BG_COLOR_ADD;
     case "remove":
-      return "#3F1F1F"; // Dark red background
+      return DIFF_BG_COLOR_REMOVE;
     case "header":
-      return "#1F2F3F"; // Dark blue background
+      return DIFF_BG_COLOR_HEADER;
     case "context":
     default:
-      return "transparent";
+      return DIFF_BG_COLOR_CONTEXT;
   }
 }
 
 function getLineNumberBgColor(type: DiffLine["type"]): string {
   switch (type) {
     case "add":
-      return "#0F2F0F"; // Darker green
+      return DIFF_LINE_NUM_BG_COLOR_ADD;
     case "remove":
-      return "#2F0F0F"; // Darker red
+      return DIFF_LINE_NUM_BG_COLOR_REMOVE;
     case "header":
-      return "#0F1F2F"; // Darker blue
+      return DIFF_LINE_NUM_BG_COLOR_HEADER;
     case "context":
     default:
-      return "#1A1A1A"; // Dark gray
+      return DIFF_LINE_NUM_BG_COLOR_CONTEXT;
   }
 }
 
