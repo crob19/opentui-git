@@ -19,8 +19,8 @@ make release-major
 
 1. **Pre-flight checks:**
    - Verifies git working directory is clean
-   - Warns if not on `main` branch (with confirmation)
-   - Checks if local branch is up to date with remote
+   - **Requires** you to be on `main` branch (hard requirement)
+   - Checks if local main branch is up to date with remote
 
 2. **Version bump:**
    - Updates `version` field in `package.json`
@@ -93,11 +93,13 @@ git commit -m "Your changes"
 ```
 
 ### "Not on main branch"
-Either switch to main or continue with current branch:
+Switch to main before releasing:
 ```bash
 git checkout main
 git pull origin main
 ```
+
+**Note:** Releases can only be created from the `main` branch. This is enforced to ensure consistent release workflow.
 
 ### Release failed to push
 Push manually:

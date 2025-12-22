@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Version bumping script for releases
  * 
@@ -9,7 +10,7 @@
  * 
  * Features:
  * - Validates git working directory is clean
- * - Warns if not on main branch
+ * - Requires main branch for releases
  * - Updates package.json
  * - Creates conventional commit
  * - Creates and pushes git tag
@@ -39,10 +40,39 @@ if (!bumpType) {
   process.exit(1);
 }
 
-// Read current version
-const pkg = await Bun.file(PACKAGE_JSON).json();
-const currentVersion = pkg.version;
+// Read and validate package.json
+let pkg: any;
+try {
+  pkg = await Bun.file(PACKAGE_JSON).json();
+} catch (err) {
+  console.error("❌ Error: Failed to read or parse package.json at:", PACKAGE_JSON);
+  console.error("Details:", err);
+  process.exit(1);
+}
+
+if (!pkg || typeof pkg !== "object") {
+  console.error("❌ Error: package.json is invalid. Expected an object at the top level.");
+  process.exit(1);
+}
+
+const currentVersion = String(pkg.version || "");
+
+// Validate version format (must be MAJOR.MINOR.PATCH)
+if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+  console.error(`❌ Error: Invalid version in package.json: "${pkg.version}"`);
+  console.error("Expected format: MAJOR.MINOR.PATCH (e.g., 1.2.3)");
+  process.exit(1);
+}
+
 const [major, minor, patch] = currentVersion.split(".").map(Number);
+
+// Validate numeric components
+if (!Number.isInteger(major) || major < 0 ||
+    !Number.isInteger(minor) || minor < 0 ||
+    !Number.isInteger(patch) || patch < 0) {
+  console.error(`❌ Error: Invalid numeric components in version "${currentVersion}"`);
+  process.exit(1);
+}
 
 // Calculate new version based on bump type
 function calculateNewVersion(type: BumpType): string {
@@ -84,17 +114,14 @@ async function checkBranch() {
   try {
     const branch = (await $`git branch --show-current`.text()).trim();
     if (branch !== "main") {
-      console.log(`   ⚠️  Warning: You're on branch '${branch}', not 'main'`);
-      
-      // Prompt for confirmation
-      const answer = prompt("   Continue anyway? (y/N): ");
-      if (answer?.toLowerCase() !== "y") {
-        console.log("\n❌ Release cancelled");
-        process.exit(0);
-      }
-    } else {
-      console.log("   ✓ On main branch");
+      console.error(`\n❌ Error: You must be on 'main' branch to create a release`);
+      console.error(`   Current branch: '${branch}'`);
+      console.error(`\n   Switch to main branch:`);
+      console.error(`   git checkout main`);
+      console.error(`   git pull origin main`);
+      process.exit(1);
     }
+    console.log("   ✓ On main branch");
   } catch (err) {
     console.error("❌ Error checking branch:", err);
     process.exit(1);
@@ -110,18 +137,16 @@ async function checkRemoteUpToDate() {
     const remoteCommit = (await $`git rev-parse origin/main`.text()).trim();
     
     if (localCommit !== remoteCommit) {
-      console.log("   ⚠️  Warning: Your local branch is not up to date with origin/main");
-      const answer = prompt("   Continue anyway? (y/N): ");
-      if (answer?.toLowerCase() !== "y") {
-        console.log("\n❌ Release cancelled");
-        console.log("   Run: git pull origin main");
-        process.exit(0);
-      }
-    } else {
-      console.log("   ✓ Up to date with remote");
+      console.error("\n❌ Error: Your local main branch is not up to date with origin/main");
+      console.error("   Please pull the latest changes before releasing:");
+      console.error("   git pull origin main");
+      process.exit(1);
     }
+    console.log("   ✓ Up to date with remote");
   } catch (err) {
-    console.log("   ⚠️  Could not check remote status (continuing anyway)");
+    console.error("❌ Error checking remote status:", err);
+    console.error("   Could not verify remote is up to date");
+    process.exit(1);
   }
 }
 

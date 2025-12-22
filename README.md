@@ -28,17 +28,19 @@ brew upgrade opentui-git
 
 #### Direct Download
 
-Download from [releases page](https://github.com/crob19/opentui-git/releases/latest):
+Check the [releases page](https://github.com/crob19/opentui-git/releases/latest) for the latest version number, then download:
 
 **Intel Mac:**
 ```bash
-curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-v0.1.1-darwin-x64.tar.gz | tar xz
+# Replace VERSION with the latest version (e.g., 0.1.1)
+curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-x64.tar.gz | tar xz
 sudo mv opentui-git-darwin-x64 /usr/local/bin/opentui-git
 ```
 
 **Apple Silicon (M1/M2/M3/M4):**
 ```bash
-curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-v0.1.1-darwin-arm64.tar.gz | tar xz
+# Replace VERSION with the latest version (e.g., 0.1.1)
+curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-arm64.tar.gz | tar xz
 sudo mv opentui-git-darwin-arm64 /usr/local/bin/opentui-git
 ```
 
