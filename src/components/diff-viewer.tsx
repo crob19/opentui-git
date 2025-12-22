@@ -133,7 +133,7 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
 
 /**
  * DiffLineView - Separate component to render a single diff line
- * This prevents the render function from being recreated on every parent render
+ * Helps keep the code organized and enables granular reactivity for each diff line
  */
 interface DiffLineViewProps {
   line: DiffLine;
