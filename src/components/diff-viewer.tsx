@@ -1,5 +1,5 @@
 import { For, Show, type Accessor, createMemo, createResource } from "solid-js";
-import { createHighlighter, type Highlighter } from "shiki";
+import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -111,8 +111,17 @@ function getLineNumberBgColor(type: DiffLine["type"]): string {
 
 function highlightCode(code: string, language: string, highlighter: Highlighter): HighlightedToken[] {
   try {
+    // Check if the language is loaded in the highlighter
+    const loadedLanguages = highlighter.getLoadedLanguages();
+    
+    // If the language is not loaded, fall back to plain text
+    if (!loadedLanguages.includes(language)) {
+      return [{ text: code, color: "#CCCCCC" }];
+    }
+
+    // Use the language with proper type - it's validated above
     const tokens = highlighter.codeToTokensBase(code, {
-      lang: language as any,
+      lang: language as BundledLanguage,
       theme: "dark-plus",
     });
 
