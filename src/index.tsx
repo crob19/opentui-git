@@ -2,7 +2,7 @@
 import { render } from "@opentui/solid";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
-import packageJson from "../package.json" with { type: "json" };
+import { getFullVersionString } from "./utils/version.js";
 
 /**
  * Entry point for opentui-git
@@ -13,12 +13,12 @@ import packageJson from "../package.json" with { type: "json" };
 const args = process.argv.slice(2);
 
 if (args.includes("--version") || args.includes("-v")) {
-  console.log(`opentui-git v${packageJson.version}`);
+  console.log(getFullVersionString());
   process.exit(0);
 }
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`opentui-git v${packageJson.version}`);
+  console.log(getFullVersionString());
   console.log();
   console.log("A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun");
   console.log();

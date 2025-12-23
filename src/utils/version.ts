@@ -13,3 +13,10 @@ export function getVersion(): string {
 export function getVersionString(): string {
   return `v${packageJson.version}`;
 }
+
+/**
+ * Get full version string for CLI output
+ */
+export function getFullVersionString(): string {
+  return `opentui-git v${packageJson.version}`;
+}
