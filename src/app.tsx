@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
 import { GitService } from "./git-service.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
@@ -58,6 +58,10 @@ function AppContent() {
   // Branch panel tab state (branches vs tags)
   const [branchPanelTab, setBranchPanelTab] = createSignal<BranchPanelTab>("branches");
 
+  // Diff panel state
+  const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
+  const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
+
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
   const gitBranches = useGitBranches(gitService);
@@ -77,10 +81,29 @@ function AppContent() {
     branchPanelTab,
     setBranchPanelTab,
     renderer,
+    selectedDiffRow,
+    setSelectedDiffRow,
+    diffViewMode,
+    setDiffViewMode,
   });
 
   // Auto-refresh git status, branches, and tags every second
   useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
+
+  // Track last file path to detect actual file changes (not just refreshes)
+  const [lastFilePath, setLastFilePath] = createSignal<string | null>(null);
+  
+  // Reset diff scroll position when file path actually changes
+  createEffect(() => {
+    const file = gitStatus.selectedFile();
+    const currentPath = file?.path || null;
+    
+    // Only reset if the file path actually changed
+    if (currentPath !== lastFilePath()) {
+      setLastFilePath(currentPath);
+      setSelectedDiffRow(0);
+    }
+  });
 
   return (
     <AppLayout
@@ -99,6 +122,10 @@ function AppContent() {
       errorMessage={gitStatus.errorMessage}
       isDiffLoading={gitDiff.isLoading}
       flatNodes={gitStatus.flatNodes}
+      selectedDiffRow={selectedDiffRow}
+      setSelectedDiffRow={setSelectedDiffRow}
+      diffViewMode={diffViewMode}
+      setDiffViewMode={setDiffViewMode}
     />
   );
 }

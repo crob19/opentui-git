@@ -1,5 +1,9 @@
-import { For, Show, type Accessor, createMemo, createResource } from "solid-js";
-import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
+import { For, Show, type Accessor, type Setter, createMemo, createResource } from "solid-js";
+import type { Highlighter } from "shiki";
+import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
+import { getLanguageFromPath } from "../utils/language-detection.js";
+import { parseDiffLines, type DiffLine } from "../utils/diff-parser.js";
+import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -8,18 +12,9 @@ export interface DiffViewerProps {
   diff: Accessor<string | null>;
   filePath: Accessor<string | null>;
   isLoading: Accessor<boolean>;
-}
-
-interface DiffLine {
-  content: string;
-  type: "add" | "remove" | "context" | "header";
-  oldLineNum: number | null;
-  newLineNum: number | null;
-}
-
-interface HighlightedToken {
-  text: string;
-  color: string;
+  isActive: Accessor<boolean>;
+  selectedLine: Accessor<number>;
+  setSelectedLine: Setter<number>;
 }
 
 // Background color constants for diff lines
@@ -33,65 +28,6 @@ const DIFF_LINE_NUM_BG_COLOR_ADD = "#0F2F0F"; // Darker green
 const DIFF_LINE_NUM_BG_COLOR_REMOVE = "#2F0F0F"; // Darker red
 const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F"; // Darker blue
 const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A"; // Dark gray
-
-// Initialize Shiki highlighter
-async function getHighlighter(): Promise<Highlighter> {
-  return createHighlighter({
-    themes: ["dark-plus"],
-    langs: ["javascript", "typescript", "python", "go", "rust", "c", "cpp", "tsx", "jsx"],
-  });
-}
-
-// Map file extensions to Shiki languages
-function getLanguageFromPath(filePath: string): string {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  const langMap: Record<string, string> = {
-    js: "javascript",
-    jsx: "jsx",
-    ts: "typescript",
-    tsx: "tsx",
-    py: "python",
-    go: "go",
-    rs: "rust",
-    c: "c",
-    cpp: "cpp",
-    cc: "cpp",
-    cxx: "cpp",
-    h: "c",
-    hpp: "cpp",
-  };
-  return langMap[ext || ""] || "javascript";
-}
-
-function parseDiffLines(diff: string): DiffLine[] {
-  const lines = diff.split("\n");
-  let oldLineNum = 0;
-  let newLineNum = 0;
-
-  return lines.map((line) => {
-    // Parse @@ header to get line numbers
-    if (line.startsWith("@@")) {
-      const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-      if (match) {
-        oldLineNum = parseInt(match[1]) - 1;
-        newLineNum = parseInt(match[3]) - 1;
-      }
-      return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-    } else if (line.startsWith("+++") || line.startsWith("---")) {
-      return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-    } else if (line.startsWith("+")) {
-      newLineNum++;
-      return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
-    } else if (line.startsWith("-")) {
-      oldLineNum++;
-      return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
-    } else {
-      oldLineNum++;
-      newLineNum++;
-      return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
-    }
-  });
-}
 
 function getBackgroundColor(type: DiffLine["type"]): string {
   switch (type) {
@@ -121,37 +57,6 @@ function getLineNumberBgColor(type: DiffLine["type"]): string {
   }
 }
 
-function highlightCode(code: string, language: string, highlighter: Highlighter): HighlightedToken[] {
-  try {
-    // Check if the language is loaded in the highlighter
-    const loadedLanguages = highlighter.getLoadedLanguages();
-    
-    // If the language is not loaded, fall back to plain text
-    if (!loadedLanguages.includes(language)) {
-      return [{ text: code, color: "#CCCCCC" }];
-    }
-
-    // Use the language with proper type - it's validated above
-    const tokens = highlighter.codeToTokensBase(code, {
-      lang: language as BundledLanguage,
-      theme: "dark-plus",
-    });
-
-    return tokens[0]?.map((token) => ({
-      text: token.content,
-      color: token.color || "#CCCCCC",
-    })) || [{ text: code, color: "#CCCCCC" }];
-  } catch (error) {
-    // Log the error to aid in debugging highlighting issues, but still fall back gracefully.
-    console.error("Failed to highlight code with shiki highlighter.", {
-      language,
-      error,
-    });
-    // Fallback if highlighting fails
-    return [{ text: code, color: "#CCCCCC" }];
-  }
-}
-
 /**
  * DiffLineView - Separate component to render a single diff line
  * Helps keep the code organized and enables granular reactivity for each diff line
@@ -163,14 +68,24 @@ interface DiffLineViewProps {
   getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
   lineNumberWidth: number;
   lineNumberPadding: number;
+  isSelected: boolean;
+  isActive: boolean;
 }
 
 function DiffLineView(props: DiffLineViewProps) {
+  // Determine background color based on selection and line type
+  const bgColor = () => {
+    if (props.isSelected && props.isActive) {
+      return "#444444"; // Highlighted when selected and panel is active
+    }
+    return getBackgroundColor(props.line.type);
+  };
+
   // For header lines, just render as plain text
   if (props.line.type === "header") {
     return (
       <box
-        backgroundColor={getBackgroundColor(props.line.type)}
+        backgroundColor={bgColor()}
         width="100%"
         height={1}
         flexDirection="row"
@@ -199,7 +114,7 @@ function DiffLineView(props: DiffLineViewProps) {
 
   return (
     <box
-      backgroundColor={getBackgroundColor(props.line.type)}
+      backgroundColor={bgColor()}
       width="100%"
       height={1}
       flexDirection="row"
@@ -228,6 +143,9 @@ function DiffLineView(props: DiffLineViewProps) {
 // Moved outside component to persist across renders
 const highlightCache = new Map<string, HighlightedToken[]>();
 
+// Maximum number of diff lines to show at once in the virtual scroll window
+const MAX_VISIBLE_DIFF_LINES = 35;
+
 export function DiffViewer(props: DiffViewerProps) {
   const diffLines = () => {
     const diff = props.diff();
@@ -242,6 +160,15 @@ export function DiffViewer(props: DiffViewerProps) {
     const path = props.filePath();
     return path ? getLanguageFromPath(path) : "javascript";
   });
+
+  // Calculate visible window of diff lines to show (virtual scrolling)
+  const scrollWindow = createMemo(() =>
+    calculateVirtualScrollWindow(
+      diffLines(),
+      props.selectedLine(),
+      MAX_VISIBLE_DIFF_LINES,
+    ),
+  );
 
 
   // Calculate the maximum line number to determine width needed
@@ -290,7 +217,7 @@ export function DiffViewer(props: DiffViewerProps) {
   return (
     <box
       borderStyle="single"
-      borderColor="#888888"
+      borderColor={props.isActive() ? "#00AAFF" : "#888888"}
       width="100%"
       flexGrow={1}
       flexDirection="column"
@@ -300,10 +227,15 @@ export function DiffViewer(props: DiffViewerProps) {
       paddingBottom={1}
       overflow="hidden"
     >
-      <box flexDirection="row" gap={1} marginBottom={1}>
-        <text fg="#AAAAAA">Diff:</text>
-        <Show when={props.filePath()} fallback={<text fg="#888888">No file selected</text>}>
-          <text fg="#FFFFFF">{props.filePath()}</text>
+      <box flexDirection="row" gap={1} marginBottom={1} justifyContent="space-between">
+        <box flexDirection="row" gap={1}>
+          <text fg="#AAAAAA">Diff:</text>
+          <Show when={props.filePath()} fallback={<text fg="#888888">No file selected</text>}>
+            <text fg="#FFFFFF">{props.filePath()}</text>
+          </Show>
+        </box>
+        <Show when={diffLines().length > 0}>
+          <text fg="#666666">Line {props.selectedLine() + 1}/{diffLines().length}</text>
         </Show>
       </box>
 
@@ -328,21 +260,25 @@ export function DiffViewer(props: DiffViewerProps) {
           }
         >
           <box flexDirection="column" overflow="hidden">
-            <For each={diffLines().slice(0, 40)}>
-              {(line) => (
-                <DiffLineView
-                  line={line}
-                  language={language()}
-                  highlighter={highlighter()}
-                  lineNumberWidth={lineNumberWidth()}
-                  lineNumberPadding={lineNumberPadding()}
-                  getHighlightedTokens={getHighlightedTokens()}
-                />
-              )}
+            <For each={scrollWindow().visibleItems}>
+              {(line, index) => {
+                const actualIndex = () => scrollWindow().start + index();
+                const isSelected = () => actualIndex() === props.selectedLine();
+                
+                return (
+                  <DiffLineView
+                    line={line}
+                    language={language()}
+                    highlighter={highlighter()}
+                    lineNumberWidth={lineNumberWidth()}
+                    lineNumberPadding={lineNumberPadding()}
+                    getHighlightedTokens={getHighlightedTokens()}
+                    isSelected={isSelected()}
+                    isActive={props.isActive()}
+                  />
+                );
+              }}
             </For>
-            <Show when={diffLines().length > 40}>
-              <text fg="#888888">... {diffLines().length - 40} more lines (press 'd' to view full diff)</text>
-            </Show>
           </box>
         </Show>
       </Show>

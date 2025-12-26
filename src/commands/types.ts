@@ -6,7 +6,7 @@ import type { DialogContext } from "../components/dialog.js";
 /**
  * Panel types in the application
  */
-export type PanelType = "files" | "branches";
+export type PanelType = "files" | "branches" | "diff";
 
 /**
  * Base context required by all commands

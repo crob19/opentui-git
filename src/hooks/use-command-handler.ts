@@ -41,6 +41,14 @@ export interface UseCommandHandlerOptions {
   setBranchPanelTab: Setter<BranchPanelTab>;
   /** Renderer result from OpenTUI */
   renderer: ReturnType<typeof import("@opentui/solid").useRenderer>;
+  /** Selected diff row index */
+  selectedDiffRow: Accessor<number>;
+  /** Selected diff row setter */
+  setSelectedDiffRow: Setter<number>;
+  /** Diff view mode (unified or side-by-side) */
+  diffViewMode: Accessor<"unified" | "side-by-side">;
+  /** Diff view mode setter */
+  setDiffViewMode: Setter<"unified" | "side-by-side">;
 }
 
 /**
@@ -61,6 +69,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     branchPanelTab,
     setBranchPanelTab,
     renderer,
+    selectedDiffRow,
+    setSelectedDiffRow,
+    diffViewMode,
+    setDiffViewMode,
   } = options;
 
   /**
@@ -163,6 +175,15 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           refetchBranches: gitBranches.refetchBranches,
           refetchTags: gitTags.refetchTags,
         });
+      } else if (activePanel() === "diff") {
+        // Diff panel keys
+        await handleDiffPanelKeys(key, ctrl, {
+          setActivePanel,
+          selectedDiffRow,
+          setSelectedDiffRow,
+          diffViewMode,
+          setDiffViewMode,
+        });
       } else {
         // Files panel keys
         await handleFilePanelKeys(key, {
@@ -175,6 +196,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setErrorMessage: gitStatus.setErrorMessage,
           refetch: gitStatus.refetch,
           refetchTags: gitTags.refetchTags,
+          setActivePanel,
         });
       }
     } catch (error) {
@@ -315,6 +337,56 @@ async function handleBranchPanelKeys(
 }
 
 /**
+ * Handle keyboard commands specific to the diff panel
+ */
+async function handleDiffPanelKeys(
+  key: string,
+  ctrl: boolean,
+  context: {
+    setActivePanel: Setter<PanelType>;
+    selectedDiffRow: Accessor<number>;
+    setSelectedDiffRow: Setter<number>;
+    diffViewMode: Accessor<"unified" | "side-by-side">;
+    setDiffViewMode: Setter<"unified" | "side-by-side">;
+  },
+): Promise<void> {
+  // Toggle view mode with Ctrl+T
+  if (ctrl && key === "t") {
+    const current = context.diffViewMode();
+    context.setDiffViewMode(current === "unified" ? "side-by-side" : "unified");
+    return;
+  }
+
+  // We use a large max value - virtual scrolling will handle bounds
+  const maxRow = 10000;
+
+  switch (key) {
+    case "j":
+    case "down":
+      navCommands.navigateDown(
+        context.selectedDiffRow,
+        context.setSelectedDiffRow,
+        maxRow,
+      );
+      break;
+
+    case "k":
+    case "up":
+      navCommands.navigateUp(
+        context.selectedDiffRow,
+        context.setSelectedDiffRow,
+      );
+      break;
+
+    case "escape":
+      // Return to files panel and reset diff scroll position
+      context.setSelectedDiffRow(0);
+      context.setActivePanel("files");
+      break;
+  }
+}
+
+/**
  * Handle keyboard commands specific to the files panel
  */
 async function handleFilePanelKeys(
@@ -329,6 +401,7 @@ async function handleFilePanelKeys(
     setErrorMessage: (msg: string | null) => void;
     refetch: () => Promise<unknown>;
     refetchTags: () => Promise<unknown>;
+    setActivePanel: Setter<PanelType>;
   },
 ): Promise<void> {
   const { status, currentBranch, gitStatus } = context;
@@ -382,12 +455,15 @@ async function handleFilePanelKeys(
       );
       break;
 
-    // Enter: Toggle folder expand/collapse
+    // Enter: Toggle folder expand/collapse or view diff for file
     case "return":
     case "enter": {
       const node = gitStatus.selectedNode();
       if (node && node.type === 'folder') {
         gitStatus.toggleFolderExpand(node.path);
+      } else if (node && node.type === 'file') {
+        // Switch to diff panel when Enter is pressed on a file
+        context.setActivePanel("diff");
       }
       break;
     }
