@@ -1,5 +1,7 @@
-import { For, Show, type Accessor, createMemo, createResource } from "solid-js";
+import { For, Show, type Accessor, type Setter, createMemo, createResource } from "solid-js";
 import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
+import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
+import { getLanguageFromPath } from "../utils/language-detection.js";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -8,6 +10,9 @@ export interface DiffViewerProps {
   diff: Accessor<string | null>;
   filePath: Accessor<string | null>;
   isLoading: Accessor<boolean>;
+  isActive: Accessor<boolean>;
+  selectedLine: Accessor<number>;
+  setSelectedLine: Setter<number>;
 }
 
 interface DiffLine {
@@ -42,55 +47,48 @@ async function getHighlighter(): Promise<Highlighter> {
   });
 }
 
-// Map file extensions to Shiki languages
-function getLanguageFromPath(filePath: string): string {
-  const ext = filePath.split(".").pop()?.toLowerCase();
-  const langMap: Record<string, string> = {
-    js: "javascript",
-    jsx: "jsx",
-    ts: "typescript",
-    tsx: "tsx",
-    py: "python",
-    go: "go",
-    rs: "rust",
-    c: "c",
-    cpp: "cpp",
-    cc: "cpp",
-    cxx: "cpp",
-    h: "c",
-    hpp: "cpp",
-  };
-  return langMap[ext || ""] || "javascript";
-}
+// Language detection is now imported from utils/language-detection.ts
 
 function parseDiffLines(diff: string): DiffLine[] {
   const lines = diff.split("\n");
   let oldLineNum = 0;
   let newLineNum = 0;
 
-  return lines.map((line) => {
-    // Parse @@ header to get line numbers
-    if (line.startsWith("@@")) {
-      const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-      if (match) {
-        oldLineNum = parseInt(match[1]) - 1;
-        newLineNum = parseInt(match[3]) - 1;
+  return lines
+    .filter((line) => {
+      // Filter out git header lines (diff --git, index, similarity, etc.)
+      if (line.startsWith("diff --git")) return false;
+      if (line.startsWith("index ")) return false;
+      if (line.startsWith("new file mode")) return false;
+      if (line.startsWith("deleted file mode")) return false;
+      if (line.startsWith("similarity index")) return false;
+      if (line.startsWith("rename from")) return false;
+      if (line.startsWith("rename to")) return false;
+      return true;
+    })
+    .map((line) => {
+      // Parse @@ header to get line numbers
+      if (line.startsWith("@@")) {
+        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+        if (match) {
+          oldLineNum = parseInt(match[1]) - 1;
+          newLineNum = parseInt(match[3]) - 1;
+        }
+        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+      } else if (line.startsWith("+++") || line.startsWith("---")) {
+        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+      } else if (line.startsWith("+")) {
+        newLineNum++;
+        return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
+      } else if (line.startsWith("-")) {
+        oldLineNum++;
+        return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
+      } else {
+        oldLineNum++;
+        newLineNum++;
+        return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
       }
-      return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-    } else if (line.startsWith("+++") || line.startsWith("---")) {
-      return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-    } else if (line.startsWith("+")) {
-      newLineNum++;
-      return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
-    } else if (line.startsWith("-")) {
-      oldLineNum++;
-      return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
-    } else {
-      oldLineNum++;
-      newLineNum++;
-      return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
-    }
-  });
+    });
 }
 
 function getBackgroundColor(type: DiffLine["type"]): string {
@@ -163,14 +161,24 @@ interface DiffLineViewProps {
   getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
   lineNumberWidth: number;
   lineNumberPadding: number;
+  isSelected: boolean;
+  isActive: boolean;
 }
 
 function DiffLineView(props: DiffLineViewProps) {
+  // Determine background color based on selection and line type
+  const bgColor = () => {
+    if (props.isSelected && props.isActive) {
+      return "#444444"; // Highlighted when selected and panel is active
+    }
+    return getBackgroundColor(props.line.type);
+  };
+
   // For header lines, just render as plain text
   if (props.line.type === "header") {
     return (
       <box
-        backgroundColor={getBackgroundColor(props.line.type)}
+        backgroundColor={bgColor()}
         width="100%"
         height={1}
         flexDirection="row"
@@ -199,7 +207,7 @@ function DiffLineView(props: DiffLineViewProps) {
 
   return (
     <box
-      backgroundColor={getBackgroundColor(props.line.type)}
+      backgroundColor={bgColor()}
       width="100%"
       height={1}
       flexDirection="row"
@@ -228,6 +236,9 @@ function DiffLineView(props: DiffLineViewProps) {
 // Moved outside component to persist across renders
 const highlightCache = new Map<string, HighlightedToken[]>();
 
+// Maximum number of diff lines to show at once in the virtual scroll window
+const MAX_VISIBLE_DIFF_LINES = 35;
+
 export function DiffViewer(props: DiffViewerProps) {
   const diffLines = () => {
     const diff = props.diff();
@@ -242,6 +253,15 @@ export function DiffViewer(props: DiffViewerProps) {
     const path = props.filePath();
     return path ? getLanguageFromPath(path) : "javascript";
   });
+
+  // Calculate visible window of diff lines to show (virtual scrolling)
+  const scrollWindow = createMemo(() =>
+    calculateVirtualScrollWindow(
+      diffLines(),
+      props.selectedLine(),
+      MAX_VISIBLE_DIFF_LINES,
+    ),
+  );
 
 
   // Calculate the maximum line number to determine width needed
@@ -290,7 +310,7 @@ export function DiffViewer(props: DiffViewerProps) {
   return (
     <box
       borderStyle="single"
-      borderColor="#888888"
+      borderColor={props.isActive() ? "#00AAFF" : "#888888"}
       width="100%"
       flexGrow={1}
       flexDirection="column"
@@ -300,10 +320,15 @@ export function DiffViewer(props: DiffViewerProps) {
       paddingBottom={1}
       overflow="hidden"
     >
-      <box flexDirection="row" gap={1} marginBottom={1}>
-        <text fg="#AAAAAA">Diff:</text>
-        <Show when={props.filePath()} fallback={<text fg="#888888">No file selected</text>}>
-          <text fg="#FFFFFF">{props.filePath()}</text>
+      <box flexDirection="row" gap={1} marginBottom={1} justifyContent="space-between">
+        <box flexDirection="row" gap={1}>
+          <text fg="#AAAAAA">Diff:</text>
+          <Show when={props.filePath()} fallback={<text fg="#888888">No file selected</text>}>
+            <text fg="#FFFFFF">{props.filePath()}</text>
+          </Show>
+        </box>
+        <Show when={diffLines().length > 0}>
+          <text fg="#666666">Line {props.selectedLine() + 1}/{diffLines().length}</text>
         </Show>
       </box>
 
@@ -328,21 +353,25 @@ export function DiffViewer(props: DiffViewerProps) {
           }
         >
           <box flexDirection="column" overflow="hidden">
-            <For each={diffLines().slice(0, 40)}>
-              {(line) => (
-                <DiffLineView
-                  line={line}
-                  language={language()}
-                  highlighter={highlighter()}
-                  lineNumberWidth={lineNumberWidth()}
-                  lineNumberPadding={lineNumberPadding()}
-                  getHighlightedTokens={getHighlightedTokens()}
-                />
-              )}
+            <For each={scrollWindow().visibleItems}>
+              {(line, index) => {
+                const actualIndex = () => scrollWindow().start + index();
+                const isSelected = () => actualIndex() === props.selectedLine();
+                
+                return (
+                  <DiffLineView
+                    line={line}
+                    language={language()}
+                    highlighter={highlighter()}
+                    lineNumberWidth={lineNumberWidth()}
+                    lineNumberPadding={lineNumberPadding()}
+                    getHighlightedTokens={getHighlightedTokens()}
+                    isSelected={isSelected()}
+                    isActive={props.isActive()}
+                  />
+                );
+              }}
             </For>
-            <Show when={diffLines().length > 40}>
-              <text fg="#888888">... {diffLines().length - 40} more lines (press 'd' to view full diff)</text>
-            </Show>
           </box>
         </Show>
       </Show>

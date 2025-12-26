@@ -37,9 +37,9 @@ export class GitService {
    */
   async getStatus(): Promise<GitStatusSummary> {
     const status: StatusResult = await this.git.status();
-    
+
     logger.debug("Git status.current:", status.current);
-    
+
     const files: GitFileStatus[] = [];
     const processedFiles = new Set<string>();
 
@@ -197,7 +197,7 @@ export class GitService {
    */
   async getBranches(): Promise<GitBranchInfo> {
     const branches: BranchSummary = await this.git.branch();
-    
+
     return {
       current: branches.current,
       all: branches.all,
@@ -212,7 +212,7 @@ export class GitService {
    */
   async getCommits(limit: number = 50): Promise<GitCommitInfo[]> {
     const log: LogResult = await this.git.log({ maxCount: limit });
-    
+
     return log.all.map((commit) => ({
       hash: commit.hash,
       date: commit.date,
@@ -240,6 +240,8 @@ export class GitService {
    */
   async getDiff(filepath: string, staged: boolean = false): Promise<string> {
     const options = staged ? ["--cached", filepath] : [filepath];
+    logger.info(options)
+    logger.info(this.git.diff(options))
     return await this.git.diff(options);
   }
 

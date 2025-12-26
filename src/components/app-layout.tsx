@@ -1,4 +1,4 @@
-import { Show, type Accessor, type Resource, type JSXElement } from "solid-js";
+import { Show, type Accessor, type Setter, type Resource, type JSXElement } from "solid-js";
 import type { GitStatusSummary, GitFileStatus, FileTreeNode } from "../types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
@@ -6,6 +6,7 @@ import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
 import { DiffViewer } from "./diff-viewer.js";
+import { FullPageDiffViewer } from "./full-page-diff-viewer.js";
 import { Footer } from "./footer.js";
 
 /**
@@ -42,6 +43,12 @@ export interface AppLayoutProps {
   isDiffLoading: Accessor<boolean>;
   /** Flattened tree nodes for file tree */
   flatNodes: Accessor<FileTreeNode[]>;
+  /** Selected diff row index */
+  selectedDiffRow: Accessor<number>;
+  /** Selected diff row setter */
+  setSelectedDiffRow: Setter<number>;
+  /** Diff view mode */
+  diffViewMode: Accessor<"unified" | "side-by-side">;
 }
 
 /**
@@ -70,38 +77,57 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
           </box>
         }
       >
-        <Header status={() => props.gitStatus() || null} />
-        <box flexDirection="row" flexGrow={1} gap={0}>
-          <box width="30%" flexDirection="column">
-            <box height="60%" flexDirection="column">
-              <FileList
-                files={() => props.gitStatus()?.files || []}
-                flatNodes={props.flatNodes}
-                selectedIndex={props.selectedIndex}
-                isActive={() => props.activePanel() === "files"}
-              />
+        {/* Show full-page diff viewer when in diff panel */}
+        <Show when={props.activePanel() === "diff"}>
+          <FullPageDiffViewer
+            diff={() => props.diffContent() || null}
+            filePath={() => props.selectedFile()?.path || null}
+            isLoading={props.isDiffLoading}
+            selectedRow={props.selectedDiffRow}
+            setSelectedRow={props.setSelectedDiffRow}
+            viewMode={props.diffViewMode}
+            setViewMode={() => {}} // View mode is controlled by keyboard handler
+          />
+        </Show>
+
+        {/* Normal 3-panel layout when NOT in diff panel */}
+        <Show when={props.activePanel() !== "diff"}>
+          <Header status={() => props.gitStatus() || null} />
+          <box flexDirection="row" flexGrow={1} gap={0}>
+            <box width="30%" flexDirection="column">
+              <box height="60%" flexDirection="column">
+                <FileList
+                  files={() => props.gitStatus()?.files || []}
+                  flatNodes={props.flatNodes}
+                  selectedIndex={props.selectedIndex}
+                  isActive={() => props.activePanel() === "files"}
+                />
+              </box>
+              <box height="40%" flexDirection="column">
+                <BranchList
+                  branches={props.localBranches}
+                  currentBranch={props.currentBranch}
+                  branchSelectedIndex={props.branchSelectedIndex}
+                  tags={props.allTags}
+                  tagSelectedIndex={props.tagSelectedIndex}
+                  currentTab={props.branchPanelTab}
+                  isActive={() => props.activePanel() === "branches"}
+                />
+              </box>
             </box>
-            <box height="40%" flexDirection="column">
-              <BranchList
-                branches={props.localBranches}
-                currentBranch={props.currentBranch}
-                branchSelectedIndex={props.branchSelectedIndex}
-                tags={props.allTags}
-                tagSelectedIndex={props.tagSelectedIndex}
-                currentTab={props.branchPanelTab}
-                isActive={() => props.activePanel() === "branches"}
+            <box width="70%" flexDirection="column">
+              <DiffViewer
+                diff={() => props.diffContent() || null}
+                filePath={() => props.selectedFile()?.path || null}
+                isLoading={props.isDiffLoading}
+                isActive={() => false}
+                selectedLine={() => 0}
+                setSelectedLine={() => {}}
               />
             </box>
           </box>
-          <box width="70%" flexDirection="column">
-            <DiffViewer
-              diff={() => props.diffContent() || null}
-              filePath={() => props.selectedFile()?.path || null}
-              isLoading={props.isDiffLoading}
-            />
-          </box>
-        </box>
-        <Footer activePanel={props.activePanel} />
+          <Footer activePanel={props.activePanel} />
+        </Show>
       </Show>
     </box>
   );

@@ -1,17 +1,19 @@
 import type { Accessor } from "solid-js";
+import type { PanelType } from "../commands/types.js";
 import { getVersionString } from "../utils/version.js";
 
 /**
  * Footer component - Displays keyboard shortcuts and help text
  */
 export interface FooterProps {
-  activePanel: Accessor<"files" | "branches">;
+  activePanel: Accessor<PanelType>;
 }
 
 export function Footer(props: FooterProps) {
   const fileShortcuts = [
     { key: "↑/k", desc: "up" },
     { key: "↓/j", desc: "down" },
+    { key: "Enter", desc: "view diff" },
     { key: "space", desc: "stage" },
     { key: "a", desc: "all" },
     { key: "u", desc: "unstage" },
@@ -35,7 +37,19 @@ export function Footer(props: FooterProps) {
     { key: "q", desc: "quit" },
   ];
 
-  const shortcuts = () => props.activePanel() === "branches" ? branchShortcuts : fileShortcuts;
+  const diffShortcuts = [
+    { key: "↑/k", desc: "up" },
+    { key: "↓/j", desc: "down" },
+    { key: "Ctrl+T", desc: "toggle view" },
+    { key: "Esc", desc: "back to files" },
+    { key: "q", desc: "quit" },
+  ];
+
+  const shortcuts = () => {
+    if (props.activePanel() === "diff") return diffShortcuts;
+    if (props.activePanel() === "branches") return branchShortcuts;
+    return fileShortcuts;
+  };
 
   return (
     <box
