@@ -15,6 +15,7 @@ import * as navCommands from "../commands/navigation-commands.js";
 import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
+import { executeShutdown } from "../index.js";
 
 /**
  * Options for the command handler hook
@@ -50,8 +51,6 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
-  /** Cleanup function for auto-refresh interval */
-  cleanupAutoRefresh: () => void;
 }
 
 /**
@@ -76,32 +75,16 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
-    cleanupAutoRefresh,
   } = options;
 
   /**
    * Graceful shutdown function
-   * Cleans up resources before exiting the process
+   * Triggers the global shutdown sequence which executes all registered cleanup handlers
    */
   const shutdown = () => {
     logger.info("Initiating graceful shutdown...");
-    
-    // Clean up auto-refresh interval
-    cleanupAutoRefresh();
-    
-    // Destroy the renderer to stop OpenTUI's event loop
-    try {
-      logger.debug("Destroying renderer...");
-      renderer.destroy();
-      logger.debug("Renderer destroyed");
-    } catch (error) {
-      logger.debug("Renderer destroy failed:", error);
-    }
-    
-    logger.info("Cleanup completed, exiting process");
-    
-    // Exit the process
-    process.exit(0);
+    // Execute the global shutdown which runs all registered cleanup handlers
+    executeShutdown();
   };
 
   /**

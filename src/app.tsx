@@ -14,6 +14,7 @@ import {
   useCommandHandler,
 } from "./hooks/index.js";
 import type { PanelType } from "./commands/types.js";
+import { registerShutdownHandler } from "./index.js";
 
 /**
  * Tab types for the branches panel
@@ -72,6 +73,22 @@ function AppContent() {
   // Returns cleanup function for graceful shutdown
   const cleanupAutoRefresh = useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
 
+  // Register cleanup handlers for graceful shutdown
+  // These will be called when the app exits via q, Ctrl+C, or SIGTERM
+  registerShutdownHandler(() => {
+    // Clean up auto-refresh interval
+    cleanupAutoRefresh();
+  });
+
+  registerShutdownHandler(() => {
+    // Destroy the OpenTUI renderer to stop the event loop
+    try {
+      renderer.destroy();
+    } catch (error) {
+      console.error("Renderer destroy failed:", error);
+    }
+  });
+
   // Command handler sets up all keyboard bindings
   useCommandHandler({
     gitService,
@@ -89,7 +106,6 @@ function AppContent() {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
-    cleanupAutoRefresh,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)

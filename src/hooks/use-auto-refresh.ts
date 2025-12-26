@@ -28,6 +28,14 @@ export function useAutoRefresh(
   // Auto-refresh git status (similar to lazygit's approach)
   // Using createEffect ensures proper Solid.js lifecycle management
   createEffect(() => {
+    // Guard: Prevent creating multiple intervals if createEffect re-runs
+    // This prevents memory leaks from having multiple setInterval instances
+    // when the effect re-executes (e.g., during hot module reloading)
+    if (refreshInterval !== null) {
+      logger.debug("Auto-refresh interval already exists, skipping creation");
+      return;
+    }
+
     refreshInterval = setInterval(() => {
       // Skip refresh when a dialog is open or a previous auto-refresh is still running
       if (dialog.isOpen || isAutoRefreshing()) {
@@ -51,6 +59,7 @@ export function useAutoRefresh(
     onCleanup(() => {
       if (refreshInterval) {
         clearInterval(refreshInterval);
+        refreshInterval = null; // Reset to allow recreation if component remounts
         logger.debug("Auto-refresh interval cleared (SolidJS cleanup)");
       }
     });
