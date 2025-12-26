@@ -14,6 +14,8 @@ import * as remoteCommands from "../commands/remote-commands.js";
 import * as navCommands from "../commands/navigation-commands.js";
 import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
+import { logger } from "../utils/logger.js";
+import { executeShutdown } from "../index.js";
 
 /**
  * Options for the command handler hook
@@ -76,6 +78,16 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
   } = options;
 
   /**
+   * Graceful shutdown function
+   * Triggers the global shutdown sequence which executes all registered cleanup handlers
+   */
+  const shutdown = () => {
+    logger.info("Initiating graceful shutdown...");
+    // Execute the global shutdown which runs all registered cleanup handlers
+    executeShutdown();
+  };
+
+  /**
    * Main keyboard handler - routes commands based on context
    */
   const handleKeyPress = async (key: string, ctrl: boolean, shift: boolean) => {
@@ -99,7 +111,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           return;
         case "c":
           // Ctrl+C quits
-          process.exit(0);
+          shutdown();
           return;
       }
     }
@@ -110,7 +122,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
 
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
-      process.exit(0);
+      shutdown();
+      return;
     }
 
     // Handle pull/push regardless of file status
