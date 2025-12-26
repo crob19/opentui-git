@@ -30,11 +30,8 @@ if (args.includes("--help") || args.includes("-h")) {
   process.exit(0);
 }
 
-// Handle graceful shutdown
-process.on("SIGINT", () => {
-  process.exit(0);
-});
-
+// Handle system termination signal (SIGTERM)
+// Note: SIGINT (Ctrl+C) is handled in the keyboard handler for proper cleanup
 process.on("SIGTERM", () => {
   process.exit(0);
 });

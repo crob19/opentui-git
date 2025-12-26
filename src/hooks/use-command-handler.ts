@@ -14,6 +14,7 @@ import * as remoteCommands from "../commands/remote-commands.js";
 import * as navCommands from "../commands/navigation-commands.js";
 import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Options for the command handler hook
@@ -49,6 +50,8 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Cleanup function for auto-refresh interval */
+  cleanupAutoRefresh: () => void;
 }
 
 /**
@@ -73,7 +76,33 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    cleanupAutoRefresh,
   } = options;
+
+  /**
+   * Graceful shutdown function
+   * Cleans up resources before exiting the process
+   */
+  const shutdown = () => {
+    logger.info("Initiating graceful shutdown...");
+    
+    // Clean up auto-refresh interval
+    cleanupAutoRefresh();
+    
+    // Destroy the renderer to stop OpenTUI's event loop
+    try {
+      logger.debug("Destroying renderer...");
+      renderer.destroy();
+      logger.debug("Renderer destroyed");
+    } catch (error) {
+      logger.debug("Renderer destroy failed:", error);
+    }
+    
+    logger.info("Cleanup completed, exiting process");
+    
+    // Exit the process
+    process.exit(0);
+  };
 
   /**
    * Main keyboard handler - routes commands based on context
@@ -99,7 +128,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           return;
         case "c":
           // Ctrl+C quits
-          process.exit(0);
+          shutdown();
           return;
       }
     }
@@ -110,7 +139,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
 
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
-      process.exit(0);
+      shutdown();
+      return;
     }
 
     // Handle pull/push regardless of file status

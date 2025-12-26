@@ -68,6 +68,10 @@ function AppContent() {
   const gitTags = useGitTags(gitService);
   const gitDiff = useGitDiff(gitService, gitStatus.selectedFile);
 
+  // Auto-refresh git status, branches, and tags every second
+  // Returns cleanup function for graceful shutdown
+  const cleanupAutoRefresh = useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
+
   // Command handler sets up all keyboard bindings
   useCommandHandler({
     gitService,
@@ -85,10 +89,8 @@ function AppContent() {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    cleanupAutoRefresh,
   });
-
-  // Auto-refresh git status, branches, and tags every second
-  useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
 
   // Track last file path to detect actual file changes (not just refreshes)
   const [lastFilePath, setLastFilePath] = createSignal<string | null>(null);
