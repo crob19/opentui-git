@@ -1,7 +1,9 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource } from "solid-js";
-import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
+import type { Highlighter } from "shiki";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
+import { parseDiffLines, type DiffLine } from "../utils/diff-parser.js";
+import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -15,18 +17,6 @@ export interface DiffViewerProps {
   setSelectedLine: Setter<number>;
 }
 
-interface DiffLine {
-  content: string;
-  type: "add" | "remove" | "context" | "header";
-  oldLineNum: number | null;
-  newLineNum: number | null;
-}
-
-interface HighlightedToken {
-  text: string;
-  color: string;
-}
-
 // Background color constants for diff lines
 const DIFF_BG_COLOR_ADD = "#1F3F1F"; // Dark green background
 const DIFF_BG_COLOR_REMOVE = "#3F1F1F"; // Dark red background
@@ -38,58 +28,6 @@ const DIFF_LINE_NUM_BG_COLOR_ADD = "#0F2F0F"; // Darker green
 const DIFF_LINE_NUM_BG_COLOR_REMOVE = "#2F0F0F"; // Darker red
 const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F"; // Darker blue
 const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A"; // Dark gray
-
-// Initialize Shiki highlighter
-async function getHighlighter(): Promise<Highlighter> {
-  return createHighlighter({
-    themes: ["dark-plus"],
-    langs: ["javascript", "typescript", "python", "go", "rust", "c", "cpp", "tsx", "jsx"],
-  });
-}
-
-// Language detection is now imported from utils/language-detection.ts
-
-function parseDiffLines(diff: string): DiffLine[] {
-  const lines = diff.split("\n");
-  let oldLineNum = 0;
-  let newLineNum = 0;
-
-  return lines
-    .filter((line) => {
-      // Filter out git header lines (diff --git, index, similarity, etc.)
-      if (line.startsWith("diff --git")) return false;
-      if (line.startsWith("index ")) return false;
-      if (line.startsWith("new file mode")) return false;
-      if (line.startsWith("deleted file mode")) return false;
-      if (line.startsWith("similarity index")) return false;
-      if (line.startsWith("rename from")) return false;
-      if (line.startsWith("rename to")) return false;
-      return true;
-    })
-    .map((line) => {
-      // Parse @@ header to get line numbers
-      if (line.startsWith("@@")) {
-        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-        if (match) {
-          oldLineNum = parseInt(match[1]) - 1;
-          newLineNum = parseInt(match[3]) - 1;
-        }
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-      } else if (line.startsWith("+++") || line.startsWith("---")) {
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-      } else if (line.startsWith("+")) {
-        newLineNum++;
-        return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
-      } else if (line.startsWith("-")) {
-        oldLineNum++;
-        return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
-      } else {
-        oldLineNum++;
-        newLineNum++;
-        return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
-      }
-    });
-}
 
 function getBackgroundColor(type: DiffLine["type"]): string {
   switch (type) {
@@ -116,37 +54,6 @@ function getLineNumberBgColor(type: DiffLine["type"]): string {
     case "context":
     default:
       return DIFF_LINE_NUM_BG_COLOR_CONTEXT;
-  }
-}
-
-function highlightCode(code: string, language: string, highlighter: Highlighter): HighlightedToken[] {
-  try {
-    // Check if the language is loaded in the highlighter
-    const loadedLanguages = highlighter.getLoadedLanguages();
-    
-    // If the language is not loaded, fall back to plain text
-    if (!loadedLanguages.includes(language)) {
-      return [{ text: code, color: "#CCCCCC" }];
-    }
-
-    // Use the language with proper type - it's validated above
-    const tokens = highlighter.codeToTokensBase(code, {
-      lang: language as BundledLanguage,
-      theme: "dark-plus",
-    });
-
-    return tokens[0]?.map((token) => ({
-      text: token.content,
-      color: token.color || "#CCCCCC",
-    })) || [{ text: code, color: "#CCCCCC" }];
-  } catch (error) {
-    // Log the error to aid in debugging highlighting issues, but still fall back gracefully.
-    console.error("Failed to highlight code with shiki highlighter.", {
-      language,
-      error,
-    });
-    // Fallback if highlighting fails
-    return [{ text: code, color: "#CCCCCC" }];
   }
 }
 

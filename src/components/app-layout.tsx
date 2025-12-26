@@ -49,6 +49,8 @@ export interface AppLayoutProps {
   setSelectedDiffRow: Setter<number>;
   /** Diff view mode */
   diffViewMode: Accessor<"unified" | "side-by-side">;
+  /** Diff view mode setter */
+  setDiffViewMode: Setter<"unified" | "side-by-side">;
 }
 
 /**
@@ -86,7 +88,7 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
             selectedRow={props.selectedDiffRow}
             setSelectedRow={props.setSelectedDiffRow}
             viewMode={props.diffViewMode}
-            setViewMode={() => {}} // View mode is controlled by keyboard handler
+            setViewMode={props.setDiffViewMode}
           />
         </Show>
 

@@ -1,8 +1,9 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
-import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
-import { parseSideBySideDiff, type DiffRow } from "../utils/diff-parser.js";
+import type { Highlighter } from "shiki";
+import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
+import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
 
 // Maximum number of diff rows to show at once (virtual scrolling)
 const MAX_VISIBLE_ROWS = 30;
@@ -22,95 +23,11 @@ export interface FullPageDiffViewerProps {
   setViewMode: Setter<"unified" | "side-by-side">;
 }
 
-interface HighlightedToken {
-  text: string;
-  color: string;
-}
-
 // Background color constants for unified diff
 const DIFF_LINE_NUM_BG_COLOR_ADD = "#0F2F0F";
 const DIFF_LINE_NUM_BG_COLOR_REMOVE = "#2F0F0F";
 const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F";
 const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A";
-
-// Initialize Shiki highlighter
-async function getHighlighter(): Promise<Highlighter> {
-  return createHighlighter({
-    themes: ["dark-plus"],
-    langs: ["javascript", "typescript", "python", "go", "rust", "c", "cpp", "tsx", "jsx"],
-  });
-}
-
-function highlightCode(code: string, language: string, highlighter: Highlighter): HighlightedToken[] {
-  try {
-    const loadedLanguages = highlighter.getLoadedLanguages();
-    if (!loadedLanguages.includes(language)) {
-      return [{ text: code, color: "#CCCCCC" }];
-    }
-
-    const tokens = highlighter.codeToTokensBase(code, {
-      lang: language as BundledLanguage,
-      theme: "dark-plus",
-    });
-
-    return tokens[0]?.map((token) => ({
-      text: token.content,
-      color: token.color || "#CCCCCC",
-    })) || [{ text: code, color: "#CCCCCC" }];
-  } catch (error) {
-    console.error("Highlighting error:", error);
-    return [{ text: code, color: "#CCCCCC" }];
-  }
-}
-
-// Parse unified diff lines for unified view (reusing logic from diff-viewer.tsx)
-interface DiffLine {
-  content: string;
-  type: "add" | "remove" | "context" | "header";
-  oldLineNum: number | null;
-  newLineNum: number | null;
-}
-
-function parseDiffLines(diff: string): DiffLine[] {
-  const lines = diff.split("\n");
-  let oldLineNum = 0;
-  let newLineNum = 0;
-
-  return lines
-    .filter((line) => {
-      // Filter out git header lines
-      if (line.startsWith("diff --git")) return false;
-      if (line.startsWith("index ")) return false;
-      if (line.startsWith("new file mode")) return false;
-      if (line.startsWith("deleted file mode")) return false;
-      if (line.startsWith("similarity index")) return false;
-      if (line.startsWith("rename from")) return false;
-      if (line.startsWith("rename to")) return false;
-      return true;
-    })
-    .map((line) => {
-      if (line.startsWith("@@")) {
-        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-        if (match) {
-          oldLineNum = parseInt(match[1]) - 1;
-          newLineNum = parseInt(match[3]) - 1;
-        }
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-      } else if (line.startsWith("+++") || line.startsWith("---")) {
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
-      } else if (line.startsWith("+")) {
-        newLineNum++;
-        return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
-      } else if (line.startsWith("-")) {
-        oldLineNum++;
-        return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
-      } else {
-        oldLineNum++;
-        newLineNum++;
-        return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
-      }
-    });
-}
 
 export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
   // Parse diff into rows for side-by-side view

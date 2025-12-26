@@ -1,6 +1,16 @@
 import { parsePatch } from "diff";
 
 /**
+ * Represents a line in a unified diff view
+ */
+export interface DiffLine {
+  content: string;
+  type: "add" | "remove" | "context" | "header";
+  oldLineNum: number | null;
+  newLineNum: number | null;
+}
+
+/**
  * Represents a row in a side-by-side diff view
  */
 export interface DiffRow {
@@ -28,16 +38,22 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
     const patches = parsePatch(diffString);
     
     for (const patch of patches) {
-      // Initialize line numbers from first hunk
-      let leftLineNum = patch.hunks[0]?.oldStart || 1;
-      let rightLineNum = patch.hunks[0]?.newStart || 1;
-      
       for (const hunk of patch.hunks) {
+        // Initialize line numbers from this hunk's start positions
+        let leftLineNum = hunk.oldStart || 1;
+        let rightLineNum = hunk.newStart || 1;
         const lines = hunk.lines;
         let i = 0;
         
         while (i < lines.length) {
           const line = lines[i];
+          
+          // Skip empty lines
+          if (line.length === 0) {
+            i++;
+            continue;
+          }
+          
           const content = line.slice(1);
           const prefix = line[0];
           
@@ -127,8 +143,63 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
       }
     }
   } catch (error) {
-    console.error("Failed to parse diff:", error);
+    const diffLength = diffString.length;
+    const diffPreview = diffString.slice(0, 200);
+    console.error(
+      "Failed to parse diff. Length:",
+      diffLength,
+      "Preview:",
+      diffPreview,
+      "Error:",
+      error
+    );
   }
   
   return diffRows;
+}
+
+/**
+ * Parse a unified diff string into lines for unified view
+ * @param diff - Unified diff output from git
+ * @returns Array of DiffLine objects for unified display
+ */
+export function parseDiffLines(diff: string): DiffLine[] {
+  const lines = diff.split("\n");
+  let oldLineNum = 0;
+  let newLineNum = 0;
+
+  return lines
+    .filter((line) => {
+      // Filter out git header lines
+      if (line.startsWith("diff --git")) return false;
+      if (line.startsWith("index ")) return false;
+      if (line.startsWith("new file mode")) return false;
+      if (line.startsWith("deleted file mode")) return false;
+      if (line.startsWith("similarity index")) return false;
+      if (line.startsWith("rename from")) return false;
+      if (line.startsWith("rename to")) return false;
+      return true;
+    })
+    .map((line) => {
+      if (line.startsWith("@@")) {
+        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+        if (match) {
+          oldLineNum = parseInt(match[1]) - 1;
+          newLineNum = parseInt(match[3]) - 1;
+        }
+        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+      } else if (line.startsWith("+++") || line.startsWith("---")) {
+        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+      } else if (line.startsWith("+")) {
+        newLineNum++;
+        return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
+      } else if (line.startsWith("-")) {
+        oldLineNum++;
+        return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
+      } else {
+        oldLineNum++;
+        newLineNum++;
+        return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
+      }
+    });
 }

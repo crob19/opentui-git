@@ -240,8 +240,6 @@ export class GitService {
    */
   async getDiff(filepath: string, staged: boolean = false): Promise<string> {
     const options = staged ? ["--cached", filepath] : [filepath];
-    logger.info(options)
-    logger.info(this.git.diff(options))
     return await this.git.diff(options);
   }
 

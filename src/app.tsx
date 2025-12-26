@@ -125,6 +125,7 @@ function AppContent() {
       selectedDiffRow={selectedDiffRow}
       setSelectedDiffRow={setSelectedDiffRow}
       diffViewMode={diffViewMode}
+      setDiffViewMode={setDiffViewMode}
     />
   );
 }
