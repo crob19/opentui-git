@@ -60,6 +60,10 @@ export interface AppLayoutProps {
   editedContent: Accessor<string>;
   /** Edited content setter */
   setEditedContent: Setter<string>;
+  /** All edited lines in current session */
+  editedLines: Accessor<Map<number, string>>;
+  /** Setter for edited lines */
+  setEditedLines: Setter<Map<number, string>>;
   /** Git service for file operations */
   gitService: GitService;
   /** Refetch diff after save */
@@ -106,6 +110,8 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
             setIsEditMode={props.setIsEditMode}
             editedContent={props.editedContent}
             setEditedContent={props.setEditedContent}
+            editedLines={props.editedLines}
+            setEditedLines={props.setEditedLines}
             gitService={props.gitService}
             refetchDiff={props.refetchDiff}
           />

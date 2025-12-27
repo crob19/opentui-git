@@ -26,6 +26,8 @@ export interface FullPageDiffViewerProps {
   setIsEditMode: Setter<boolean>;
   editedContent: Accessor<string>;
   setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
+  setEditedLines: Setter<Map<number, string>>;
   gitService: GitService;
   refetchDiff: () => void;
 }
@@ -184,6 +186,7 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
                 isEditMode={props.isEditMode}
                 editedContent={props.editedContent}
                 setEditedContent={props.setEditedContent}
+                editedLines={props.editedLines}
               />
             </Show>
           </box>
@@ -226,6 +229,13 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
           }
         >
           <text fg="#FFAA00">EDIT MODE</text>
+          <Show when={props.editedLines().size > 0}>
+            <text fg="#444444"> - </text>
+            <text fg="#44FF44">{props.editedLines().size} line{props.editedLines().size > 1 ? 's' : ''} edited</text>
+          </Show>
+          <text fg="#444444">│</text>
+          <text fg="#00AAFF">j/k</text>
+          <text fg="#AAAAAA">navigate</text>
           <text fg="#444444">│</text>
           <text fg="#00AAFF">Ctrl+S</text>
           <text fg="#AAAAAA">save</text>
@@ -249,6 +259,7 @@ interface SideBySideDiffViewProps {
   isEditMode: Accessor<boolean>;
   editedContent: Accessor<string>;
   setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
 }
 
 function SideBySideDiffView(props: SideBySideDiffViewProps) {
@@ -269,6 +280,7 @@ function SideBySideDiffView(props: SideBySideDiffViewProps) {
               isEditMode={props.isEditMode}
               editedContent={props.editedContent}
               setEditedContent={props.setEditedContent}
+              editedLines={props.editedLines}
             />
           );
         }}
@@ -287,11 +299,18 @@ interface DiffRowViewProps {
   isEditMode: Accessor<boolean>;
   editedContent: Accessor<string>;
   setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
 }
 
 function DiffRowView(props: DiffRowViewProps) {
   const leftTokens = () => props.getHighlightedTokens(props.row.left, props.language, props.highlighter);
   const rightTokens = () => props.getHighlightedTokens(props.row.right, props.language, props.highlighter);
+
+  // Check if this line has been edited
+  const isEdited = () => {
+    if (props.row.rightLineNum === null) return false;
+    return props.editedLines().has(props.row.rightLineNum);
+  };
 
   const leftBg = () => {
     if (props.isSelected) return DIFF_BG_COLOR_SELECTED;
@@ -357,7 +376,10 @@ function DiffRowView(props: DiffRowViewProps) {
 
         {/* Indicator */}
         <box width={2}>
-          <Show when={props.row.type === "added" || props.row.type === "modified"}>
+          <Show when={isEdited()}>
+            <text fg="#FFAA00">*</text>
+          </Show>
+          <Show when={!isEdited() && (props.row.type === "added" || props.row.type === "modified")}>
             <text fg="#44FF44">+</text>
           </Show>
         </box>

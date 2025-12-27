@@ -60,6 +60,10 @@ export interface UseCommandHandlerOptions {
   editedContent: Accessor<string>;
   /** Edited content setter */
   setEditedContent: Setter<string>;
+  /** All edited lines in current session */
+  editedLines: Accessor<Map<number, string>>;
+  /** Setter for edited lines */
+  setEditedLines: Setter<Map<number, string>>;
 }
 
 /**
@@ -88,6 +92,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setIsEditMode,
     editedContent,
     setEditedContent,
+    editedLines,
+    setEditedLines,
   } = options;
 
   /**
@@ -213,6 +219,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setIsEditMode,
           editedContent,
           setEditedContent,
+          editedLines,
+          setEditedLines,
           gitService,
           gitStatus,
           toast,
@@ -385,11 +393,36 @@ async function handleDiffPanelKeys(
     setIsEditMode: Setter<boolean>;
     editedContent: Accessor<string>;
     setEditedContent: Setter<string>;
+    editedLines: Accessor<Map<number, string>>;
+    setEditedLines: Setter<Map<number, string>>;
     gitService: GitService;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
   },
 ): Promise<void> {
+  // Helper function to save current edit to editedLines map before navigating
+  const saveCurrentEdit = async () => {
+    if (!context.isEditMode()) return;
+
+    const selectedFile = context.gitStatus.selectedFile();
+    if (!selectedFile) return;
+
+    const diffContent = await context.gitService.getDiff(selectedFile.path);
+    if (!diffContent) return;
+
+    const diffRows = parseSideBySideDiff(diffContent);
+    const selectedRow = diffRows[context.selectedDiffRow()];
+
+    if (selectedRow && selectedRow.rightLineNum !== null) {
+      // Only save if the content actually changed
+      if (context.editedContent() !== selectedRow.right) {
+        const newMap = new Map(context.editedLines());
+        newMap.set(selectedRow.rightLineNum, context.editedContent());
+        context.setEditedLines(newMap);
+      }
+    }
+  };
+
   // Handle save in edit mode with Ctrl+S
   if (ctrl && key === "s" && context.isEditMode()) {
     const selectedFile = context.gitStatus.selectedFile();
@@ -399,18 +432,14 @@ async function handleDiffPanelKeys(
     }
 
     try {
-      // Get the current diff to find the line we're editing
-      const diffContent = await context.gitService.getDiff(selectedFile.path);
-      if (!diffContent) {
-        context.toast.error("Could not get diff content");
-        return;
-      }
+      // First, save the current line edit
+      await saveCurrentEdit();
 
-      const diffRows = parseSideBySideDiff(diffContent);
-      const selectedRow = diffRows[context.selectedDiffRow()];
-
-      if (!selectedRow || selectedRow.rightLineNum === null) {
-        context.toast.error("Cannot edit this line");
+      const editedLinesMap = context.editedLines();
+      if (editedLinesMap.size === 0) {
+        context.toast.info("No changes to save");
+        context.setIsEditMode(false);
+        context.setEditedLines(new Map());
         return;
       }
 
@@ -418,28 +447,47 @@ async function handleDiffPanelKeys(
       const fullContent = await context.gitService.readFile(selectedFile.path);
       const lines = fullContent.split('\n');
 
-      // Verify the line hasn't changed since we entered edit mode
-      const currentLine = lines[selectedRow.rightLineNum - 1];
-      if (currentLine !== selectedRow.right) {
-        context.toast.error("File has been modified. Please exit and re-enter edit mode to see latest changes.");
+      // Get current diff to validate all edited lines
+      const diffContent = await context.gitService.getDiff(selectedFile.path);
+      if (!diffContent) {
+        context.toast.error("Could not get diff content");
         return;
       }
 
-      // Check if the user actually made any changes
-      if (context.editedContent() === selectedRow.right) {
-        context.toast.info("No changes to save");
-        context.setIsEditMode(false);
-        return;
+      const diffRows = parseSideBySideDiff(diffContent);
+
+      // Build a map of line numbers to their expected content from diff
+      const expectedLines = new Map<number, string>();
+      for (const row of diffRows) {
+        if (row.rightLineNum !== null) {
+          expectedLines.set(row.rightLineNum, row.right);
+        }
       }
 
-      // Update the line (line numbers are 1-based, array is 0-based)
-      lines[selectedRow.rightLineNum - 1] = context.editedContent();
+      // Verify all edited lines haven't changed in the file
+      for (const [lineNum, ] of editedLinesMap) {
+        const actualLine = lines[lineNum - 1];
+        const expectedLine = expectedLines.get(lineNum);
+        if (expectedLine !== undefined && actualLine !== expectedLine) {
+          context.toast.error(`File has been modified at line ${lineNum}. Please exit and re-enter edit mode.`);
+          return;
+        }
+      }
+
+      // Apply all edits
+      for (const [lineNum, newContent] of editedLinesMap) {
+        lines[lineNum - 1] = newContent;
+      }
 
       // Write back to file
       await context.gitService.writeFile(selectedFile.path, lines.join('\n'));
 
-      context.toast.success(`Saved changes to ${selectedFile.path}`);
+      const count = editedLinesMap.size;
+      context.toast.success(`Saved ${count} line${count > 1 ? 's' : ''} to ${selectedFile.path}`);
+
+      // Exit edit mode and clear state
       context.setIsEditMode(false);
+      context.setEditedLines(new Map());
 
       // Refetch git status and diff
       await context.gitStatus.refetch();
@@ -497,7 +545,13 @@ async function handleDiffPanelKeys(
   // Exit edit mode with Escape
   if (key === "escape") {
     if (context.isEditMode()) {
+      // Clear all edit state when exiting edit mode
+      const editCount = context.editedLines().size;
       context.setIsEditMode(false);
+      context.setEditedLines(new Map());
+      if (editCount > 0) {
+        context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
+      }
       return;
     }
     // Return to files panel and reset diff scroll position
@@ -506,8 +560,45 @@ async function handleDiffPanelKeys(
     return;
   }
 
-  // Don't allow navigation in edit mode
+  // Navigation in edit mode: save current edit before moving
   if (context.isEditMode()) {
+    if (key === "j" || key === "down") {
+      await saveCurrentEdit();
+      const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
+      if (diffContent) {
+        const diffRows = parseSideBySideDiff(diffContent);
+        const newIndex = Math.min(context.selectedDiffRow() + 1, diffRows.length - 1);
+        context.setSelectedDiffRow(newIndex);
+
+        // Load content for new line (from editedLines if exists, otherwise from diff)
+        const newRow = diffRows[newIndex];
+        if (newRow && newRow.rightLineNum !== null) {
+          const existingEdit = context.editedLines().get(newRow.rightLineNum);
+          context.setEditedContent(existingEdit ?? newRow.right);
+        }
+      }
+      return;
+    }
+
+    if (key === "k" || key === "up") {
+      await saveCurrentEdit();
+      const newIndex = Math.max(context.selectedDiffRow() - 1, 0);
+      context.setSelectedDiffRow(newIndex);
+
+      // Load content for new line (from editedLines if exists, otherwise from diff)
+      const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
+      if (diffContent) {
+        const diffRows = parseSideBySideDiff(diffContent);
+        const newRow = diffRows[newIndex];
+        if (newRow && newRow.rightLineNum !== null) {
+          const existingEdit = context.editedLines().get(newRow.rightLineNum);
+          context.setEditedContent(existingEdit ?? newRow.right);
+        }
+      }
+      return;
+    }
+
+    // Block all other keys in edit mode except navigation and save
     return;
   }
 
