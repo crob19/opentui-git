@@ -58,9 +58,9 @@ export interface UseCommandHandlerOptions {
   /** Diff mode setter */
   setDiffMode: Setter<DiffMode>;
   /** Branch to compare against */
-  compareBranch: Accessor<string>;
+  compareBranch: Accessor<string | null>;
   /** Branch to compare against setter */
-  setCompareBranch: Setter<string>;
+  setCompareBranch: Setter<string | null>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
