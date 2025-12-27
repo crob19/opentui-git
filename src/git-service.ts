@@ -371,8 +371,10 @@ export class GitService {
     const fullPath = path.resolve(this.repoPath, filepath);
     const normalizedRepoPath = path.resolve(this.repoPath);
 
-    // Ensure the resolved path is within the repository
-    if (!fullPath.startsWith(normalizedRepoPath + path.sep) && fullPath !== normalizedRepoPath) {
+    // Ensure the resolved path is within the repository using a relative-path check.
+    // If the relative path starts with ".." or is absolute, it escapes the repository.
+    const relativePath = path.relative(normalizedRepoPath, fullPath);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
       throw new Error(`Path traversal detected: ${filepath}`);
     }
 
