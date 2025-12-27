@@ -62,10 +62,14 @@ function AppContent() {
   // Diff panel state
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
+
+  // Edit mode state
   const [isEditMode, setIsEditMode] = createSignal(false);
   const [editedContent, setEditedContent] = createSignal("");
   // Track all edited lines: Map<lineNumber, editedContent>
   const [editedLines, setEditedLines] = createSignal<Map<number, string>>(new Map());
+  const [fileContent, setFileContent] = createSignal("");
+  const [selectedLine, setSelectedLine] = createSignal(0);
 
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
@@ -116,6 +120,10 @@ function AppContent() {
     setEditedContent,
     editedLines,
     setEditedLines,
+    fileContent,
+    setFileContent,
+    selectedLine,
+    setSelectedLine,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)
@@ -160,6 +168,10 @@ function AppContent() {
       setEditedContent={setEditedContent}
       editedLines={editedLines}
       setEditedLines={setEditedLines}
+      fileContent={fileContent}
+      setFileContent={setFileContent}
+      selectedLine={selectedLine}
+      setSelectedLine={setSelectedLine}
       gitService={gitService}
       refetchDiff={gitDiff.refetch}
     />

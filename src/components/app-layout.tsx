@@ -8,6 +8,7 @@ import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
 import { DiffViewer } from "./diff-viewer.js";
 import { FullPageDiffViewer } from "./full-page-diff-viewer.js";
+import { FileEditor } from "./file-editor.js";
 import { Footer } from "./footer.js";
 
 /**
@@ -64,6 +65,14 @@ export interface AppLayoutProps {
   editedLines: Accessor<Map<number, string>>;
   /** Setter for edited lines */
   setEditedLines: Setter<Map<number, string>>;
+  /** Full file content for edit mode */
+  fileContent: Accessor<string>;
+  /** Setter for file content */
+  setFileContent: Setter<string>;
+  /** Selected line number in full file */
+  selectedLine: Accessor<number>;
+  /** Setter for selected line */
+  setSelectedLine: Setter<number>;
   /** Git service for file operations */
   gitService: GitService;
   /** Refetch diff after save */
@@ -96,25 +105,40 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
           </box>
         }
       >
-        {/* Show full-page diff viewer when in diff panel */}
+        {/* Show file editor when in edit mode, otherwise show diff viewer */}
         <Show when={props.activePanel() === "diff"}>
-          <FullPageDiffViewer
-            diff={() => props.diffContent() || null}
-            filePath={() => props.selectedFile()?.path || null}
-            isLoading={props.isDiffLoading}
-            selectedRow={props.selectedDiffRow}
-            setSelectedRow={props.setSelectedDiffRow}
-            viewMode={props.diffViewMode}
-            setViewMode={props.setDiffViewMode}
-            isEditMode={props.isEditMode}
-            setIsEditMode={props.setIsEditMode}
-            editedContent={props.editedContent}
-            setEditedContent={props.setEditedContent}
-            editedLines={props.editedLines}
-            setEditedLines={props.setEditedLines}
-            gitService={props.gitService}
-            refetchDiff={props.refetchDiff}
-          />
+          <Show
+            when={props.isEditMode()}
+            fallback={
+              <FullPageDiffViewer
+                diff={() => props.diffContent() || null}
+                filePath={() => props.selectedFile()?.path || null}
+                isLoading={props.isDiffLoading}
+                selectedRow={props.selectedDiffRow}
+                setSelectedRow={props.setSelectedDiffRow}
+                viewMode={props.diffViewMode}
+                setViewMode={props.setDiffViewMode}
+                isEditMode={props.isEditMode}
+                setIsEditMode={props.setIsEditMode}
+                editedContent={props.editedContent}
+                setEditedContent={props.setEditedContent}
+                editedLines={props.editedLines}
+                setEditedLines={props.setEditedLines}
+                gitService={props.gitService}
+                refetchDiff={props.refetchDiff}
+              />
+            }
+          >
+            <FileEditor
+              filePath={() => props.selectedFile()?.path || null}
+              fileContent={props.fileContent}
+              selectedLine={props.selectedLine}
+              setSelectedLine={props.setSelectedLine}
+              editedContent={props.editedContent}
+              setEditedContent={props.setEditedContent}
+              editedLines={props.editedLines}
+            />
+          </Show>
         </Show>
 
         {/* Normal 3-panel layout when NOT in diff panel */}

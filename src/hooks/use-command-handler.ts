@@ -64,6 +64,14 @@ export interface UseCommandHandlerOptions {
   editedLines: Accessor<Map<number, string>>;
   /** Setter for edited lines */
   setEditedLines: Setter<Map<number, string>>;
+  /** Full file content for edit mode */
+  fileContent: Accessor<string>;
+  /** Setter for file content */
+  setFileContent: Setter<string>;
+  /** Selected line number in full file */
+  selectedLine: Accessor<number>;
+  /** Setter for selected line */
+  setSelectedLine: Setter<number>;
 }
 
 /**
@@ -94,6 +102,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setEditedContent,
     editedLines,
     setEditedLines,
+    fileContent,
+    setFileContent,
+    selectedLine,
+    setSelectedLine,
   } = options;
 
   /**
@@ -221,6 +233,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setEditedContent,
           editedLines,
           setEditedLines,
+          fileContent,
+          setFileContent,
+          selectedLine,
+          setSelectedLine,
           gitService,
           gitStatus,
           toast,
@@ -395,31 +411,28 @@ async function handleDiffPanelKeys(
     setEditedContent: Setter<string>;
     editedLines: Accessor<Map<number, string>>;
     setEditedLines: Setter<Map<number, string>>;
+    fileContent: Accessor<string>;
+    setFileContent: Setter<string>;
+    selectedLine: Accessor<number>;
+    setSelectedLine: Setter<number>;
     gitService: GitService;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
   },
 ): Promise<void> {
   // Helper function to save current edit to editedLines map before navigating
-  const saveCurrentEdit = async () => {
+  const saveCurrentEdit = () => {
     if (!context.isEditMode()) return;
 
-    const selectedFile = context.gitStatus.selectedFile();
-    if (!selectedFile) return;
+    const lines = context.fileContent().split('\n');
+    const lineNumber = context.selectedLine() + 1; // Convert to 1-based
+    const originalLine = lines[context.selectedLine()];
 
-    const diffContent = await context.gitService.getDiff(selectedFile.path);
-    if (!diffContent) return;
-
-    const diffRows = parseSideBySideDiff(diffContent);
-    const selectedRow = diffRows[context.selectedDiffRow()];
-
-    if (selectedRow && selectedRow.rightLineNum !== null) {
-      // Only save if the content actually changed
-      if (context.editedContent() !== selectedRow.right) {
-        const newMap = new Map(context.editedLines());
-        newMap.set(selectedRow.rightLineNum, context.editedContent());
-        context.setEditedLines(newMap);
-      }
+    // Only save if the content actually changed
+    if (context.editedContent() !== originalLine) {
+      const newMap = new Map(context.editedLines());
+      newMap.set(lineNumber, context.editedContent());
+      context.setEditedLines(newMap);
     }
   };
 
@@ -433,7 +446,7 @@ async function handleDiffPanelKeys(
 
     try {
       // First, save the current line edit
-      await saveCurrentEdit();
+      saveCurrentEdit();
 
       const editedLinesMap = context.editedLines();
       if (editedLinesMap.size === 0) {
@@ -443,36 +456,8 @@ async function handleDiffPanelKeys(
         return;
       }
 
-      // Read the current file content
-      const fullContent = await context.gitService.readFile(selectedFile.path);
-      const lines = fullContent.split('\n');
-
-      // Get current diff to validate all edited lines
-      const diffContent = await context.gitService.getDiff(selectedFile.path);
-      if (!diffContent) {
-        context.toast.error("Could not get diff content");
-        return;
-      }
-
-      const diffRows = parseSideBySideDiff(diffContent);
-
-      // Build a map of line numbers to their expected content from diff
-      const expectedLines = new Map<number, string>();
-      for (const row of diffRows) {
-        if (row.rightLineNum !== null) {
-          expectedLines.set(row.rightLineNum, row.right);
-        }
-      }
-
-      // Verify all edited lines haven't changed in the file
-      for (const [lineNum, ] of editedLinesMap) {
-        const actualLine = lines[lineNum - 1];
-        const expectedLine = expectedLines.get(lineNum);
-        if (expectedLine !== undefined && actualLine !== expectedLine) {
-          context.toast.error(`File has been modified at line ${lineNum}. Please exit and re-enter edit mode.`);
-          return;
-        }
-      }
+      // Get the original file content that was loaded
+      const lines = context.fileContent().split('\n');
 
       // Apply all edits
       for (const [lineNum, newContent] of editedLinesMap) {
@@ -488,6 +473,7 @@ async function handleDiffPanelKeys(
       // Exit edit mode and clear state
       context.setIsEditMode(false);
       context.setEditedLines(new Map());
+      context.setFileContent("");
 
       // Refetch git status and diff
       await context.gitStatus.refetch();
@@ -515,31 +501,39 @@ async function handleDiffPanelKeys(
       return;
     }
 
-    const diffContent = await context.gitService.getDiff(selectedPath);
-    if (!diffContent) return;
-
-    const diffRows = parseSideBySideDiff(diffContent);
-    const selectedRow = diffRows[context.selectedDiffRow()];
-
-    // Only allow editing on the right side (new content) and if there's a line number
-    if (selectedRow && selectedRow.right !== "" && selectedRow.rightLineNum !== null) {
-      try {
-        // Verify the file line matches what the diff expects
-        const fullContent = await context.gitService.readFile(selectedPath);
-        const lines = fullContent.split('\n');
-        const actualLine = lines[selectedRow.rightLineNum - 1];
-
-        // Check if the actual file line matches the diff's expected line
-        if (actualLine !== selectedRow.right) {
-          context.toast.error("File has been modified since diff was generated. Refresh to see latest changes.");
-          return;
-        }
-
-        context.setEditedContent(selectedRow.right);
-        context.setIsEditMode(true);
-      } catch (error) {
-        context.toast.error(`Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`);
+    try {
+      // Get the diff to find which line we're on
+      const diffContent = await context.gitService.getDiff(selectedPath);
+      if (!diffContent) {
+        context.toast.error("No diff available");
+        return;
       }
+
+      const diffRows = parseSideBySideDiff(diffContent);
+      const selectedRow = diffRows[context.selectedDiffRow()];
+
+      // Only allow editing if there's a valid line number
+      if (!selectedRow || selectedRow.rightLineNum === null) {
+        context.toast.info("Cannot edit this line");
+        return;
+      }
+
+      // Load the full file content
+      const fullContent = await context.gitService.readFile(selectedPath);
+      context.setFileContent(fullContent);
+
+      // Set the selected line to the line from the diff (convert to 0-based index)
+      const lineIndex = selectedRow.rightLineNum - 1;
+      context.setSelectedLine(lineIndex);
+
+      // Set the edited content to the current line content
+      const lines = fullContent.split('\n');
+      context.setEditedContent(lines[lineIndex] || "");
+
+      // Enter edit mode
+      context.setIsEditMode(true);
+    } catch (error) {
+      context.toast.error(`Failed to enter edit mode: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
     return;
   }
@@ -552,6 +546,7 @@ async function handleDiffPanelKeys(
       context.setIsEditMode(false);
       context.setEditedContent("");
       context.setEditedLines(new Map());
+      context.setFileContent("");
       if (editCount > 0) {
         context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
       }
@@ -566,38 +561,28 @@ async function handleDiffPanelKeys(
   // Navigation in edit mode: ONLY arrow keys (not j/k) so user can type those letters
   if (context.isEditMode()) {
     if (key === "down") {
-      await saveCurrentEdit();
-      const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
-      if (diffContent) {
-        const diffRows = parseSideBySideDiff(diffContent);
-        const newIndex = Math.min(context.selectedDiffRow() + 1, diffRows.length - 1);
-        context.setSelectedDiffRow(newIndex);
+      saveCurrentEdit();
+      const lines = context.fileContent().split('\n');
+      const newIndex = Math.min(context.selectedLine() + 1, lines.length - 1);
+      context.setSelectedLine(newIndex);
 
-        // Load content for new line (from editedLines if exists, otherwise from diff)
-        const newRow = diffRows[newIndex];
-        if (newRow && newRow.rightLineNum !== null) {
-          const existingEdit = context.editedLines().get(newRow.rightLineNum);
-          context.setEditedContent(existingEdit ?? newRow.right);
-        }
-      }
+      // Load content for new line (from editedLines if exists, otherwise from file)
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
       return;
     }
 
     if (key === "up") {
-      await saveCurrentEdit();
-      const newIndex = Math.max(context.selectedDiffRow() - 1, 0);
-      context.setSelectedDiffRow(newIndex);
+      saveCurrentEdit();
+      const newIndex = Math.max(context.selectedLine() - 1, 0);
+      context.setSelectedLine(newIndex);
 
-      // Load content for new line (from editedLines if exists, otherwise from diff)
-      const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
-      if (diffContent) {
-        const diffRows = parseSideBySideDiff(diffContent);
-        const newRow = diffRows[newIndex];
-        if (newRow && newRow.rightLineNum !== null) {
-          const existingEdit = context.editedLines().get(newRow.rightLineNum);
-          context.setEditedContent(existingEdit ?? newRow.right);
-        }
-      }
+      // Load content for new line (from editedLines if exists, otherwise from file)
+      const lines = context.fileContent().split('\n');
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
       return;
     }
 
