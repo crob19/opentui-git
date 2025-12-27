@@ -436,8 +436,8 @@ async function handleDiffPanelKeys(
     setDiffViewMode: Setter<"unified" | "side-by-side">;
     diffMode: Accessor<DiffMode>;
     setDiffMode: Setter<DiffMode>;
-    compareBranch: Accessor<string>;
-    setCompareBranch: Setter<string>;
+    compareBranch: Accessor<string | null>;
+    setCompareBranch: Setter<string | null>;
     isEditMode: Accessor<boolean>;
     setIsEditMode: Setter<boolean>;
     editedContent: Accessor<string>;
