@@ -589,36 +589,38 @@ async function handleDiffPanelKeys(
     if (key === "down") {
       saveCurrentEdit();
       const lines = context.fileContent().split('\n');
+      if (lines.length === 0) {
+        // No content to navigate; reset selection and clear edit buffer
+        context.setSelectedLine(0);
+        context.setEditedContent("");
+        return;
+      }
       const newIndex = Math.min(context.selectedLine() + 1, lines.length - 1);
       context.setSelectedLine(newIndex);
 
       // Load content for new line (from editedLines if exists, otherwise from file)
-      if (newIndex >= 0 && newIndex < lines.length) {
-        const lineNumber = newIndex + 1; // Convert to 1-based
-        const existingEdit = context.editedLines().get(lineNumber);
-        context.setEditedContent(existingEdit ?? lines[newIndex]);
-      } else {
-        // Clear if out of bounds
-        context.setEditedContent("");
-      }
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
       return;
     }
 
     if (key === "up") {
       saveCurrentEdit();
-      const newIndex = Math.max(context.selectedLine() - 1, 0);
+      const lines = context.fileContent().split('\n');
+      if (lines.length === 0) {
+        // No content to navigate; reset selection and clear edit buffer
+        context.setSelectedLine(0);
+        context.setEditedContent("");
+        return;
+      }
+      const newIndex = Math.max(Math.min(context.selectedLine() - 1, lines.length - 1), 0);
       context.setSelectedLine(newIndex);
 
       // Load content for new line (from editedLines if exists, otherwise from file)
-      const lines = context.fileContent().split('\n');
-      if (newIndex >= 0 && newIndex < lines.length) {
-        const lineNumber = newIndex + 1; // Convert to 1-based
-        const existingEdit = context.editedLines().get(lineNumber);
-        context.setEditedContent(existingEdit ?? lines[newIndex]);
-      } else {
-        // Clear if out of bounds
-        context.setEditedContent("");
-      }
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
       return;
     }
 
