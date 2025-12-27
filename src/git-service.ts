@@ -254,7 +254,25 @@ export class GitService {
    * @returns Promise<string> - Diff output
    */
   async getDiffAgainstBranch(filepath: string, branch: string): Promise<string> {
-    return await this.git.diff([branch, "--", filepath]);
+    try {
+      const branchSummary = await this.git.branch();
+      const branchExists = Object.prototype.hasOwnProperty.call(branchSummary.branches, branch);
+
+      if (!branchExists) {
+        const message = `Branch "${branch}" does not exist in repository "${this.repoPath}".`;
+        logger.error(message);
+        throw new Error(message);
+      }
+
+      return await this.git.diff([branch, "--", filepath]);
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to get diff for "${filepath}" against branch "${branch}": ${error.message}`,
+        );
+      }
+      throw error;
+    }
   }
 
   /**
