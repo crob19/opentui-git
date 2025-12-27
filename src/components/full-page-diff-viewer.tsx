@@ -374,7 +374,7 @@ function DiffRowView(props: DiffRowViewProps) {
           >
             <textbox
               value={props.editedContent()}
-              onInput={(val) => props.setEditedContent(val)}
+              onInput={(newContent) => props.setEditedContent(newContent)}
               fg="#FFFFFF"
               bg={rightBg()}
               width="100%"
