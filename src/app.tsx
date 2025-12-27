@@ -70,6 +70,7 @@ function AppContent() {
   const [editedLines, setEditedLines] = createSignal<Map<number, string>>(new Map());
   const [fileContent, setFileContent] = createSignal("");
   const [selectedLine, setSelectedLine] = createSignal(0);
+  const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
 
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
@@ -124,6 +125,8 @@ function AppContent() {
     setFileContent,
     selectedLine,
     setSelectedLine,
+    fileMtime,
+    setFileMtime,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)

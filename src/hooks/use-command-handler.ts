@@ -72,6 +72,10 @@ export interface UseCommandHandlerOptions {
   selectedLine: Accessor<number>;
   /** Setter for selected line */
   setSelectedLine: Setter<number>;
+  /** File modification time */
+  fileMtime: Accessor<Date | null>;
+  /** Setter for file modification time */
+  setFileMtime: Setter<Date | null>;
 }
 
 /**
@@ -106,6 +110,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setFileContent,
     selectedLine,
     setSelectedLine,
+    fileMtime,
+    setFileMtime,
   } = options;
 
   /**
@@ -237,6 +243,8 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setFileContent,
           selectedLine,
           setSelectedLine,
+          fileMtime,
+          setFileMtime,
           gitService,
           gitStatus,
           toast,
@@ -415,6 +423,8 @@ async function handleDiffPanelKeys(
     setFileContent: Setter<string>;
     selectedLine: Accessor<number>;
     setSelectedLine: Setter<number>;
+    fileMtime: Accessor<Date | null>;
+    setFileMtime: Setter<Date | null>;
     gitService: GitService;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
@@ -475,8 +485,18 @@ async function handleDiffPanelKeys(
         lines[lineIndex] = newContent;
       }
 
-      // Write back to file
-      await context.gitService.writeFile(selectedFile.path, lines.join('\n'));
+      // Write back to file with modification check
+      const result = await context.gitService.writeFileWithCheck(
+        selectedFile.path,
+        lines.join('\n'),
+        context.fileMtime() ?? undefined,
+      );
+
+      if (!result.success) {
+        context.toast.error(result.message || "Failed to save file");
+        context.toast.info("File was modified externally. Exit edit mode and re-enter to see latest changes.");
+        return;
+      }
 
       const count = editedLinesMap.size;
       context.toast.success(`Saved ${count} line${count > 1 ? 's' : ''} to ${selectedFile.path}`);
@@ -486,6 +506,7 @@ async function handleDiffPanelKeys(
       context.setEditedLines(new Map());
       context.setEditedContent("");
       context.setFileContent("");
+      context.setFileMtime(null);
 
       // Refetch git status and diff
       await context.gitStatus.refetch();
@@ -541,8 +562,8 @@ async function handleDiffPanelKeys(
         return;
       }
 
-      // Load the full file content
-      const fullContent = await context.gitService.readFile(selectedPath);
+      // Load the full file content with metadata
+      const { content: fullContent, mtime } = await context.gitService.readFileWithMetadata(selectedPath);
       const lines = fullContent.split('\n');
 
       // Validate line number is within bounds
@@ -553,6 +574,7 @@ async function handleDiffPanelKeys(
       }
 
       context.setFileContent(fullContent);
+      context.setFileMtime(mtime);
       context.setSelectedLine(lineIndex);
       context.setEditedContent(lines[lineIndex]);
 
@@ -573,6 +595,7 @@ async function handleDiffPanelKeys(
       context.setEditedContent("");
       context.setEditedLines(new Map());
       context.setFileContent("");
+      context.setFileMtime(null);
       if (editCount > 0) {
         context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
       }

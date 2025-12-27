@@ -382,36 +382,70 @@ export class GitService {
   }
 
   /**
-   * Read a file from the repository
+   * Read a file from the repository with metadata
    * @param filepath - Path to the file relative to the repository root
-   * @returns Promise<string> - File content
+   * @returns Promise with content and modification time
    */
-  async readFile(filepath: string): Promise<string> {
+  async readFileWithMetadata(filepath: string): Promise<{ content: string; mtime: Date }> {
     const fullPath = this.validateFilePath(filepath);
     try {
-      return await fs.readFile(fullPath, "utf-8");
+      const [content, stats] = await Promise.all([
+        fs.readFile(fullPath, "utf-8"),
+        fs.stat(fullPath),
+      ]);
+      return { content, mtime: stats.mtime };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to read file at "${fullPath}": ${message}`);
       throw new Error(`Unable to read file: ${filepath}`);
     }
   }
 
   /**
-   * Write content to a file in the repository
+   * Write content to a file in the repository with safety check
    * @param filepath - Path to the file relative to the repository root
    * @param content - Content to write to the file
+   * @param expectedMtime - Expected modification time (optional)
+   * @returns Promise<boolean> - True if written, false if file was modified
    */
-  async writeFile(filepath: string, content: string): Promise<void> {
+  async writeFileWithCheck(
+    filepath: string,
+    content: string,
+    expectedMtime?: Date,
+  ): Promise<{ success: boolean; message?: string }> {
     const fullPath = this.validateFilePath(filepath);
+
+    // If we have an expected mtime, check if the file has been modified
+    if (expectedMtime) {
+      try {
+        const stats = await fs.stat(fullPath);
+        if (stats.mtime.getTime() !== expectedMtime.getTime()) {
+          return {
+            success: false,
+            message: "File has been modified since you started editing",
+          };
+        }
+      } catch (error) {
+        // File might have been deleted
+        return {
+          success: false,
+          message: "File no longer exists or cannot be accessed",
+        };
+      }
+    }
+
     try {
       await fs.writeFile(fullPath, content, "utf-8");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : String(error);
       logger.error(`Failed to write file at "${fullPath}": ${message}`);
-      throw new Error(`Unable to write file: ${filepath}`);
+      return {
+        success: false,
+        message: `Unable to write file: ${filepath}`,
+      };
     }
+
+    return { success: true };
   }
 }
