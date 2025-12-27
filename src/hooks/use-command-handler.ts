@@ -560,9 +560,9 @@ async function handleDiffPanelKeys(
     return;
   }
 
-  // Navigation in edit mode: save current edit before moving
+  // Navigation in edit mode: ONLY arrow keys (not j/k) so user can type those letters
   if (context.isEditMode()) {
-    if (key === "j" || key === "down") {
+    if (key === "down") {
       await saveCurrentEdit();
       const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
       if (diffContent) {
@@ -580,7 +580,7 @@ async function handleDiffPanelKeys(
       return;
     }
 
-    if (key === "k" || key === "up") {
+    if (key === "up") {
       await saveCurrentEdit();
       const newIndex = Math.max(context.selectedDiffRow() - 1, 0);
       context.setSelectedDiffRow(newIndex);
@@ -598,7 +598,7 @@ async function handleDiffPanelKeys(
       return;
     }
 
-    // Block all other keys in edit mode except navigation and save
+    // In edit mode, allow all other keys to go to the textbox (don't block)
     return;
   }
 

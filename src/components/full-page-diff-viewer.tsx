@@ -234,7 +234,7 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
             <text fg="#44FF44">{props.editedLines().size} line{props.editedLines().size > 1 ? 's' : ''} edited</text>
           </Show>
           <text fg="#444444">│</text>
-          <text fg="#00AAFF">j/k</text>
+          <text fg="#00AAFF">↑/↓</text>
           <text fg="#AAAAAA">navigate</text>
           <text fg="#444444">│</text>
           <text fg="#00AAFF">Ctrl+S</text>
