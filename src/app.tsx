@@ -64,7 +64,7 @@ function AppContent() {
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
   const [diffMode, setDiffMode] = createSignal<DiffMode>("unstaged");
-  const [compareBranch, setCompareBranch] = createSignal<string>("main");
+  const [compareBranch, setCompareBranch] = createSignal<string | null>("main");
 
   // Edit mode state
   const [isEditMode, setIsEditMode] = createSignal(false);
