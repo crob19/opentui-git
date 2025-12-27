@@ -2,6 +2,8 @@ import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult, MergeResu
 import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
 import { logger } from "./utils/logger.js";
+import { promises as fs } from "fs";
+import path from "path";
 
 /**
  * GitService - Wrapper class for git operations using simple-git
@@ -9,6 +11,7 @@ import { logger } from "./utils/logger.js";
  */
 export class GitService {
   private git: SimpleGit;
+  private repoPath: string;
 
   /**
    * Creates a new GitService instance
@@ -16,6 +19,7 @@ export class GitService {
    */
   constructor(repoPath: string = process.cwd()) {
     this.git = simpleGit(repoPath);
+    this.repoPath = repoPath;
   }
 
   /**
@@ -354,5 +358,94 @@ export class GitService {
       throw new Error("No commits found in the repository.");
     }
     return log.latest.hash.substring(0, 7);
+  }
+
+  /**
+   * Validate that a file path is within the repository bounds
+   * @param filepath - Path to validate
+   * @returns Validated absolute path
+   * @throws Error if path escapes repository
+   */
+  private validateFilePath(filepath: string): string {
+    // Resolve the full path
+    const fullPath = path.resolve(this.repoPath, filepath);
+    const normalizedRepoPath = path.resolve(this.repoPath);
+
+    // Ensure the resolved path is within the repository using a relative-path check.
+    // If the relative path starts with ".." or is absolute, it escapes the repository.
+    const relativePath = path.relative(normalizedRepoPath, fullPath);
+    if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+      throw new Error(`Path traversal detected: ${filepath}`);
+    }
+
+    return fullPath;
+  }
+
+  /**
+   * Read a file from the repository with metadata
+   * @param filepath - Path to the file relative to the repository root
+   * @returns Promise with content and modification time
+   */
+  async readFileWithMetadata(filepath: string): Promise<{ content: string; mtime: Date }> {
+    const fullPath = this.validateFilePath(filepath);
+    try {
+      const [content, stats] = await Promise.all([
+        fs.readFile(fullPath, "utf-8"),
+        fs.stat(fullPath),
+      ]);
+      return { content, mtime: stats.mtime };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to read file at "${fullPath}": ${message}`);
+      throw new Error(`Unable to read file: ${filepath}`);
+    }
+  }
+
+  /**
+   * Write content to a file in the repository with safety check
+   * @param filepath - Path to the file relative to the repository root
+   * @param content - Content to write to the file
+   * @param expectedMtime - Expected modification time (optional)
+   * @returns Promise<boolean> - True if written, false if file was modified
+   */
+  async writeFileWithCheck(
+    filepath: string,
+    content: string,
+    expectedMtime?: Date,
+  ): Promise<{ success: boolean; message?: string }> {
+    const fullPath = this.validateFilePath(filepath);
+
+    // If we have an expected mtime, check if the file has been modified
+    if (expectedMtime) {
+      try {
+        const stats = await fs.stat(fullPath);
+        if (stats.mtime.getTime() !== expectedMtime.getTime()) {
+          return {
+            success: false,
+            message: "File has been modified since you started editing",
+          };
+        }
+      } catch (error) {
+        // File might have been deleted
+        return {
+          success: false,
+          message: "File no longer exists or cannot be accessed",
+        };
+      }
+    }
+
+    try {
+      await fs.writeFile(fullPath, content, "utf-8");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to write file at "${fullPath}": ${message}`);
+      return {
+        success: false,
+        message: `Unable to write file: ${filepath}`,
+      };
+    }
+
+    return { success: true };
   }
 }

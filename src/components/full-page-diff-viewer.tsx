@@ -1,5 +1,6 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
 import type { Highlighter } from "shiki";
+import type { GitService } from "../git-service.js";
 import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
@@ -21,6 +22,14 @@ export interface FullPageDiffViewerProps {
   setSelectedRow: Setter<number>;
   viewMode: Accessor<"unified" | "side-by-side">;
   setViewMode: Setter<"unified" | "side-by-side">;
+  isEditMode: Accessor<boolean>;
+  setIsEditMode: Setter<boolean>;
+  editedContent: Accessor<string>;
+  setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
+  setEditedLines: Setter<Map<number, string>>;
+  gitService: GitService;
+  refetchDiff: () => void;
 }
 
 // Background color constants for unified diff
@@ -174,6 +183,10 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
                 language={language()}
                 highlighter={highlighter()}
                 getHighlightedTokens={getHighlightedTokens}
+                isEditMode={props.isEditMode}
+                editedContent={props.editedContent}
+                setEditedContent={props.setEditedContent}
+                editedLines={props.editedLines}
               />
             </Show>
           </box>
@@ -191,20 +204,45 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
         alignItems="center"
         gap={2}
       >
-        <text fg="#00AAFF">↑/k</text>
-        <text fg="#AAAAAA">up</text>
-        <text fg="#444444">│</text>
-        <text fg="#00AAFF">↓/j</text>
-        <text fg="#AAAAAA">down</text>
-        <text fg="#444444">│</text>
-        <text fg="#00AAFF">Ctrl+T</text>
-        <text fg="#AAAAAA">toggle</text>
-        <text fg="#444444">│</text>
-        <text fg="#00AAFF">Esc</text>
-        <text fg="#AAAAAA">back</text>
-        <text fg="#444444">│</text>
-        <text fg="#00AAFF">q</text>
-        <text fg="#AAAAAA">quit</text>
+        <Show
+          when={props.isEditMode()}
+          fallback={
+            <>
+              <text fg="#00AAFF">↑/k</text>
+              <text fg="#AAAAAA">up</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">↓/j</text>
+              <text fg="#AAAAAA">down</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">Ctrl+T</text>
+              <text fg="#AAAAAA">toggle</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">i</text>
+              <text fg="#AAAAAA">edit</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">Esc</text>
+              <text fg="#AAAAAA">back</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">q</text>
+              <text fg="#AAAAAA">quit</text>
+            </>
+          }
+        >
+          <text fg="#FFAA00">EDIT MODE</text>
+          <Show when={props.editedLines().size > 0}>
+            <text fg="#444444"> - </text>
+            <text fg="#44FF44">{props.editedLines().size} line{props.editedLines().size > 1 ? 's' : ''} edited</text>
+          </Show>
+          <text fg="#444444">│</text>
+          <text fg="#00AAFF">↑/↓</text>
+          <text fg="#AAAAAA">navigate</text>
+          <text fg="#444444">│</text>
+          <text fg="#00AAFF">Ctrl+S</text>
+          <text fg="#AAAAAA">save</text>
+          <text fg="#444444">│</text>
+          <text fg="#00AAFF">Esc</text>
+          <text fg="#AAAAAA">cancel</text>
+        </Show>
       </box>
     </box>
   );
@@ -218,6 +256,10 @@ interface SideBySideDiffViewProps {
   language: string;
   highlighter: Highlighter | undefined;
   getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  isEditMode: Accessor<boolean>;
+  editedContent: Accessor<string>;
+  setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
 }
 
 function SideBySideDiffView(props: SideBySideDiffViewProps) {
@@ -227,7 +269,7 @@ function SideBySideDiffView(props: SideBySideDiffViewProps) {
         {(row, index) => {
           const actualIndex = () => props.scrollStart + index();
           const isSelected = () => actualIndex() === props.selectedRow();
-          
+
           return (
             <DiffRowView
               row={row}
@@ -235,6 +277,10 @@ function SideBySideDiffView(props: SideBySideDiffViewProps) {
               highlighter={props.highlighter}
               getHighlightedTokens={props.getHighlightedTokens}
               isSelected={isSelected()}
+              isEditMode={props.isEditMode}
+              editedContent={props.editedContent}
+              setEditedContent={props.setEditedContent}
+              editedLines={props.editedLines}
             />
           );
         }}
@@ -250,11 +296,21 @@ interface DiffRowViewProps {
   highlighter: Highlighter | undefined;
   getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
   isSelected: boolean;
+  isEditMode: Accessor<boolean>;
+  editedContent: Accessor<string>;
+  setEditedContent: Setter<string>;
+  editedLines: Accessor<Map<number, string>>;
 }
 
 function DiffRowView(props: DiffRowViewProps) {
   const leftTokens = () => props.getHighlightedTokens(props.row.left, props.language, props.highlighter);
   const rightTokens = () => props.getHighlightedTokens(props.row.right, props.language, props.highlighter);
+
+  // Check if this line has been edited
+  const isEdited = () => {
+    if (props.row.rightLineNum === null) return false;
+    return props.editedLines().has(props.row.rightLineNum);
+  };
 
   const leftBg = () => {
     if (props.isSelected) return DIFF_BG_COLOR_SELECTED;
@@ -317,19 +373,42 @@ function DiffRowView(props: DiffRowViewProps) {
             <text fg="#666666">{String(props.row.rightLineNum).padStart(4, " ")}</text>
           </Show>
         </box>
-        
+
         {/* Indicator */}
         <box width={2}>
-          <Show when={props.row.type === "added" || props.row.type === "modified"}>
+          <Show when={isEdited()}>
+            <text fg="#FFAA00">*</text>
+          </Show>
+          <Show when={!isEdited() && (props.row.type === "added" || props.row.type === "modified")}>
             <text fg="#44FF44">+</text>
           </Show>
         </box>
-        
-        {/* Content */}
+
+        {/* Content - Show textbox when in edit mode, selected, and on an editable line */}
         <box flexGrow={1} flexDirection="row">
-          <For each={rightTokens()}>
-            {(token) => <text fg={token.color}>{token.text}</text>}
-          </For>
+          <Show
+            when={props.isEditMode() && props.isSelected && props.row.rightLineNum !== null}
+            fallback={
+              <Show
+                when={isEdited() && props.row.rightLineNum !== null}
+                fallback={
+                  <For each={rightTokens()}>
+                    {(token) => <text fg={token.color}>{token.text}</text>}
+                  </For>
+                }
+              >
+                <text fg="#FFFFFF">{props.editedContent()}</text>
+              </Show>
+            }
+          >
+            <textbox
+              value={props.editedContent()}
+              onInput={(newContent) => props.setEditedContent(newContent)}
+              fg="#FFFFFF"
+              bg={rightBg()}
+              width="100%"
+            />
+          </Show>
         </box>
       </box>
     </box>

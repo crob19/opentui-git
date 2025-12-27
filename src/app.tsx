@@ -63,6 +63,15 @@ function AppContent() {
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
 
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = createSignal(false);
+  const [editedContent, setEditedContent] = createSignal("");
+  // Track all edited lines: Map<lineNumber, editedContent>
+  const [editedLines, setEditedLines] = createSignal<Map<number, string>>(new Map());
+  const [fileContent, setFileContent] = createSignal("");
+  const [selectedLine, setSelectedLine] = createSignal(0);
+  const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
+
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
   const gitBranches = useGitBranches(gitService);
@@ -106,6 +115,19 @@ function AppContent() {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    isEditMode,
+    setIsEditMode,
+    editedContent,
+    setEditedContent,
+    editedLines,
+    setEditedLines,
+    fileContent,
+    setFileContent,
+    selectedLine,
+    setSelectedLine,
+    fileMtime,
+    setFileMtime,
+    refetchDiff: gitDiff.refetch,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)
@@ -144,6 +166,18 @@ function AppContent() {
       setSelectedDiffRow={setSelectedDiffRow}
       diffViewMode={diffViewMode}
       setDiffViewMode={setDiffViewMode}
+      isEditMode={isEditMode}
+      setIsEditMode={setIsEditMode}
+      editedContent={editedContent}
+      setEditedContent={setEditedContent}
+      editedLines={editedLines}
+      setEditedLines={setEditedLines}
+      fileContent={fileContent}
+      setFileContent={setFileContent}
+      selectedLine={selectedLine}
+      setSelectedLine={setSelectedLine}
+      gitService={gitService}
+      refetchDiff={gitDiff.refetch}
     />
   );
 }
