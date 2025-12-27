@@ -133,3 +133,18 @@ export interface FileTreeNode {
   /** Aggregated color for folders based on child statuses */
   color?: string;
 }
+
+/**
+ * Diff display modes
+ */
+export type DiffMode = "unstaged" | "staged" | "branch";
+
+/**
+ * Configuration for diff viewing
+ */
+export interface DiffConfig {
+  /** Current diff mode */
+  mode: DiffMode;
+  /** Branch to compare against (only used when mode is "branch") */
+  compareBranch: string | null;
+}

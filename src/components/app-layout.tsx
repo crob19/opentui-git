@@ -1,5 +1,5 @@
 import { Show, type Accessor, type Setter, type Resource, type JSXElement } from "solid-js";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode } from "../types.js";
+import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
 import type { GitService } from "../git-service.js";
@@ -53,6 +53,10 @@ export interface AppLayoutProps {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Diff mode (unstaged, staged, or branch) */
+  diffMode: Accessor<DiffMode>;
+  /** Branch to compare against */
+  compareBranch: Accessor<string>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
@@ -118,6 +122,8 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
                 setSelectedRow={props.setSelectedDiffRow}
                 viewMode={props.diffViewMode}
                 setViewMode={props.setDiffViewMode}
+                diffMode={props.diffMode}
+                compareBranch={props.compareBranch}
                 isEditMode={props.isEditMode}
                 setIsEditMode={props.setIsEditMode}
                 editedContent={props.editedContent}

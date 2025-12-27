@@ -8,6 +8,7 @@ import type { UseGitBranchesResult } from "./use-git-branches.js";
 import type { UseGitTagsResult } from "./use-git-tags.js";
 import type { Accessor, Setter } from "solid-js";
 import type { BranchPanelTab } from "../app.js";
+import type { DiffMode } from "../types.js";
 import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
@@ -52,6 +53,14 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Diff mode (unstaged, staged, or branch) */
+  diffMode: Accessor<DiffMode>;
+  /** Diff mode setter */
+  setDiffMode: Setter<DiffMode>;
+  /** Branch to compare against */
+  compareBranch: Accessor<string>;
+  /** Branch to compare against setter */
+  setCompareBranch: Setter<string>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
@@ -102,6 +111,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    diffMode,
+    setDiffMode,
+    compareBranch,
+    setCompareBranch,
     isEditMode,
     setIsEditMode,
     editedContent,
@@ -236,6 +249,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setSelectedDiffRow,
           diffViewMode,
           setDiffViewMode,
+          diffMode,
+          setDiffMode,
+          compareBranch,
+          setCompareBranch,
           isEditMode,
           setIsEditMode,
           editedContent,
@@ -417,6 +434,10 @@ async function handleDiffPanelKeys(
     setSelectedDiffRow: Setter<number>;
     diffViewMode: Accessor<"unified" | "side-by-side">;
     setDiffViewMode: Setter<"unified" | "side-by-side">;
+    diffMode: Accessor<DiffMode>;
+    setDiffMode: Setter<DiffMode>;
+    compareBranch: Accessor<string>;
+    setCompareBranch: Setter<string>;
     isEditMode: Accessor<boolean>;
     setIsEditMode: Setter<boolean>;
     editedContent: Accessor<string>;
@@ -528,6 +549,38 @@ async function handleDiffPanelKeys(
   if (ctrl && key === "t" && !context.isEditMode()) {
     const current = context.diffViewMode();
     context.setDiffViewMode(current === "unified" ? "side-by-side" : "unified");
+    return;
+  }
+
+  // Toggle diff mode with Ctrl+M
+  if (ctrl && key === "m" && !context.isEditMode()) {
+    const current = context.diffMode();
+    let next: DiffMode;
+
+    // Cycle through: unstaged -> staged -> branch -> unstaged
+    switch (current) {
+      case "unstaged":
+        next = "staged";
+        break;
+      case "staged":
+        next = "branch";
+        break;
+      case "branch":
+        next = "unstaged";
+        break;
+      default:
+        next = "unstaged";
+    }
+
+    context.setDiffMode(next);
+
+    // Show toast to indicate mode change
+    const modeLabel =
+      next === "unstaged" ? "Unstaged changes" :
+      next === "staged" ? "Staged changes" :
+      `Comparing against ${context.compareBranch()}`;
+
+    context.toast.info(`Diff mode: ${modeLabel}`);
     return;
   }
 

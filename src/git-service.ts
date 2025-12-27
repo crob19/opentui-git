@@ -248,6 +248,16 @@ export class GitService {
   }
 
   /**
+   * Get the diff for a specific file against a branch
+   * @param filepath - Path to the file
+   * @param branch - Branch to compare against (e.g., "main", "origin/main")
+   * @returns Promise<string> - Diff output
+   */
+  async getDiffAgainstBranch(filepath: string, branch: string): Promise<string> {
+    return await this.git.diff([branch, "--", filepath]);
+  }
+
+  /**
    * Pull from remote
    * @returns Promise<void>
    */

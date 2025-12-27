@@ -14,6 +14,7 @@ import {
   useCommandHandler,
 } from "./hooks/index.js";
 import type { PanelType } from "./commands/types.js";
+import type { DiffMode } from "./types.js";
 import { registerShutdownHandler } from "./index.js";
 
 /**
@@ -62,6 +63,8 @@ function AppContent() {
   // Diff panel state
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
+  const [diffMode, setDiffMode] = createSignal<DiffMode>("unstaged");
+  const [compareBranch, setCompareBranch] = createSignal<string>("main");
 
   // Edit mode state
   const [isEditMode, setIsEditMode] = createSignal(false);
@@ -76,7 +79,7 @@ function AppContent() {
   const gitStatus = useGitStatus(gitService);
   const gitBranches = useGitBranches(gitService);
   const gitTags = useGitTags(gitService);
-  const gitDiff = useGitDiff(gitService, gitStatus.selectedFile);
+  const gitDiff = useGitDiff(gitService, gitStatus.selectedFile, diffMode, compareBranch);
 
   // Auto-refresh git status, branches, and tags every second
   // Returns cleanup function for graceful shutdown
@@ -115,6 +118,10 @@ function AppContent() {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    diffMode,
+    setDiffMode,
+    compareBranch,
+    setCompareBranch,
     isEditMode,
     setIsEditMode,
     editedContent,
@@ -166,6 +173,8 @@ function AppContent() {
       setSelectedDiffRow={setSelectedDiffRow}
       diffViewMode={diffViewMode}
       setDiffViewMode={setDiffViewMode}
+      diffMode={diffMode}
+      compareBranch={compareBranch}
       isEditMode={isEditMode}
       setIsEditMode={setIsEditMode}
       editedContent={editedContent}
