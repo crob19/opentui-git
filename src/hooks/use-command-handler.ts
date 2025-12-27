@@ -399,13 +399,7 @@ async function handleDiffPanelKeys(
     }
 
     try {
-      // Read the current file content
-      const fullContent = await context.gitService.readFile(selectedFile.path);
-      const lines = fullContent.split('\n');
-
-      // Replace the line at the selected row
-      // Note: We need to map the diff row to the actual file line
-      // For now, we'll use the right line number from the diff
+      // Get the current diff to find the line we're editing
       const diffContent = await context.gitService.getDiff(selectedFile.path);
       if (!diffContent) {
         context.toast.error("Could not get diff content");
@@ -417,6 +411,24 @@ async function handleDiffPanelKeys(
 
       if (!selectedRow || selectedRow.rightLineNum === null) {
         context.toast.error("Cannot edit this line");
+        return;
+      }
+
+      // Read the current file content
+      const fullContent = await context.gitService.readFile(selectedFile.path);
+      const lines = fullContent.split('\n');
+
+      // Verify the line hasn't changed since we entered edit mode
+      const currentLine = lines[selectedRow.rightLineNum - 1];
+      if (currentLine !== selectedRow.right) {
+        context.toast.error("File has been modified. Please exit and re-enter edit mode to see latest changes.");
+        return;
+      }
+
+      // Check if the user actually made any changes
+      if (context.editedContent() === selectedRow.right) {
+        context.toast.info("No changes to save");
+        context.setIsEditMode(false);
         return;
       }
 
@@ -459,10 +471,25 @@ async function handleDiffPanelKeys(
     const diffRows = parseSideBySideDiff(diffContent);
     const selectedRow = diffRows[context.selectedDiffRow()];
 
-    // Only allow editing on the right side (new content)
-    if (selectedRow && selectedRow.right !== "") {
-      context.setEditedContent(selectedRow.right);
-      context.setIsEditMode(true);
+    // Only allow editing on the right side (new content) and if there's a line number
+    if (selectedRow && selectedRow.right !== "" && selectedRow.rightLineNum !== null) {
+      try {
+        // Verify the file line matches what the diff expects
+        const fullContent = await context.gitService.readFile(selectedPath);
+        const lines = fullContent.split('\n');
+        const actualLine = lines[selectedRow.rightLineNum - 1];
+
+        // Check if the actual file line matches the diff's expected line
+        if (actualLine !== selectedRow.right) {
+          context.toast.error("File has been modified since diff was generated. Refresh to see latest changes.");
+          return;
+        }
+
+        context.setEditedContent(selectedRow.right);
+        context.setIsEditMode(true);
+      } catch (error) {
+        context.toast.error(`Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
     }
     return;
   }
