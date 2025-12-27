@@ -71,7 +71,7 @@ export function useGitDiff(
       const currentSource = lastDiffSource();
       const mode = diffMode();
       const branch = compareBranch();
-      const staged = file?.staged || false;
+      const staged = file.staged || false;
 
       // Only refetch if any relevant parameter changed
       if (
