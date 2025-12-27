@@ -16,6 +16,7 @@ import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
+import { parseSideBySideDiff } from "../utils/diff-parser.js";
 
 /**
  * Options for the command handler hook
@@ -51,6 +52,26 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Edit mode state */
+  isEditMode: Accessor<boolean>;
+  /** Edit mode setter */
+  setIsEditMode: Setter<boolean>;
+  /** Edited content state */
+  editedContent: Accessor<string>;
+  /** Edited content setter */
+  setEditedContent: Setter<string>;
+  /** All edited lines in current session */
+  editedLines: Accessor<Map<number, string>>;
+  /** Setter for edited lines */
+  setEditedLines: Setter<Map<number, string>>;
+  /** Full file content for edit mode */
+  fileContent: Accessor<string>;
+  /** Setter for file content */
+  setFileContent: Setter<string>;
+  /** Selected line number in full file */
+  selectedLine: Accessor<number>;
+  /** Setter for selected line */
+  setSelectedLine: Setter<number>;
 }
 
 /**
@@ -75,6 +96,16 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    isEditMode,
+    setIsEditMode,
+    editedContent,
+    setEditedContent,
+    editedLines,
+    setEditedLines,
+    fileContent,
+    setFileContent,
+    selectedLine,
+    setSelectedLine,
   } = options;
 
   /**
@@ -196,6 +227,19 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setSelectedDiffRow,
           diffViewMode,
           setDiffViewMode,
+          isEditMode,
+          setIsEditMode,
+          editedContent,
+          setEditedContent,
+          editedLines,
+          setEditedLines,
+          fileContent,
+          setFileContent,
+          selectedLine,
+          setSelectedLine,
+          gitService,
+          gitStatus,
+          toast,
         });
       } else {
         // Files panel keys
@@ -361,12 +405,188 @@ async function handleDiffPanelKeys(
     setSelectedDiffRow: Setter<number>;
     diffViewMode: Accessor<"unified" | "side-by-side">;
     setDiffViewMode: Setter<"unified" | "side-by-side">;
+    isEditMode: Accessor<boolean>;
+    setIsEditMode: Setter<boolean>;
+    editedContent: Accessor<string>;
+    setEditedContent: Setter<string>;
+    editedLines: Accessor<Map<number, string>>;
+    setEditedLines: Setter<Map<number, string>>;
+    fileContent: Accessor<string>;
+    setFileContent: Setter<string>;
+    selectedLine: Accessor<number>;
+    setSelectedLine: Setter<number>;
+    gitService: GitService;
+    gitStatus: UseGitStatusResult;
+    toast: ToastContext;
   },
 ): Promise<void> {
+  // Helper function to save current edit to editedLines map before navigating
+  const saveCurrentEdit = () => {
+    if (!context.isEditMode()) return;
+
+    const lines = context.fileContent().split('\n');
+    const lineNumber = context.selectedLine() + 1; // Convert to 1-based
+    const originalLine = lines[context.selectedLine()];
+
+    // Only save if the content actually changed
+    if (context.editedContent() !== originalLine) {
+      const newMap = new Map(context.editedLines());
+      newMap.set(lineNumber, context.editedContent());
+      context.setEditedLines(newMap);
+    }
+  };
+
+  // Handle save in edit mode with Ctrl+S
+  if (ctrl && key === "s" && context.isEditMode()) {
+    const selectedFile = context.gitStatus.selectedFile();
+    if (!selectedFile) {
+      context.toast.error("No file selected");
+      return;
+    }
+
+    try {
+      // First, save the current line edit
+      saveCurrentEdit();
+
+      const editedLinesMap = context.editedLines();
+      if (editedLinesMap.size === 0) {
+        context.toast.info("No changes to save");
+        context.setIsEditMode(false);
+        context.setEditedLines(new Map());
+        return;
+      }
+
+      // Get the original file content that was loaded
+      const lines = context.fileContent().split('\n');
+
+      // Apply all edits
+      for (const [lineNum, newContent] of editedLinesMap) {
+        lines[lineNum - 1] = newContent;
+      }
+
+      // Write back to file
+      await context.gitService.writeFile(selectedFile.path, lines.join('\n'));
+
+      const count = editedLinesMap.size;
+      context.toast.success(`Saved ${count} line${count > 1 ? 's' : ''} to ${selectedFile.path}`);
+
+      // Exit edit mode and clear state
+      context.setIsEditMode(false);
+      context.setEditedLines(new Map());
+      context.setFileContent("");
+
+      // Refetch git status and diff
+      await context.gitStatus.refetch();
+      // Reset selected diff row to avoid pointing to an invalid or changed line
+      context.setSelectedDiffRow(0);
+    } catch (error) {
+      context.toast.error(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+    return;
+  }
+
   // Toggle view mode with Ctrl+T
-  if (ctrl && key === "t") {
+  if (ctrl && key === "t" && !context.isEditMode()) {
     const current = context.diffViewMode();
     context.setDiffViewMode(current === "unified" ? "side-by-side" : "unified");
+    return;
+  }
+
+  // Enter edit mode with 'i' (only in side-by-side mode)
+  if (key === "i" && !context.isEditMode() && context.diffViewMode() === "side-by-side") {
+    const selectedFile = context.gitStatus.selectedFile();
+    const selectedPath = selectedFile?.path?.trim();
+    if (!selectedPath) {
+      logger.warn("Attempted to enter edit mode without a valid selected file path");
+      return;
+    }
+
+    try {
+      // Get the diff to find which line we're on
+      const diffContent = await context.gitService.getDiff(selectedPath);
+      if (!diffContent) {
+        context.toast.error("No diff available");
+        return;
+      }
+
+      const diffRows = parseSideBySideDiff(diffContent);
+      const selectedRow = diffRows[context.selectedDiffRow()];
+
+      // Only allow editing if there's a valid line number
+      if (!selectedRow || selectedRow.rightLineNum === null) {
+        context.toast.info("Cannot edit this line");
+        return;
+      }
+
+      // Load the full file content
+      const fullContent = await context.gitService.readFile(selectedPath);
+      context.setFileContent(fullContent);
+
+      // Set the selected line to the line from the diff (convert to 0-based index)
+      const lineIndex = selectedRow.rightLineNum - 1;
+      context.setSelectedLine(lineIndex);
+
+      // Set the edited content to the current line content
+      const lines = fullContent.split('\n');
+      context.setEditedContent(lines[lineIndex] || "");
+
+      // Enter edit mode
+      context.setIsEditMode(true);
+    } catch (error) {
+      context.toast.error(`Failed to enter edit mode: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+    return;
+  }
+
+  // Exit edit mode with Escape
+  if (key === "escape") {
+    if (context.isEditMode()) {
+      // Clear all edit state when exiting edit mode
+      const editCount = context.editedLines().size;
+      context.setIsEditMode(false);
+      context.setEditedContent("");
+      context.setEditedLines(new Map());
+      context.setFileContent("");
+      if (editCount > 0) {
+        context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
+      }
+      return;
+    }
+    // Return to files panel and reset diff scroll position
+    context.setSelectedDiffRow(0);
+    context.setActivePanel("files");
+    return;
+  }
+
+  // Navigation in edit mode: ONLY arrow keys (not j/k) so user can type those letters
+  if (context.isEditMode()) {
+    if (key === "down") {
+      saveCurrentEdit();
+      const lines = context.fileContent().split('\n');
+      const newIndex = Math.min(context.selectedLine() + 1, lines.length - 1);
+      context.setSelectedLine(newIndex);
+
+      // Load content for new line (from editedLines if exists, otherwise from file)
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
+      return;
+    }
+
+    if (key === "up") {
+      saveCurrentEdit();
+      const newIndex = Math.max(context.selectedLine() - 1, 0);
+      context.setSelectedLine(newIndex);
+
+      // Load content for new line (from editedLines if exists, otherwise from file)
+      const lines = context.fileContent().split('\n');
+      const lineNumber = newIndex + 1; // Convert to 1-based
+      const existingEdit = context.editedLines().get(lineNumber);
+      context.setEditedContent(existingEdit ?? lines[newIndex]);
+      return;
+    }
+
+    // In edit mode, allow all other keys to go to the textbox (don't block)
     return;
   }
 
@@ -389,12 +609,6 @@ async function handleDiffPanelKeys(
         context.selectedDiffRow,
         context.setSelectedDiffRow,
       );
-      break;
-
-    case "escape":
-      // Return to files panel and reset diff scroll position
-      context.setSelectedDiffRow(0);
-      context.setActivePanel("files");
       break;
   }
 }
