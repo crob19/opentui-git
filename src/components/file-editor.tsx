@@ -1,4 +1,4 @@
-import { For, Show, type Accessor, type Setter, createMemo, createResource } from "solid-js";
+import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect, onCleanup } from "solid-js";
 import type { Highlighter } from "shiki";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
@@ -6,6 +6,9 @@ import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/s
 
 // Maximum number of lines to show at once (virtual scrolling)
 const MAX_VISIBLE_LINES = 30;
+
+// Maximum cache size to prevent memory leaks
+const MAX_CACHE_SIZE = 1000;
 
 // Background color constants
 const EDITOR_BG_COLOR_SELECTED = "#444444";
@@ -46,8 +49,20 @@ export function FileEditor(props: FileEditorProps) {
     ),
   );
 
-  // Highlight cache
-  const highlightCache = new Map<string, HighlightedToken[]>();
+  // Highlight cache with cleanup
+  let highlightCache = new Map<string, HighlightedToken[]>();
+
+  // Clear cache when file path changes to prevent memory leaks
+  createEffect(() => {
+    const path = props.filePath();
+    // Clear cache when file changes
+    highlightCache.clear();
+  });
+
+  // Clear cache on component cleanup
+  onCleanup(() => {
+    highlightCache.clear();
+  });
 
   const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
     if (!hl || code === "") return [{ text: code, color: "#CCCCCC" }];
@@ -57,6 +72,18 @@ export function FileEditor(props: FileEditorProps) {
     if (cached) return cached;
 
     const tokens = highlightCode(code, lang, hl);
+
+    // Implement simple cache size limit
+    if (highlightCache.size >= MAX_CACHE_SIZE) {
+      // Clear half the cache when limit is reached (simple eviction strategy)
+      const entries = Array.from(highlightCache.entries());
+      highlightCache.clear();
+      // Keep the more recent half
+      entries.slice(Math.floor(entries.length / 2)).forEach(([key, value]) => {
+        highlightCache.set(key, value);
+      });
+    }
+
     highlightCache.set(cacheKey, tokens);
     return tokens;
   };
