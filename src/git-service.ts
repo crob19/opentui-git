@@ -367,7 +367,14 @@ export class GitService {
    */
   async readFile(filepath: string): Promise<string> {
     const fullPath = path.join(this.repoPath, filepath);
-    return await fs.readFile(fullPath, "utf-8");
+    try {
+      return await fs.readFile(fullPath, "utf-8");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to read file at "${fullPath}": ${message}`);
+      throw new Error(`Unable to read file: ${filepath}`);
+    }
   }
 
   /**
