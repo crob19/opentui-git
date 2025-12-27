@@ -491,6 +491,8 @@ async function handleDiffPanelKeys(
 
       // Refetch git status and diff
       await context.gitStatus.refetch();
+      // Reset selected diff row to avoid pointing to an invalid or changed line
+      context.setSelectedDiffRow(0);
     } catch (error) {
       context.toast.error(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
