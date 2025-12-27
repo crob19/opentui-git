@@ -446,7 +446,14 @@ async function handleDiffPanelKeys(
 
   // Enter edit mode with 'i' (only in side-by-side mode)
   if (key === "i" && !context.isEditMode() && context.diffViewMode() === "side-by-side") {
-    const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
+    const selectedFile = context.gitStatus.selectedFile();
+    const selectedPath = selectedFile?.path?.trim();
+    if (!selectedPath) {
+      logger.warn("Attempted to enter edit mode without a valid selected file path");
+      return;
+    }
+
+    const diffContent = await context.gitService.getDiff(selectedPath);
     if (!diffContent) return;
 
     const diffRows = parseSideBySideDiff(diffContent);
