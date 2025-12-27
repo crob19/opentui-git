@@ -403,6 +403,13 @@ export class GitService {
    */
   async writeFile(filepath: string, content: string): Promise<void> {
     const fullPath = this.validateFilePath(filepath);
-    await fs.writeFile(fullPath, content, "utf-8");
+    try {
+      await fs.writeFile(fullPath, content, "utf-8");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to write file at "${fullPath}": ${message}`);
+      throw new Error(`Unable to write file: ${filepath}`);
+    }
   }
 }
