@@ -56,7 +56,7 @@ export interface AppLayoutProps {
   /** Diff mode (unstaged, staged, or branch) */
   diffMode: Accessor<DiffMode>;
   /** Branch to compare against */
-  compareBranch: Accessor<string>;
+  compareBranch: Accessor<string | null>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
