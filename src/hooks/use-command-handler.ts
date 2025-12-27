@@ -16,7 +16,7 @@ import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
-import { parseSideBySideDiff } from "../utils/diff-parser.js";
+import { parseSideBySideDiff, parseDiffLines } from "../utils/diff-parser.js";
 
 /**
  * Options for the command handler hook
@@ -425,8 +425,13 @@ async function handleDiffPanelKeys(
     if (!context.isEditMode()) return;
 
     const lines = context.fileContent().split('\n');
-    const lineNumber = context.selectedLine() + 1; // Convert to 1-based
-    const originalLine = lines[context.selectedLine()];
+    const lineIndex = context.selectedLine();
+
+    // Bounds check
+    if (lineIndex < 0 || lineIndex >= lines.length) return;
+
+    const lineNumber = lineIndex + 1; // Convert to 1-based
+    const originalLine = lines[lineIndex];
 
     // Only save if the content actually changed
     if (context.editedContent() !== originalLine) {
@@ -459,9 +464,15 @@ async function handleDiffPanelKeys(
       // Get the original file content that was loaded
       const lines = context.fileContent().split('\n');
 
-      // Apply all edits
+      // Validate and apply all edits
       for (const [lineNum, newContent] of editedLinesMap) {
-        lines[lineNum - 1] = newContent;
+        const lineIndex = lineNum - 1;
+        // Bounds check
+        if (lineIndex < 0 || lineIndex >= lines.length) {
+          context.toast.error(`Line ${lineNum} is out of bounds. File may have changed.`);
+          return;
+        }
+        lines[lineIndex] = newContent;
       }
 
       // Write back to file
@@ -470,9 +481,10 @@ async function handleDiffPanelKeys(
       const count = editedLinesMap.size;
       context.toast.success(`Saved ${count} line${count > 1 ? 's' : ''} to ${selectedFile.path}`);
 
-      // Exit edit mode and clear state
+      // Exit edit mode and clear all state
       context.setIsEditMode(false);
       context.setEditedLines(new Map());
+      context.setEditedContent("");
       context.setFileContent("");
 
       // Refetch git status and diff
@@ -492,8 +504,8 @@ async function handleDiffPanelKeys(
     return;
   }
 
-  // Enter edit mode with 'i' (only in side-by-side mode)
-  if (key === "i" && !context.isEditMode() && context.diffViewMode() === "side-by-side") {
+  // Enter edit mode with 'i' (works in both side-by-side and unified mode)
+  if (key === "i" && !context.isEditMode()) {
     const selectedFile = context.gitStatus.selectedFile();
     const selectedPath = selectedFile?.path?.trim();
     if (!selectedPath) {
@@ -509,26 +521,40 @@ async function handleDiffPanelKeys(
         return;
       }
 
-      const diffRows = parseSideBySideDiff(diffContent);
-      const selectedRow = diffRows[context.selectedDiffRow()];
+      // Parse based on current view mode
+      let lineNum: number | null = null;
+
+      if (context.diffViewMode() === "side-by-side") {
+        const diffRows = parseSideBySideDiff(diffContent);
+        const selectedRow = diffRows[context.selectedDiffRow()];
+        lineNum = selectedRow?.rightLineNum ?? null;
+      } else {
+        // Unified mode
+        const diffLines = parseDiffLines(diffContent);
+        const selectedLine = diffLines[context.selectedDiffRow()];
+        lineNum = selectedLine?.newLineNum ?? null;
+      }
 
       // Only allow editing if there's a valid line number
-      if (!selectedRow || selectedRow.rightLineNum === null) {
+      if (lineNum === null) {
         context.toast.info("Cannot edit this line");
         return;
       }
 
       // Load the full file content
       const fullContent = await context.gitService.readFile(selectedPath);
-      context.setFileContent(fullContent);
-
-      // Set the selected line to the line from the diff (convert to 0-based index)
-      const lineIndex = selectedRow.rightLineNum - 1;
-      context.setSelectedLine(lineIndex);
-
-      // Set the edited content to the current line content
       const lines = fullContent.split('\n');
-      context.setEditedContent(lines[lineIndex] || "");
+
+      // Validate line number is within bounds
+      const lineIndex = lineNum - 1;
+      if (lineIndex < 0 || lineIndex >= lines.length) {
+        context.toast.error("Line number out of bounds. File may have changed.");
+        return;
+      }
+
+      context.setFileContent(fullContent);
+      context.setSelectedLine(lineIndex);
+      context.setEditedContent(lines[lineIndex]);
 
       // Enter edit mode
       context.setIsEditMode(true);
@@ -567,9 +593,14 @@ async function handleDiffPanelKeys(
       context.setSelectedLine(newIndex);
 
       // Load content for new line (from editedLines if exists, otherwise from file)
-      const lineNumber = newIndex + 1; // Convert to 1-based
-      const existingEdit = context.editedLines().get(lineNumber);
-      context.setEditedContent(existingEdit ?? lines[newIndex]);
+      if (newIndex >= 0 && newIndex < lines.length) {
+        const lineNumber = newIndex + 1; // Convert to 1-based
+        const existingEdit = context.editedLines().get(lineNumber);
+        context.setEditedContent(existingEdit ?? lines[newIndex]);
+      } else {
+        // Clear if out of bounds
+        context.setEditedContent("");
+      }
       return;
     }
 
@@ -580,9 +611,14 @@ async function handleDiffPanelKeys(
 
       // Load content for new line (from editedLines if exists, otherwise from file)
       const lines = context.fileContent().split('\n');
-      const lineNumber = newIndex + 1; // Convert to 1-based
-      const existingEdit = context.editedLines().get(lineNumber);
-      context.setEditedContent(existingEdit ?? lines[newIndex]);
+      if (newIndex >= 0 && newIndex < lines.length) {
+        const lineNumber = newIndex + 1; // Convert to 1-based
+        const existingEdit = context.editedLines().get(lineNumber);
+        context.setEditedContent(existingEdit ?? lines[newIndex]);
+      } else {
+        // Clear if out of bounds
+        context.setEditedContent("");
+      }
       return;
     }
 

@@ -384,10 +384,10 @@ function DiffRowView(props: DiffRowViewProps) {
           </Show>
         </box>
 
-        {/* Content - Show textbox when in edit mode and selected */}
+        {/* Content - Show textbox when in edit mode, selected, and on an editable line */}
         <box flexGrow={1} flexDirection="row">
           <Show
-            when={props.isEditMode() && props.isSelected}
+            when={props.isEditMode() && props.isSelected && props.row.rightLineNum !== null}
             fallback={
               <For each={rightTokens()}>
                 {(token) => <text fg={token.color}>{token.text}</text>}

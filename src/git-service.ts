@@ -361,12 +361,31 @@ export class GitService {
   }
 
   /**
+   * Validate that a file path is within the repository bounds
+   * @param filepath - Path to validate
+   * @returns Validated absolute path
+   * @throws Error if path escapes repository
+   */
+  private validateFilePath(filepath: string): string {
+    // Resolve the full path
+    const fullPath = path.resolve(this.repoPath, filepath);
+    const normalizedRepoPath = path.resolve(this.repoPath);
+
+    // Ensure the resolved path is within the repository
+    if (!fullPath.startsWith(normalizedRepoPath + path.sep) && fullPath !== normalizedRepoPath) {
+      throw new Error(`Path traversal detected: ${filepath}`);
+    }
+
+    return fullPath;
+  }
+
+  /**
    * Read a file from the repository
    * @param filepath - Path to the file relative to the repository root
    * @returns Promise<string> - File content
    */
   async readFile(filepath: string): Promise<string> {
-    const fullPath = path.join(this.repoPath, filepath);
+    const fullPath = this.validateFilePath(filepath);
     try {
       return await fs.readFile(fullPath, "utf-8");
     } catch (error) {
@@ -383,7 +402,7 @@ export class GitService {
    * @param content - Content to write to the file
    */
   async writeFile(filepath: string, content: string): Promise<void> {
-    const fullPath = path.join(this.repoPath, filepath);
+    const fullPath = this.validateFilePath(filepath);
     await fs.writeFile(fullPath, content, "utf-8");
   }
 }
