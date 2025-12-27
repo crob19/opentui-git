@@ -550,6 +550,7 @@ async function handleDiffPanelKeys(
       // Clear all edit state when exiting edit mode
       const editCount = context.editedLines().size;
       context.setIsEditMode(false);
+      context.setEditedContent("");
       context.setEditedLines(new Map());
       if (editCount > 0) {
         context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
