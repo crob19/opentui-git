@@ -389,9 +389,16 @@ function DiffRowView(props: DiffRowViewProps) {
           <Show
             when={props.isEditMode() && props.isSelected && props.row.rightLineNum !== null}
             fallback={
-              <For each={rightTokens()}>
-                {(token) => <text fg={token.color}>{token.text}</text>}
-              </For>
+              <Show
+                when={isEdited() && props.row.rightLineNum !== null}
+                fallback={
+                  <For each={rightTokens()}>
+                    {(token) => <text fg={token.color}>{token.text}</text>}
+                  </For>
+                }
+              >
+                <text fg="#FFFFFF">{props.editedContent()}</text>
+              </Show>
             }
           >
             <textbox
