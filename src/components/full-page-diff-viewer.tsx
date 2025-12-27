@@ -24,7 +24,7 @@ export interface FullPageDiffViewerProps {
   viewMode: Accessor<"unified" | "side-by-side">;
   setViewMode: Setter<"unified" | "side-by-side">;
   diffMode: Accessor<DiffMode>;
-  compareBranch: Accessor<string>;
+  compareBranch: Accessor<string | null>;
   isEditMode: Accessor<boolean>;
   setIsEditMode: Setter<boolean>;
   editedContent: Accessor<string>;
