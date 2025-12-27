@@ -62,6 +62,8 @@ function AppContent() {
   // Diff panel state
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
+  const [isEditMode, setIsEditMode] = createSignal(false);
+  const [editedContent, setEditedContent] = createSignal("");
 
   // Custom hooks handle all git-related state & resources
   const gitStatus = useGitStatus(gitService);
@@ -106,6 +108,10 @@ function AppContent() {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    isEditMode,
+    setIsEditMode,
+    editedContent,
+    setEditedContent,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)
@@ -144,6 +150,12 @@ function AppContent() {
       setSelectedDiffRow={setSelectedDiffRow}
       diffViewMode={diffViewMode}
       setDiffViewMode={setDiffViewMode}
+      isEditMode={isEditMode}
+      setIsEditMode={setIsEditMode}
+      editedContent={editedContent}
+      setEditedContent={setEditedContent}
+      gitService={gitService}
+      refetchDiff={gitDiff.refetch}
     />
   );
 }

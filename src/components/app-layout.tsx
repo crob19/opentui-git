@@ -2,6 +2,7 @@ import { Show, type Accessor, type Setter, type Resource, type JSXElement } from
 import type { GitStatusSummary, GitFileStatus, FileTreeNode } from "../types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
+import type { GitService } from "../git-service.js";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
@@ -51,6 +52,18 @@ export interface AppLayoutProps {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Edit mode state */
+  isEditMode: Accessor<boolean>;
+  /** Edit mode setter */
+  setIsEditMode: Setter<boolean>;
+  /** Edited content state */
+  editedContent: Accessor<string>;
+  /** Edited content setter */
+  setEditedContent: Setter<string>;
+  /** Git service for file operations */
+  gitService: GitService;
+  /** Refetch diff after save */
+  refetchDiff: () => void;
 }
 
 /**
@@ -89,6 +102,12 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
             setSelectedRow={props.setSelectedDiffRow}
             viewMode={props.diffViewMode}
             setViewMode={props.setDiffViewMode}
+            isEditMode={props.isEditMode}
+            setIsEditMode={props.setIsEditMode}
+            editedContent={props.editedContent}
+            setEditedContent={props.setEditedContent}
+            gitService={props.gitService}
+            refetchDiff={props.refetchDiff}
           />
         </Show>
 

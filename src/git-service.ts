@@ -2,6 +2,8 @@ import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult, MergeResu
 import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
 import { logger } from "./utils/logger.js";
+import { promises as fs } from "fs";
+import path from "path";
 
 /**
  * GitService - Wrapper class for git operations using simple-git
@@ -9,6 +11,7 @@ import { logger } from "./utils/logger.js";
  */
 export class GitService {
   private git: SimpleGit;
+  private repoPath: string;
 
   /**
    * Creates a new GitService instance
@@ -16,6 +19,7 @@ export class GitService {
    */
   constructor(repoPath: string = process.cwd()) {
     this.git = simpleGit(repoPath);
+    this.repoPath = repoPath;
   }
 
   /**
@@ -354,5 +358,25 @@ export class GitService {
       throw new Error("No commits found in the repository.");
     }
     return log.latest.hash.substring(0, 7);
+  }
+
+  /**
+   * Read a file from the repository
+   * @param filepath - Path to the file relative to the repository root
+   * @returns Promise<string> - File content
+   */
+  async readFile(filepath: string): Promise<string> {
+    const fullPath = path.join(this.repoPath, filepath);
+    return await fs.readFile(fullPath, "utf-8");
+  }
+
+  /**
+   * Write content to a file in the repository
+   * @param filepath - Path to the file relative to the repository root
+   * @param content - Content to write to the file
+   */
+  async writeFile(filepath: string, content: string): Promise<void> {
+    const fullPath = path.join(this.repoPath, filepath);
+    await fs.writeFile(fullPath, content, "utf-8");
   }
 }

@@ -16,6 +16,7 @@ import * as tagCommands from "../commands/tag-commands.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
+import { parseSideBySideDiff } from "../utils/diff-parser.js";
 
 /**
  * Options for the command handler hook
@@ -51,6 +52,14 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Edit mode state */
+  isEditMode: Accessor<boolean>;
+  /** Edit mode setter */
+  setIsEditMode: Setter<boolean>;
+  /** Edited content state */
+  editedContent: Accessor<string>;
+  /** Edited content setter */
+  setEditedContent: Setter<string>;
 }
 
 /**
@@ -75,6 +84,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    isEditMode,
+    setIsEditMode,
+    editedContent,
+    setEditedContent,
   } = options;
 
   /**
@@ -196,6 +209,13 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setSelectedDiffRow,
           diffViewMode,
           setDiffViewMode,
+          isEditMode,
+          setIsEditMode,
+          editedContent,
+          setEditedContent,
+          gitService,
+          gitStatus,
+          toast,
         });
       } else {
         // Files panel keys
@@ -361,12 +381,99 @@ async function handleDiffPanelKeys(
     setSelectedDiffRow: Setter<number>;
     diffViewMode: Accessor<"unified" | "side-by-side">;
     setDiffViewMode: Setter<"unified" | "side-by-side">;
+    isEditMode: Accessor<boolean>;
+    setIsEditMode: Setter<boolean>;
+    editedContent: Accessor<string>;
+    setEditedContent: Setter<string>;
+    gitService: GitService;
+    gitStatus: UseGitStatusResult;
+    toast: ToastContext;
   },
 ): Promise<void> {
+  // Handle save in edit mode with Ctrl+S
+  if (ctrl && key === "s" && context.isEditMode()) {
+    const selectedFile = context.gitStatus.selectedFile();
+    if (!selectedFile) {
+      context.toast.error("No file selected");
+      return;
+    }
+
+    try {
+      // Read the current file content
+      const fullContent = await context.gitService.readFile(selectedFile.path);
+      const lines = fullContent.split('\n');
+
+      // Replace the line at the selected row
+      // Note: We need to map the diff row to the actual file line
+      // For now, we'll use the right line number from the diff
+      const diffContent = await context.gitService.getDiff(selectedFile.path);
+      if (!diffContent) {
+        context.toast.error("Could not get diff content");
+        return;
+      }
+
+      const diffRows = parseSideBySideDiff(diffContent);
+      const selectedRow = diffRows[context.selectedDiffRow()];
+
+      if (!selectedRow || selectedRow.rightLineNum === null) {
+        context.toast.error("Cannot edit this line");
+        return;
+      }
+
+      // Update the line (line numbers are 1-based, array is 0-based)
+      lines[selectedRow.rightLineNum - 1] = context.editedContent();
+
+      // Write back to file
+      await context.gitService.writeFile(selectedFile.path, lines.join('\n'));
+
+      context.toast.success(`Saved changes to ${selectedFile.path}`);
+      context.setIsEditMode(false);
+
+      // Refetch git status and diff
+      await context.gitStatus.refetch();
+    } catch (error) {
+      context.toast.error(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+    return;
+  }
+
   // Toggle view mode with Ctrl+T
-  if (ctrl && key === "t") {
+  if (ctrl && key === "t" && !context.isEditMode()) {
     const current = context.diffViewMode();
     context.setDiffViewMode(current === "unified" ? "side-by-side" : "unified");
+    return;
+  }
+
+  // Enter edit mode with 'i' (only in side-by-side mode)
+  if (key === "i" && !context.isEditMode() && context.diffViewMode() === "side-by-side") {
+    const diffContent = await context.gitService.getDiff(context.gitStatus.selectedFile()?.path || "");
+    if (!diffContent) return;
+
+    const diffRows = parseSideBySideDiff(diffContent);
+    const selectedRow = diffRows[context.selectedDiffRow()];
+
+    // Only allow editing on the right side (new content)
+    if (selectedRow && selectedRow.right !== "") {
+      context.setEditedContent(selectedRow.right);
+      context.setIsEditMode(true);
+    }
+    return;
+  }
+
+  // Exit edit mode with Escape
+  if (key === "escape") {
+    if (context.isEditMode()) {
+      context.setIsEditMode(false);
+      return;
+    }
+    // Return to files panel and reset diff scroll position
+    context.setSelectedDiffRow(0);
+    context.setActivePanel("files");
+    return;
+  }
+
+  // Don't allow navigation in edit mode
+  if (context.isEditMode()) {
     return;
   }
 
@@ -389,12 +496,6 @@ async function handleDiffPanelKeys(
         context.selectedDiffRow,
         context.setSelectedDiffRow,
       );
-      break;
-
-    case "escape":
-      // Return to files panel and reset diff scroll position
-      context.setSelectedDiffRow(0);
-      context.setActivePanel("files");
       break;
   }
 }
