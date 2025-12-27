@@ -127,6 +127,7 @@ function AppContent() {
     setSelectedLine,
     fileMtime,
     setFileMtime,
+    refetchDiff: gitDiff.refetch,
   });
 
   // Track last file path to detect actual file changes (not just refreshes)

@@ -76,6 +76,8 @@ export interface UseCommandHandlerOptions {
   fileMtime: Accessor<Date | null>;
   /** Setter for file modification time */
   setFileMtime: Setter<Date | null>;
+  /** Refetch diff after changes */
+  refetchDiff: () => void;
 }
 
 /**
@@ -112,6 +114,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedLine,
     fileMtime,
     setFileMtime,
+    refetchDiff,
   } = options;
 
   /**
@@ -248,6 +251,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           gitService,
           gitStatus,
           toast,
+          refetchDiff,
         });
       } else {
         // Files panel keys
@@ -428,6 +432,7 @@ async function handleDiffPanelKeys(
     gitService: GitService;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
+    refetchDiff: () => void;
   },
 ): Promise<void> {
   // Helper function to save current edit to editedLines map before navigating
@@ -508,8 +513,9 @@ async function handleDiffPanelKeys(
       context.setFileContent("");
       context.setFileMtime(null);
 
-      // Refetch git status and diff
+      // Refetch git status and diff to show updated content
       await context.gitStatus.refetch();
+      context.refetchDiff();
       // Reset selected diff row to avoid pointing to an invalid or changed line
       context.setSelectedDiffRow(0);
     } catch (error) {
