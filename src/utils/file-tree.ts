@@ -5,13 +5,14 @@ import { STATUS_COLORS } from "../types.js";
  * Priority order for status colors (higher index = higher priority)
  */
 const STATUS_PRIORITY = [
-  STATUS_COLORS.UNTRACKED,  // Gray - lowest priority
-  STATUS_COLORS.MODIFIED,   // Yellow
-  STATUS_COLORS.ADDED,      // Green
-  STATUS_COLORS.RENAMED,    // Blue
-  STATUS_COLORS.COPIED,     // Blue
-  STATUS_COLORS.UNMERGED,   // Magenta
-  STATUS_COLORS.DELETED,    // Red - highest priority
+  STATUS_COLORS.BRANCH_ONLY, // Dim white - lowest priority (committed changes only)
+  STATUS_COLORS.UNTRACKED,   // Gray
+  STATUS_COLORS.MODIFIED,    // Yellow
+  STATUS_COLORS.ADDED,       // Green
+  STATUS_COLORS.RENAMED,     // Blue
+  STATUS_COLORS.COPIED,      // Blue
+  STATUS_COLORS.UNMERGED,    // Magenta
+  STATUS_COLORS.DELETED,     // Red - highest priority
 ] as const;
 
 /**

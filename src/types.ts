@@ -16,6 +16,8 @@ export interface GitFileStatus {
   statusText: string;
   /** Color for terminal display */
   color: string;
+  /** Whether the file has local changes (used in branch comparison mode) */
+  hasLocalChanges?: boolean;
 }
 
 /**
@@ -109,6 +111,7 @@ export const STATUS_COLORS = {
   RENAMED: "#00AAFF",     // Blue
   COPIED: "#00AAFF",      // Blue
   UNMERGED: "#FF00FF",    // Magenta
+  BRANCH_ONLY: "#AAAAAA", // Dim white - file changed in branch but no local edits
   DEFAULT: "#FFFFFF",     // White
 } as const;
 

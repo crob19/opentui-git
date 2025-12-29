@@ -87,6 +87,11 @@ export function FileList(props: FileListProps) {
             const color = () => {
               // File nodes show staged status or status color
               if (node.type === 'file' && node.fileStatus) {
+                // In branch mode, use the color we already set (which considers hasLocalChanges)
+                if (props.diffMode?.() === "branch") {
+                  return node.color;
+                }
+                // In normal modes, show green for staged, otherwise status color
                 return node.fileStatus.staged ? "#44FF44" : node.color;
               }
               // Folder nodes use their calculated color

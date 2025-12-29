@@ -1,6 +1,7 @@
 import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
 import type { GitService } from "../git-service.js";
 import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
+import { STATUS_COLORS } from "../types.js";
 import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";
 
 /**
@@ -74,6 +75,18 @@ export function useGitStatus(
         if (source.mode === "branch" && source.branch) {
           // Get files changed compared to branch
           files = await gitService.getFilesChangedAgainstBranch(source.branch);
+          
+          // Also get actual working directory status to mark files with local changes
+          const workingDirStatus = await gitService.getStatus();
+          const workingDirPaths = new Set(workingDirStatus.files.map(f => f.path));
+          
+          // Mark files that have local changes
+          files = files.map(file => ({
+            ...file,
+            hasLocalChanges: workingDirPaths.has(file.path),
+            // Update color for files without local changes
+            color: workingDirPaths.has(file.path) ? file.color : STATUS_COLORS.BRANCH_ONLY,
+          }));
           
           // Get current branch info for the status summary
           const branches = await gitService.getBranches();
