@@ -220,17 +220,32 @@ function EditorLineView(props: EditorLineViewProps) {
     return "transparent";
   };
 
+  // Auto-focus the textarea when this line is selected
   createEffect(() => {
     if (props.isSelected && textareaRef) {
-      // Focus the textarea
       setTimeout(() => {
         textareaRef?.focus();
       }, 10);
     }
   });
 
-  // Poll for changes in the textarea and update editedContent
-  // This is needed because textarea doesn't have an onChange/onInput callback
+  /**
+   * Poll for changes in the textarea and update editedContent.
+   * 
+   * WORKAROUND: This polling mechanism is necessary because the TextareaRenderable API
+   * in @opentui/core@0.1.62 does not provide onChange/onInput callbacks. The plainText
+   * property is read-only, so we cannot detect changes through reactive signals.
+   * 
+   * Performance Considerations:
+   * - Polling interval: 200ms (balance between responsiveness and CPU usage)
+   * - Only active when this specific line is selected (not all lines poll simultaneously)
+   * - Properly cleaned up when line is deselected via onCleanup
+   * 
+   * Future Improvement:
+   * If/when @opentui/core adds event-based change detection (onChange/onInput callbacks)
+   * or a writable value/defaultValue prop, this polling mechanism should be replaced.
+   * See similar workaround pattern in: src/components/modals/input-modal.tsx
+   */
   createEffect(() => {
     if (!props.isSelected || !textareaRef) return;
 
@@ -241,7 +256,7 @@ function EditorLineView(props: EditorLineViewProps) {
           props.setEditedContent(currentText);
         }
       }
-    }, 50); // Check every 50ms
+    }, 200); // Poll every 200ms - reduced frequency for better performance
 
     onCleanup(() => clearInterval(interval));
   });
@@ -276,6 +291,15 @@ function EditorLineView(props: EditorLineViewProps) {
             </For>
           }
         >
+          {/* 
+            WORKAROUND: Using 'placeholder' prop to set initial textarea content.
+            The TextareaRenderable API does not provide a 'value' or 'defaultValue' prop,
+            and the 'plainText' property is read-only (see @opentui/core@0.1.62).
+            This pattern is used consistently across the codebase (see input-modal.tsx:112).
+            
+            Future Improvement:
+            If/when @opentui/core adds proper value/defaultValue props, update to use those instead.
+          */}
           <textarea
             ref={(el: TextareaRenderable) => {
               textareaRef = el;
