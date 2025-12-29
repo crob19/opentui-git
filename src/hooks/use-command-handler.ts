@@ -856,26 +856,58 @@ async function handleFilePanelKeys(
       const node = gitStatus.selectedNode();
       if (!node) break;
 
+      // If in branch mode, we need to check if files have actual working directory changes
+      const inBranchMode = context.diffMode() === "branch";
+
       if (node.type === 'folder') {
         // Get all files in the folder recursively
         const filesInFolder = getFilesInFolder(node);
         
-        // Check if any files in folder (including nested files) are unstaged
-        const hasUnstaged = status?.files.some((file) => {
-          return filesInFolder.includes(file.path) && !file.staged;
-        }) || false;
+        if (inBranchMode) {
+          // In branch mode, get actual git status to check for unstaged changes
+          const actualStatus = await context.gitService.getStatus();
+          const hasUnstaged = actualStatus.files.some((file) => {
+            return filesInFolder.includes(file.path) && !file.staged;
+          });
 
-        if (hasUnstaged) {
+          if (!hasUnstaged) {
+            context.toast.info("No unstaged changes in this folder");
+            break;
+          }
+          
           await fileCommands.stageFolder(node, context);
         } else {
-          await fileCommands.unstageFolder(node, context);
+          // Normal mode - use the current status
+          const hasUnstaged = status?.files.some((file) => {
+            return filesInFolder.includes(file.path) && !file.staged;
+          }) || false;
+
+          if (hasUnstaged) {
+            await fileCommands.stageFolder(node, context);
+          } else {
+            await fileCommands.unstageFolder(node, context);
+          }
         }
       } else if (node.type === 'file' && node.fileStatus) {
         // Stage/unstage individual file
-        if (node.fileStatus.staged) {
-          await fileCommands.unstageFile(node.fileStatus.path, context);
-        } else {
+        if (inBranchMode) {
+          // In branch mode, check if file has actual unstaged changes
+          const actualStatus = await context.gitService.getStatus();
+          const fileInWorkingDir = actualStatus.files.find((f) => f.path === node.fileStatus?.path);
+          
+          if (!fileInWorkingDir || fileInWorkingDir.staged) {
+            context.toast.info("No unstaged changes for this file");
+            break;
+          }
+          
           await fileCommands.stageFile(node.fileStatus.path, context);
+        } else {
+          // Normal mode
+          if (node.fileStatus.staged) {
+            await fileCommands.unstageFile(node.fileStatus.path, context);
+          } else {
+            await fileCommands.stageFile(node.fileStatus.path, context);
+          }
         }
       }
       break;

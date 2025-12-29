@@ -276,6 +276,94 @@ export class GitService {
   }
 
   /**
+   * Get list of files changed compared to a branch
+   * @param branch - Branch to compare against (e.g., "main", "master")
+   * @returns Promise<GitFileStatus[]> - Array of changed files with status
+   */
+  async getFilesChangedAgainstBranch(branch: string): Promise<GitFileStatus[]> {
+    try {
+      // First verify the branch exists
+      const branchSummary = await this.git.branch();
+      const branchExists = Object.prototype.hasOwnProperty.call(branchSummary.branches, branch);
+
+      if (!branchExists) {
+        const message = `Branch "${branch}" does not exist in repository "${this.repoPath}".`;
+        logger.error(message);
+        throw new Error(message);
+      }
+
+      // Get the diff with name-status to see which files changed
+      const diffOutput = await this.git.diff([branch, "--name-status"]);
+      
+      if (!diffOutput.trim()) {
+        // No changes
+        return [];
+      }
+
+      const files: GitFileStatus[] = [];
+      const lines = diffOutput.trim().split('\n');
+
+      for (const line of lines) {
+        // Format: "M\tpath/to/file" or "A\tpath/to/file" etc.
+        const parts = line.split('\t');
+        if (parts.length >= 2) {
+          const statusCode = parts[0].trim();
+          const filepath = parts[1].trim();
+
+          // Map git status codes to our status codes
+          let mappedStatus = statusCode;
+          if (statusCode.startsWith('R')) {
+            // Renamed files show as "R100" or similar
+            mappedStatus = GitStatus.RENAMED;
+          } else if (statusCode.startsWith('C')) {
+            // Copied files
+            mappedStatus = GitStatus.COPIED;
+          }
+
+          // Create file status - mark all as unstaged since this is uncommitted work
+          files.push(this.createFileStatus(filepath, false, mappedStatus));
+        }
+      }
+
+      return files;
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(
+          `Failed to get files changed against branch "${branch}": ${error.message}`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get the default branch name (tries "main" first, falls back to "master")
+   * @returns Promise<string> - The default branch name
+   */
+  async getDefaultBranch(): Promise<string> {
+    try {
+      const branchSummary = await this.git.branch();
+      
+      // Check if "main" exists
+      if (Object.prototype.hasOwnProperty.call(branchSummary.branches, "main")) {
+        return "main";
+      }
+      
+      // Check if "master" exists
+      if (Object.prototype.hasOwnProperty.call(branchSummary.branches, "master")) {
+        return "master";
+      }
+      
+      // If neither exists, default to "main"
+      logger.warn("Neither 'main' nor 'master' branch found, defaulting to 'main'");
+      return "main";
+    } catch (error) {
+      logger.error("Failed to detect default branch, defaulting to 'main'");
+      return "main";
+    }
+  }
+
+  /**
    * Pull from remote
    * @returns Promise<void>
    */

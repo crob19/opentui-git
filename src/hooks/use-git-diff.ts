@@ -9,7 +9,7 @@ export interface UseGitDiffResult {
   /** Diff content resource (reactive) */
   diffContent: Resource<string | null>;
   /** Function to manually refetch diff content */
-  refetchDiff: () => Promise<string | null | undefined>;
+  refetch: () => Promise<string | null | undefined>;
   /** Whether diff is currently loading */
   isLoading: Accessor<boolean>;
 }
@@ -27,14 +27,14 @@ export function useGitDiff(
   gitService: GitService,
   selectedFile: Accessor<GitFileStatus | null>,
   diffMode: Accessor<DiffMode>,
-  compareBranch: Accessor<string>,
+  compareBranch: Accessor<string | null>,
 ): UseGitDiffResult {
   // Track the current diff source with proper reactivity
   const [lastDiffSource, setLastDiffSource] = createSignal<{
     path: string;
     staged: boolean;
     mode: DiffMode;
-    branch: string;
+    branch: string | null;
   } | null>(null);
 
   // Load diff for selected file
@@ -49,7 +49,7 @@ export function useGitDiff(
         console.log(`Loading diff for: ${filePath} (mode: ${mode}, branch: ${branch})`);
 
         let diff: string;
-        if (mode === "branch") {
+        if (mode === "branch" && branch) {
           diff = await gitService.getDiffAgainstBranch(filePath, branch);
         } else {
           const staged = mode === "staged";
@@ -95,7 +95,7 @@ export function useGitDiff(
 
   return {
     diffContent,
-    refetchDiff: refetchDiff as () => Promise<string | null | undefined>,
+    refetch: refetchDiff as () => Promise<string | null | undefined>,
     isLoading,
   };
 }

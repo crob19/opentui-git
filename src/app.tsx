@@ -64,7 +64,16 @@ function AppContent() {
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
   const [diffMode, setDiffMode] = createSignal<DiffMode>("unstaged");
-  const [compareBranch, setCompareBranch] = createSignal<string | null>("main");
+  const [compareBranch, setCompareBranch] = createSignal<string | null>(null);
+
+  // Initialize compareBranch with the default branch (main or master)
+  // This runs once on startup
+  gitService.getDefaultBranch().then((branch) => {
+    setCompareBranch(branch);
+  }).catch((error) => {
+    console.error("Failed to get default branch:", error);
+    setCompareBranch("main"); // Fallback to main
+  });
 
   // Edit mode state
   const [isEditMode, setIsEditMode] = createSignal(false);
@@ -76,7 +85,7 @@ function AppContent() {
   const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
 
   // Custom hooks handle all git-related state & resources
-  const gitStatus = useGitStatus(gitService);
+  const gitStatus = useGitStatus(gitService, diffMode, compareBranch);
   const gitBranches = useGitBranches(gitService);
   const gitTags = useGitTags(gitService);
   const gitDiff = useGitDiff(gitService, gitStatus.selectedFile, diffMode, compareBranch);

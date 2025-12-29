@@ -1,6 +1,6 @@
 import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
 import type { GitService } from "../git-service.js";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode } from "../types.js";
+import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
 import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";
 
 /**
@@ -39,17 +39,24 @@ export interface UseGitStatusResult {
  * Custom hook for managing git status state and loading
  * Handles repository detection, status loading, file selection, and error state
  * @param gitService - GitService instance for git operations
+ * @param diffMode - Current diff mode (unstaged, staged, or branch)
+ * @param compareBranch - Branch to compare against when in branch mode
  * @returns Object containing git status resource, selection state, and error state
  */
-export function useGitStatus(gitService: GitService): UseGitStatusResult {
+export function useGitStatus(
+  gitService: GitService,
+  diffMode: Accessor<DiffMode>,
+  compareBranch: Accessor<string | null>,
+): UseGitStatusResult {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [isGitRepo, setIsGitRepo] = createSignal(true);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const [treeNodes, setTreeNodes] = createSignal<FileTreeNode[]>([]);
 
-  // Load git status
-  const [gitStatus, { refetch }] = createResource<GitStatusSummary>(
-    async () => {
+  // Load git status - make it reactive to diffMode and compareBranch
+  const [gitStatus, { refetch }] = createResource<GitStatusSummary, { mode: DiffMode; branch: string | null }>(
+    () => ({ mode: diffMode(), branch: compareBranch() }),
+    async (source) => {
       try {
         // Check if we're in a git repo
         const inRepo = await gitService.isRepo();
@@ -60,12 +67,34 @@ export function useGitStatus(gitService: GitService): UseGitStatusResult {
           throw new Error("Not a git repository");
         }
 
-        const status = await gitService.getStatus();
+        let files: GitFileStatus[];
+        let status: GitStatusSummary;
+
+        // Fetch files based on diff mode
+        if (source.mode === "branch" && source.branch) {
+          // Get files changed compared to branch
+          files = await gitService.getFilesChangedAgainstBranch(source.branch);
+          
+          // Get current branch info for the status summary
+          const branches = await gitService.getBranches();
+          status = {
+            current: branches.current,
+            ahead: 0,
+            behind: 0,
+            files,
+            isClean: files.length === 0,
+          };
+        } else {
+          // Normal git status (unstaged or staged)
+          status = await gitService.getStatus();
+          files = status.files;
+        }
+
         setErrorMessage(null);
 
         // Build tree from files, preserving user's expansion state
         const oldTree = treeNodes();
-        const newTree = buildFileTree(status.files);
+        const newTree = buildFileTree(files);
         const mergedTree = preserveExpansionState(oldTree, newTree);
         setTreeNodes(mergedTree);
 
