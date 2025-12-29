@@ -11,37 +11,30 @@ export interface FooterProps {
 
 export function Footer(props: FooterProps) {
   const fileShortcuts = [
-    { key: "↑/k", desc: "up" },
-    { key: "↓/j", desc: "down" },
-    { key: "Enter", desc: "view diff" },
-    { key: "space", desc: "stage" },
-    { key: "a", desc: "all" },
-    { key: "u", desc: "unstage" },
+    { key: "↑/↓", desc: "navigate" },
+    { key: "Enter", desc: "view" },
+    { key: "Space", desc: "stage" },
     { key: "c", desc: "commit" },
-    { key: "Tab", desc: "branches" },
-    { key: "n", desc: "new branch" },
-    { key: "p", desc: "pull" },
-    { key: "P", desc: "push" },
+    { key: "Tab", desc: "switch panel" },
+    { key: "?", desc: "help" },
     { key: "q", desc: "quit" },
   ];
 
   const branchShortcuts = [
-    { key: "↑/k", desc: "up" },
-    { key: "↓/j", desc: "down" },
-    { key: "space", desc: "checkout" },
+    { key: "↑/↓", desc: "navigate" },
+    { key: "Space", desc: "checkout" },
     { key: "d", desc: "delete" },
-    { key: "n", desc: "new branch" },
-    { key: "Tab", desc: "files" },
-    { key: "p", desc: "pull" },
-    { key: "P", desc: "push" },
+    { key: "Tab", desc: "switch panel" },
+    { key: "?", desc: "help" },
     { key: "q", desc: "quit" },
   ];
 
   const diffShortcuts = [
-    { key: "↑/k", desc: "up" },
-    { key: "↓/j", desc: "down" },
-    { key: "Ctrl+T", desc: "toggle view" },
-    { key: "Esc", desc: "back to files" },
+    { key: "↑/↓", desc: "navigate" },
+    { key: "i", desc: "edit" },
+    { key: "Ctrl+M", desc: "diff mode" },
+    { key: "Esc", desc: "back" },
+    { key: "?", desc: "help" },
     { key: "q", desc: "quit" },
   ];
 

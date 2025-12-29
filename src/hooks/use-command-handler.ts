@@ -8,6 +8,7 @@ import type { UseGitBranchesResult } from "./use-git-branches.js";
 import type { UseGitTagsResult } from "./use-git-tags.js";
 import type { Accessor, Setter } from "solid-js";
 import type { BranchPanelTab } from "../app.js";
+import type { DiffMode } from "../types.js";
 import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
@@ -17,6 +18,7 @@ import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
 import { parseSideBySideDiff, parseDiffLines } from "../utils/diff-parser.js";
+import { HelpModal } from "../components/modals/help-modal.js";
 
 /**
  * Options for the command handler hook
@@ -52,6 +54,16 @@ export interface UseCommandHandlerOptions {
   diffViewMode: Accessor<"unified" | "side-by-side">;
   /** Diff view mode setter */
   setDiffViewMode: Setter<"unified" | "side-by-side">;
+  /** Diff mode (unstaged, staged, or branch) */
+  diffMode: Accessor<DiffMode>;
+  /** Diff mode setter */
+  setDiffMode: Setter<DiffMode>;
+  /** Branch to compare against */
+  compareBranch: Accessor<string | null>;
+  /** Branch to compare against setter */
+  setCompareBranch: Setter<string | null>;
+  /** Whether compareBranch is still loading */
+  isCompareBranchLoading: Accessor<boolean>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
@@ -102,6 +114,11 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setSelectedDiffRow,
     diffViewMode,
     setDiffViewMode,
+    diffMode,
+    setDiffMode,
+    compareBranch,
+    setCompareBranch,
+    isCompareBranchLoading,
     isEditMode,
     setIsEditMode,
     editedContent,
@@ -163,6 +180,19 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
       shutdown();
+      return;
+    }
+
+    // Handle help modal with ?
+    if (key === "?") {
+      dialog.show(
+        () => HelpModal({
+          onClose: () => {
+            console.log("Help modal closed");
+          }
+        }),
+        () => console.log("Help dialog closed")
+      );
       return;
     }
 
@@ -236,6 +266,11 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setSelectedDiffRow,
           diffViewMode,
           setDiffViewMode,
+          diffMode,
+          setDiffMode,
+          compareBranch,
+          setCompareBranch,
+          isCompareBranchLoading,
           isEditMode,
           setIsEditMode,
           editedContent,
@@ -255,7 +290,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
         });
       } else {
         // Files panel keys
-        await handleFilePanelKeys(key, {
+        await handleFilePanelKeys(key, ctrl, {
           status,
           currentBranch,
           gitStatus,
@@ -266,6 +301,10 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           refetch: gitStatus.refetch,
           refetchTags: gitTags.refetchTags,
           setActivePanel,
+          diffMode,
+          setDiffMode,
+          compareBranch,
+          isCompareBranchLoading,
         });
       }
     } catch (error) {
@@ -417,6 +456,11 @@ async function handleDiffPanelKeys(
     setSelectedDiffRow: Setter<number>;
     diffViewMode: Accessor<"unified" | "side-by-side">;
     setDiffViewMode: Setter<"unified" | "side-by-side">;
+    diffMode: Accessor<DiffMode>;
+    setDiffMode: Setter<DiffMode>;
+    compareBranch: Accessor<string | null>;
+    setCompareBranch: Setter<string | null>;
+    isCompareBranchLoading: Accessor<boolean>;
     isEditMode: Accessor<boolean>;
     setIsEditMode: Setter<boolean>;
     editedContent: Accessor<string>;
@@ -528,6 +572,45 @@ async function handleDiffPanelKeys(
   if (ctrl && key === "t" && !context.isEditMode()) {
     const current = context.diffViewMode();
     context.setDiffViewMode(current === "unified" ? "side-by-side" : "unified");
+    return;
+  }
+
+  // Toggle diff mode with Ctrl+M
+  if (ctrl && key === "m" && !context.isEditMode()) {
+    const current = context.diffMode();
+    let next: DiffMode;
+
+    // Cycle through: unstaged -> staged -> branch -> unstaged
+    switch (current) {
+      case "unstaged":
+        next = "staged";
+        break;
+      case "staged":
+        next = "branch";
+        break;
+      case "branch":
+        next = "unstaged";
+        break;
+      default:
+        next = "unstaged";
+    }
+
+    // Block switching to branch mode if compareBranch is still loading
+    if (next === "branch" && context.isCompareBranchLoading()) {
+      context.toast.warning("Loading default branch, please wait...");
+      return;
+    }
+
+    context.setDiffMode(next);
+
+    // Show toast to indicate mode change
+    const compareBranch = context.compareBranch();
+    const modeLabel =
+      next === "unstaged" ? "Unstaged changes" :
+      next === "staged" ? "Staged changes" :
+      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
+
+    context.toast.info(`Diff mode: ${modeLabel}`);
     return;
   }
 
@@ -681,6 +764,7 @@ async function handleDiffPanelKeys(
  */
 async function handleFilePanelKeys(
   key: string,
+  ctrl: boolean,
   context: {
     status: ReturnType<UseGitStatusResult["gitStatus"]>;
     currentBranch: string;
@@ -692,9 +776,52 @@ async function handleFilePanelKeys(
     refetch: () => Promise<unknown>;
     refetchTags: () => Promise<unknown>;
     setActivePanel: Setter<PanelType>;
+    diffMode: Accessor<DiffMode>;
+    setDiffMode: Setter<DiffMode>;
+    compareBranch: Accessor<string | null>;
+    isCompareBranchLoading: Accessor<boolean>;
   },
 ): Promise<void> {
   const { status, currentBranch, gitStatus } = context;
+
+  // Toggle diff mode with Ctrl+M (same as in diff panel)
+  if (ctrl && key === "m") {
+    const current = context.diffMode();
+    let next: DiffMode;
+
+    // Cycle through: unstaged -> staged -> branch -> unstaged
+    switch (current) {
+      case "unstaged":
+        next = "staged";
+        break;
+      case "staged":
+        next = "branch";
+        break;
+      case "branch":
+        next = "unstaged";
+        break;
+      default:
+        next = "unstaged";
+    }
+
+    // Block switching to branch mode if compareBranch is still loading
+    if (next === "branch" && context.isCompareBranchLoading()) {
+      context.toast.warning("Loading default branch, please wait...");
+      return;
+    }
+
+    context.setDiffMode(next);
+
+    // Show toast to indicate mode change
+    const compareBranch = context.compareBranch();
+    const modeLabel =
+      next === "unstaged" ? "Unstaged changes" :
+      next === "staged" ? "Staged changes" :
+      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
+
+    context.toast.info(`Diff mode: ${modeLabel}`);
+    return;
+  }
 
   // Allow 'n' (new branch) even without files
   if (key === "n") {
@@ -764,26 +891,56 @@ async function handleFilePanelKeys(
       const node = gitStatus.selectedNode();
       if (!node) break;
 
+      // If in branch mode, we need to check if files have actual working directory changes
+      const inBranchMode = context.diffMode() === "branch";
+
       if (node.type === 'folder') {
         // Get all files in the folder recursively
         const filesInFolder = getFilesInFolder(node);
         
-        // Check if any files in folder (including nested files) are unstaged
-        const hasUnstaged = status?.files.some((file) => {
-          return filesInFolder.includes(file.path) && !file.staged;
-        }) || false;
+        if (inBranchMode) {
+          // In branch mode, check if any files have local changes using cached data
+          const hasUnstaged = status?.files.some((file) => {
+            return filesInFolder.includes(file.path) && 
+                   file.hasLocalChanges && 
+                   !file.staged;
+          }) || false;
 
-        if (hasUnstaged) {
+          if (!hasUnstaged) {
+            context.toast.info("No unstaged changes in this folder");
+            break;
+          }
+          
           await fileCommands.stageFolder(node, context);
         } else {
-          await fileCommands.unstageFolder(node, context);
+          // Normal mode - use the current status
+          const hasUnstaged = status?.files.some((file) => {
+            return filesInFolder.includes(file.path) && !file.staged;
+          }) || false;
+
+          if (hasUnstaged) {
+            await fileCommands.stageFolder(node, context);
+          } else {
+            await fileCommands.unstageFolder(node, context);
+          }
         }
       } else if (node.type === 'file' && node.fileStatus) {
         // Stage/unstage individual file
-        if (node.fileStatus.staged) {
-          await fileCommands.unstageFile(node.fileStatus.path, context);
-        } else {
+        if (inBranchMode) {
+          // In branch mode, check if file has actual unstaged changes using cached data
+          if (!node.fileStatus.hasLocalChanges || node.fileStatus.staged) {
+            context.toast.info("No unstaged changes for this file");
+            break;
+          }
+          
           await fileCommands.stageFile(node.fileStatus.path, context);
+        } else {
+          // Normal mode
+          if (node.fileStatus.staged) {
+            await fileCommands.unstageFile(node.fileStatus.path, context);
+          } else {
+            await fileCommands.stageFile(node.fileStatus.path, context);
+          }
         }
       }
       break;

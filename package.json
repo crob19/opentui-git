@@ -26,16 +26,16 @@
   "author": "opentui-git",
   "license": "MIT",
   "dependencies": {
-    "@opentui/core": "^0.1.62",
-    "@opentui/solid": "^0.1.62",
+    "@opentui/core": "^0.1.65",
+    "@opentui/solid": "^0.1.65",
     "@types/diff": "^7.0.2",
     "diff": "^8.0.2",
     "shiki": "^3.20.0",
     "simple-git": "^3.30.0",
-    "solid-js": "^1.9.9"
+    "solid-js": "^1.9.10"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   }
 }

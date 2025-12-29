@@ -1,6 +1,7 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
 import type { Highlighter } from "shiki";
 import type { GitService } from "../git-service.js";
+import type { DiffMode } from "../types.js";
 import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
@@ -22,6 +23,8 @@ export interface FullPageDiffViewerProps {
   setSelectedRow: Setter<number>;
   viewMode: Accessor<"unified" | "side-by-side">;
   setViewMode: Setter<"unified" | "side-by-side">;
+  diffMode: Accessor<DiffMode>;
+  compareBranch: Accessor<string | null>;
   isEditMode: Accessor<boolean>;
   setIsEditMode: Setter<boolean>;
   editedContent: Accessor<string>;
@@ -98,6 +101,21 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
   const viewModeLabel = () => props.viewMode() === "side-by-side" ? "Side-by-Side" : "Unified";
   const totalItems = () => props.viewMode() === "side-by-side" ? diffRows().length : diffLines().length;
 
+  // Helper to get diff mode label
+  const diffModeLabel = () => {
+    const mode = props.diffMode();
+    switch (mode) {
+      case "unstaged":
+        return "Unstaged";
+      case "staged":
+        return "Staged";
+      case "branch":
+        return `vs ${props.compareBranch() ?? "main"}`;
+      default:
+        return "Unknown";
+    }
+  };
+
   // Clamp selected row to valid range when total items changes
   createEffect(() => {
     const total = totalItems();
@@ -133,6 +151,7 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
           </Show>
         </box>
         <box flexDirection="row" gap={2}>
+          <text fg="#00AAFF">[{diffModeLabel()}]</text>
           <text fg="#666666">Row {props.selectedRow() + 1}/{totalItems()}</text>
           <text fg="#888888">[{viewModeLabel()}]</text>
         </box>
@@ -215,7 +234,10 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
               <text fg="#AAAAAA">down</text>
               <text fg="#444444">│</text>
               <text fg="#00AAFF">Ctrl+T</text>
-              <text fg="#AAAAAA">toggle</text>
+              <text fg="#AAAAAA">view</text>
+              <text fg="#444444">│</text>
+              <text fg="#00AAFF">Ctrl+M</text>
+              <text fg="#AAAAAA">diff mode</text>
               <text fg="#444444">│</text>
               <text fg="#00AAFF">i</text>
               <text fg="#AAAAAA">edit</text>
