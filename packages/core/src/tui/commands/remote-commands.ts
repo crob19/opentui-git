@@ -11,7 +11,7 @@ export async function pull(context: RemoteCommandContext): Promise<void> {
   context.toast.info("Pulling from remote...");
 
   const result = await handleAsyncOperation(
-    () => context.gitService.pull(),
+    () => context.client.pull(),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -36,7 +36,7 @@ export async function push(context: RemoteCommandContext): Promise<void> {
   context.toast.info("Pushing to remote...");
 
   const result = await handleAsyncOperation(
-    () => context.gitService.push(),
+    () => context.client.push(),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,

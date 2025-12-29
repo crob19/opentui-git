@@ -1,5 +1,5 @@
 import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 
 /**
  * Result object returned by useGitTags hook
@@ -22,17 +22,17 @@ export interface UseGitTagsResult {
 /**
  * Custom hook for managing git tag state and loading
  * Handles tag loading, sorting, and tag selection
- * @param gitService - GitService instance for git operations
+ * @param client - SDK client for API operations
  * @returns Object containing tags resource, sorted tags list, and selection state
  */
-export function useGitTags(gitService: GitService): UseGitTagsResult {
+export function useGitTags(client: GitClient): UseGitTagsResult {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
   // Load tags
   const [tags, { refetch: refetchTags }] =
     createResource<string[]>(async () => {
       try {
-        return await gitService.getTags();
+        return await client.getTags();
       } catch (error) {
         console.error("Error loading tags:", error);
         throw error;

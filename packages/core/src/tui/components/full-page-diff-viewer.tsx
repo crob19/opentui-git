@@ -1,6 +1,6 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
 import type { Highlighter } from "shiki";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import type { DiffMode } from "../../git/types.js";
 import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
@@ -31,7 +31,7 @@ export interface FullPageDiffViewerProps {
   setEditedContent: Setter<string>;
   editedLines: Accessor<Map<number, string>>;
   setEditedLines: Setter<Map<number, string>>;
-  gitService: GitService;
+  client: GitClient;
   refetchDiff: () => void;
 }
 

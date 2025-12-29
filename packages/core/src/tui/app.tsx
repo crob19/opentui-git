@@ -1,6 +1,6 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { GitService } from "../git/index.js";
+import { createClient, type GitClient } from "@opentui-git/sdk";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { ToastProvider, useToast } from "./components/toast.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -21,6 +21,13 @@ import { registerShutdownHandler } from "./index.js";
  * Tab types for the branches panel
  */
 export type BranchPanelTab = "branches" | "tags";
+
+/**
+ * Get the server URL from global state (set by tui/index.tsx)
+ */
+function getServerUrl(): string {
+  return ((globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ as string) || "http://localhost:4096";
+}
 
 /**
  * Main application component
@@ -44,7 +51,7 @@ export function App() {
  * Orchestrates all hooks and passes state to layout component
  */
 function AppContent() {
-  const gitService = new GitService();
+  const client = createClient(getServerUrl());
   const renderer = useRenderer();
   const dialog = useDialog();
   const toast = useToast();
@@ -70,7 +77,7 @@ function AppContent() {
   // Initialize compareBranch with the default branch (main or master)
   // This runs once on startup and is properly tracked
   createEffect(() => {
-    gitService.getDefaultBranch()
+    client.getDefaultBranch()
       .then((branch) => {
         setCompareBranch(branch);
         setIsCompareBranchLoading(false);
@@ -92,10 +99,10 @@ function AppContent() {
   const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
 
   // Custom hooks handle all git-related state & resources
-  const gitStatus = useGitStatus(gitService, diffMode, compareBranch);
-  const gitBranches = useGitBranches(gitService);
-  const gitTags = useGitTags(gitService);
-  const gitDiff = useGitDiff(gitService, gitStatus.selectedFile, diffMode, compareBranch);
+  const gitStatus = useGitStatus(client, diffMode, compareBranch);
+  const gitBranches = useGitBranches(client);
+  const gitTags = useGitTags(client);
+  const gitDiff = useGitDiff(client, gitStatus.selectedFile, diffMode, compareBranch);
 
   // Auto-refresh git status, branches, and tags every second
   // Returns cleanup function for graceful shutdown
@@ -119,7 +126,7 @@ function AppContent() {
 
   // Command handler sets up all keyboard bindings
   useCommandHandler({
-    gitService,
+    client,
     toast,
     dialog,
     activePanel,
@@ -202,7 +209,7 @@ function AppContent() {
       setFileContent={setFileContent}
       selectedLine={selectedLine}
       setSelectedLine={setSelectedLine}
-      gitService={gitService}
+      client={client}
       refetchDiff={gitDiff.refetch}
     />
   );

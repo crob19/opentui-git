@@ -45,7 +45,7 @@ export async function createTag(
   console.log(`Creating tag: ${tagName}`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.createTag(tagName),
+    () => context.client.createTag(tagName),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -74,7 +74,7 @@ export async function pushTag(
   context.toast.info(`Pushing tag: ${tagName}...`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.pushTag(tagName),
+    () => context.client.pushTag(tagName),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -106,7 +106,7 @@ export async function showTagDialog(
   // Fetch existing tags for validation
   let existingTags: string[] = [];
   try {
-    existingTags = await context.gitService.getTags();
+    existingTags = await context.client.getTags();
   } catch (error) {
     console.error("Failed to fetch existing tags:", error);
     // Continue with empty array - validation will still work for other rules

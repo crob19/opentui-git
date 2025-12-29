@@ -1,5 +1,5 @@
 import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import type { GitBranchInfo } from "../../git/types.js";
 
 /**
@@ -25,17 +25,17 @@ export interface UseGitBranchesResult {
 /**
  * Custom hook for managing git branch state and loading
  * Handles branch loading, filtering local branches, and branch selection
- * @param gitService - GitService instance for git operations
+ * @param client - SDK client for API operations
  * @returns Object containing branch resource, local branches list, and selection state
  */
-export function useGitBranches(gitService: GitService): UseGitBranchesResult {
+export function useGitBranches(client: GitClient): UseGitBranchesResult {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
   // Load branches
   const [branches, { refetch: refetchBranches }] =
     createResource<GitBranchInfo>(async () => {
       try {
-        return await gitService.getBranches();
+        return await client.getBranches();
       } catch (error) {
         console.error("Error loading branches:", error);
         throw error;
@@ -47,8 +47,8 @@ export function useGitBranches(gitService: GitService): UseGitBranchesResult {
     const b = branches();
     if (!b) return [];
     return b.all
-      .filter((name) => !name.startsWith("remotes/"))
-      .sort((a, bName) => {
+      .filter((name: string) => !name.startsWith("remotes/"))
+      .sort((a: string, bName: string) => {
         // Put current branch first
         if (a === b.current) return -1;
         if (bName === b.current) return 1;

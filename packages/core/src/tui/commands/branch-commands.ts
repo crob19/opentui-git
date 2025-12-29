@@ -17,7 +17,7 @@ export async function checkoutBranch(
   context.toast.info(`Switching to ${branchName}...`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.checkoutBranch(branchName),
+    () => context.client.checkoutBranch(branchName),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -45,7 +45,7 @@ export async function createBranch(
   console.log(`Creating branch: ${branchName}`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.createBranch(branchName),
+    () => context.client.createBranch(branchName),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -73,7 +73,7 @@ export async function deleteBranch(
   console.log(`Deleting branch: ${branchName}`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.deleteBranch(branchName),
+    () => context.client.deleteBranch(branchName),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -102,7 +102,7 @@ export async function mergeBranch(
   console.log(`Merging branch: ${sourceBranch} into ${targetBranch}`);
 
   const result = await handleAsyncOperation(
-    () => context.gitService.mergeBranch(sourceBranch),
+    () => context.client.mergeBranch(sourceBranch),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -113,7 +113,8 @@ export async function mergeBranch(
   if (result !== null) {
     console.log(`Merge result:`, result);
 
-    if (result.files.length === 0 && result.merges.length === 0) {
+    const mergeResult = result.result;
+    if (mergeResult.files.length === 0 && mergeResult.merges.length === 0) {
       context.toast.info("Already up to date");
     } else {
       context.toast.success(`Merged ${sourceBranch} into ${targetBranch}`);

@@ -16,7 +16,7 @@ export async function stageFile(
   console.log(`Staging: ${filepath}`);
   
   const result = await handleAsyncOperation(
-    () => context.gitService.stageFile(filepath),
+    () => context.client.stageFile(filepath),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -42,7 +42,7 @@ export async function unstageFile(
   console.log(`Unstaging: ${filepath}`);
   
   const result = await handleAsyncOperation(
-    () => context.gitService.unstageFile(filepath),
+    () => context.client.unstageFile(filepath),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -64,7 +64,7 @@ export async function stageAll(context: FileCommandContext): Promise<void> {
   console.log("Staging all files");
   
   const result = await handleAsyncOperation(
-    () => context.gitService.stageAll(),
+    () => context.client.stageAll(),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -86,7 +86,7 @@ export async function unstageAll(context: FileCommandContext): Promise<void> {
   console.log("Unstaging all files");
   
   const result = await handleAsyncOperation(
-    () => context.gitService.unstageAll(),
+    () => context.client.unstageAll(),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -112,7 +112,7 @@ export async function commit(
   console.log(`Committing with message: ${message}`);
   
   const result = await handleAsyncOperation(
-    () => context.gitService.commit(message),
+    () => context.client.commit(message),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -188,7 +188,7 @@ export async function stageFolder(
   
   for (const filepath of files) {
     try {
-      await context.gitService.stageFile(filepath);
+      await context.client.stageFile(filepath);
       successCount++;
     } catch (error) {
       console.error(`Failed to stage ${filepath}:`, error);
@@ -229,7 +229,7 @@ export async function unstageFolder(
   
   for (const filepath of files) {
     try {
-      await context.gitService.unstageFile(filepath);
+      await context.client.unstageFile(filepath);
       successCount++;
     } catch (error) {
       console.error(`Failed to unstage ${filepath}:`, error);

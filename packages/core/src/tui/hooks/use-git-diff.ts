@@ -1,5 +1,5 @@
 import { createResource, createEffect, createSignal, type Accessor, type Resource } from "solid-js";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import type { GitFileStatus, DiffMode } from "../../git/types.js";
 
 /**
@@ -17,14 +17,14 @@ export interface UseGitDiffResult {
 /**
  * Custom hook for managing git diff loading with intelligent caching
  * Tracks the selected file and only refetches when path, staged state, or diff mode changes
- * @param gitService - GitService instance for git operations
+ * @param client - SDK client for API operations
  * @param selectedFile - Accessor returning the currently selected file
  * @param diffMode - Accessor returning the current diff mode
  * @param compareBranch - Accessor returning the branch to compare against
  * @returns Object containing diff content resource and loading state
  */
 export function useGitDiff(
-  gitService: GitService,
+  client: GitClient,
   selectedFile: Accessor<GitFileStatus | null>,
   diffMode: Accessor<DiffMode>,
   compareBranch: Accessor<string | null>,
@@ -50,13 +50,13 @@ export function useGitDiff(
 
         let diff: string;
         if (mode === "branch" && branch) {
-          diff = await gitService.getDiffAgainstBranch(filePath, branch);
+          diff = await client.getDiff(filePath, { branch });
         } else if (mode === "branch" && !branch) {
           // Branch mode but branch not yet loaded - return empty diff
           diff = "";
         } else {
           const staged = mode === "staged";
-          diff = await gitService.getDiff(filePath, staged);
+          diff = await client.getDiff(filePath, { staged });
         }
 
         return diff || null;

@@ -1,5 +1,5 @@
 import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import { STATUS_COLORS } from "../../git/types.js";
 import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";
@@ -39,13 +39,13 @@ export interface UseGitStatusResult {
 /**
  * Custom hook for managing git status state and loading
  * Handles repository detection, status loading, file selection, and error state
- * @param gitService - GitService instance for git operations
+ * @param client - SDK client for API operations
  * @param diffMode - Current diff mode (unstaged, staged, or branch)
  * @param compareBranch - Branch to compare against when in branch mode
  * @returns Object containing git status resource, selection state, and error state
  */
 export function useGitStatus(
-  gitService: GitService,
+  client: GitClient,
   diffMode: Accessor<DiffMode>,
   compareBranch: Accessor<string | null>,
 ): UseGitStatusResult {
@@ -60,10 +60,10 @@ export function useGitStatus(
     async (source) => {
       try {
         // Check if we're in a git repo
-        const inRepo = await gitService.isRepo();
-        setIsGitRepo(inRepo);
+        const repoInfo = await client.getRepoInfo();
+        setIsGitRepo(repoInfo.isRepo);
 
-        if (!inRepo) {
+        if (!repoInfo.isRepo) {
           setErrorMessage("Not a git repository");
           throw new Error("Not a git repository");
         }
@@ -74,14 +74,14 @@ export function useGitStatus(
         // Fetch files based on diff mode
         if (source.mode === "branch" && source.branch) {
           // Get files changed compared to branch
-          files = await gitService.getFilesChangedAgainstBranch(source.branch);
+          files = await client.getFilesChangedAgainstBranch(source.branch);
           
           // Also get actual working directory status to mark files with local changes
-          const workingDirStatus = await gitService.getStatus();
-          const workingDirPaths = new Set(workingDirStatus.files.map(f => f.path));
+          const workingDirStatus = await client.getStatus();
+          const workingDirPaths = new Set(workingDirStatus.files.map((f: GitFileStatus) => f.path));
           
           // Mark files that have local changes
-          files = files.map(file => ({
+          files = files.map((file: GitFileStatus) => ({
             ...file,
             hasLocalChanges: workingDirPaths.has(file.path),
             // Update color for files without local changes
@@ -90,7 +90,7 @@ export function useGitStatus(
           
 
           // Get current branch info for the status summary
-          const branches = await gitService.getBranches();
+          const branches = await client.getBranches();
           status = {
             current: branches.current,
             ahead: 0,
@@ -100,7 +100,7 @@ export function useGitStatus(
           };
         } else if (source.mode === "branch" && !source.branch) {
           // Branch mode but branch not yet loaded - return empty state
-          const branches = await gitService.getBranches();
+          const branches = await client.getBranches();
           files = [];
           status = {
             current: branches.current,
@@ -111,7 +111,7 @@ export function useGitStatus(
           };
         } else {
           // Normal git status (unstaged or staged)
-          status = await gitService.getStatus();
+          status = await client.getStatus();
           files = status.files;
         }
 

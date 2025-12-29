@@ -1,5 +1,5 @@
 import { useKeyboard } from "@opentui/solid";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 import type { PanelType } from "../commands/types.js";
@@ -24,8 +24,8 @@ import { HelpModal } from "../components/modals/help-modal.js";
  * Options for the command handler hook
  */
 export interface UseCommandHandlerOptions {
-  /** Git service instance */
-  gitService: GitService;
+  /** SDK client for API operations */
+  client: GitClient;
   /** Toast context for notifications */
   toast: ToastContext;
   /** Dialog context for modals */
@@ -99,7 +99,7 @@ export interface UseCommandHandlerOptions {
  */
 export function useCommandHandler(options: UseCommandHandlerOptions): void {
   const {
-    gitService,
+    client,
     toast,
     dialog,
     activePanel,
@@ -204,7 +204,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
         const selectedTag = gitTags.selectedTag();
         if (selectedTag) {
           await tagCommands.pushTag(selectedTag, {
-            gitService,
+            client,
             toast,
             dialog,
             setErrorMessage: gitStatus.setErrorMessage,
@@ -219,7 +219,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
 
       // Default push/pull behavior
       const context = {
-        gitService,
+        client,
         toast,
         dialog,
         setErrorMessage: gitStatus.setErrorMessage,
@@ -250,7 +250,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           gitTags,
           branchPanelTab,
           setBranchPanelTab,
-          gitService,
+          client,
           toast,
           dialog,
           setErrorMessage: gitStatus.setErrorMessage,
@@ -283,7 +283,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setSelectedLine,
           fileMtime,
           setFileMtime,
-          gitService,
+          client,
           gitStatus,
           toast,
           refetchDiff,
@@ -294,7 +294,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           status,
           currentBranch,
           gitStatus,
-          gitService,
+          client,
           toast,
           dialog,
           setErrorMessage: gitStatus.setErrorMessage,
@@ -336,7 +336,7 @@ async function handleBranchPanelKeys(
     gitTags: UseGitTagsResult;
     branchPanelTab: Accessor<BranchPanelTab>;
     setBranchPanelTab: Setter<BranchPanelTab>;
-    gitService: GitService;
+    client: GitClient;
     toast: ToastContext;
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
@@ -421,7 +421,7 @@ async function handleBranchPanelKeys(
 
     // Create tag
     case "t": {
-      const commitHash = await context.gitService.getCurrentCommitHash();
+      const commitHash = await context.client.getCurrentCommitHash();
       await tagCommands.showTagDialog(currentBranch, commitHash, context);
       break;
     }
@@ -473,7 +473,7 @@ async function handleDiffPanelKeys(
     setSelectedLine: Setter<number>;
     fileMtime: Accessor<Date | null>;
     setFileMtime: Setter<Date | null>;
-    gitService: GitService;
+    client: GitClient;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
     refetchDiff: () => void;
@@ -535,7 +535,7 @@ async function handleDiffPanelKeys(
       }
 
       // Write back to file with modification check
-      const result = await context.gitService.writeFileWithCheck(
+      const result = await context.client.writeFileWithCheck(
         selectedFile.path,
         lines.join('\n'),
         context.fileMtime() ?? undefined,
@@ -625,7 +625,7 @@ async function handleDiffPanelKeys(
 
     try {
       // Get the diff to find which line we're on
-      const diffContent = await context.gitService.getDiff(selectedPath);
+      const diffContent = await context.client.getDiff(selectedPath);
       if (!diffContent) {
         context.toast.error("No diff available");
         return;
@@ -652,7 +652,7 @@ async function handleDiffPanelKeys(
       }
 
       // Load the full file content with metadata
-      const { content: fullContent, mtime } = await context.gitService.readFileWithMetadata(selectedPath);
+      const { content: fullContent, mtime } = await context.client.readFileWithMetadata(selectedPath);
       const lines = fullContent.split('\n');
 
       // Validate line number is within bounds
@@ -769,7 +769,7 @@ async function handleFilePanelKeys(
     status: ReturnType<UseGitStatusResult["gitStatus"]>;
     currentBranch: string;
     gitStatus: UseGitStatusResult;
-    gitService: GitService;
+    client: GitClient;
     toast: ToastContext;
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
@@ -835,7 +835,7 @@ async function handleFilePanelKeys(
   // Allow 't' (create tag) even without files
   if (key === "t") {
     try {
-      const commitHash = await context.gitService.getCurrentCommitHash();
+      const commitHash = await context.client.getCurrentCommitHash();
       await tagCommands.showTagDialog(currentBranch, commitHash, context);
     } catch (error) {
       // Handle case where there is no current commit (for example, empty repository)

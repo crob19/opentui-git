@@ -2,7 +2,7 @@ import { Show, type Accessor, type Setter, type Resource, type JSXElement } from
 import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
-import type { GitService } from "../../git/index.js";
+import type { GitClient } from "@opentui-git/sdk";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
@@ -77,8 +77,8 @@ export interface AppLayoutProps {
   selectedLine: Accessor<number>;
   /** Setter for selected line */
   setSelectedLine: Setter<number>;
-  /** Git service for file operations */
-  gitService: GitService;
+  /** SDK client for file operations */
+  client: GitClient;
   /** Refetch diff after save */
   refetchDiff: () => void;
 }
@@ -130,7 +130,7 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
                 setEditedContent={props.setEditedContent}
                 editedLines={props.editedLines}
                 setEditedLines={props.setEditedLines}
-                gitService={props.gitService}
+                client={props.client}
                 refetchDiff={props.refetchDiff}
               />
             }
