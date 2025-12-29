@@ -18,6 +18,7 @@ import { getFilesInFolder } from "../utils/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
 import { parseSideBySideDiff, parseDiffLines } from "../utils/diff-parser.js";
+import { HelpModal } from "../components/modals/help-modal.js";
 
 /**
  * Options for the command handler hook
@@ -176,6 +177,19 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     // Handle quit regardless of status
     if (key === "q" && !ctrl) {
       shutdown();
+      return;
+    }
+
+    // Handle help modal with ?
+    if (key === "?") {
+      dialog.show(
+        () => HelpModal({
+          onClose: () => {
+            console.log("Help modal closed");
+          }
+        }),
+        () => console.log("Help dialog closed")
+      );
       return;
     }
 
