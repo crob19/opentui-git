@@ -220,7 +220,6 @@ function EditorLineView(props: EditorLineViewProps) {
     return "transparent";
   };
 
-// test save
   createEffect(() => {
     if (props.isSelected && textareaRef) {
       // Focus the textarea
