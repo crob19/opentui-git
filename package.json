@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "bun run src/index.tsx",
     "start": "bun run src/index.tsx",
-    "build": "bun build src/index.tsx --outdir ./dist --target bun",
+    "build": "bun run scripts/build.ts",
     "build:binary": "bun run scripts/build-binaries.ts",
     "typecheck": "tsc --noEmit"
   },
