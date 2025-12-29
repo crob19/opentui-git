@@ -272,7 +272,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
         });
       } else {
         // Files panel keys
-        await handleFilePanelKeys(key, {
+        await handleFilePanelKeys(key, ctrl, {
           status,
           currentBranch,
           gitStatus,
@@ -283,6 +283,9 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           refetch: gitStatus.refetch,
           refetchTags: gitTags.refetchTags,
           setActivePanel,
+          diffMode,
+          setDiffMode,
+          compareBranch,
         });
       }
     } catch (error) {
@@ -734,6 +737,7 @@ async function handleDiffPanelKeys(
  */
 async function handleFilePanelKeys(
   key: string,
+  ctrl: boolean,
   context: {
     status: ReturnType<UseGitStatusResult["gitStatus"]>;
     currentBranch: string;
@@ -745,9 +749,44 @@ async function handleFilePanelKeys(
     refetch: () => Promise<unknown>;
     refetchTags: () => Promise<unknown>;
     setActivePanel: Setter<PanelType>;
+    diffMode: Accessor<DiffMode>;
+    setDiffMode: Setter<DiffMode>;
+    compareBranch: Accessor<string | null>;
   },
 ): Promise<void> {
   const { status, currentBranch, gitStatus } = context;
+
+  // Toggle diff mode with Ctrl+M (same as in diff panel)
+  if (ctrl && key === "m") {
+    const current = context.diffMode();
+    let next: DiffMode;
+
+    // Cycle through: unstaged -> staged -> branch -> unstaged
+    switch (current) {
+      case "unstaged":
+        next = "staged";
+        break;
+      case "staged":
+        next = "branch";
+        break;
+      case "branch":
+        next = "unstaged";
+        break;
+      default:
+        next = "unstaged";
+    }
+
+    context.setDiffMode(next);
+
+    // Show toast to indicate mode change
+    const modeLabel =
+      next === "unstaged" ? "Unstaged changes" :
+      next === "staged" ? "Staged changes" :
+      `Comparing against ${context.compareBranch()}`;
+
+    context.toast.info(`Diff mode: ${modeLabel}`);
+    return;
+  }
 
   // Allow 'n' (new branch) even without files
   if (key === "n") {

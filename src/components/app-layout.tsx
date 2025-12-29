@@ -158,6 +158,8 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
                   flatNodes={props.flatNodes}
                   selectedIndex={props.selectedIndex}
                   isActive={() => props.activePanel() === "files"}
+                  diffMode={props.diffMode}
+                  compareBranch={props.compareBranch}
                 />
               </box>
               <box height="40%" flexDirection="column">

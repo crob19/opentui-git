@@ -1,5 +1,5 @@
 import { For, createMemo, type Accessor } from "solid-js";
-import type { GitFileStatus, FileTreeNode } from "../types.js";
+import type { GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 
 // Maximum number of file items to show at once in the virtual scroll window
@@ -13,6 +13,8 @@ export interface FileListProps {
   flatNodes: Accessor<FileTreeNode[]>;
   selectedIndex: Accessor<number>;
   isActive: Accessor<boolean>;
+  diffMode?: Accessor<DiffMode>;
+  compareBranch?: Accessor<string | null>;
 }
 
 export function FileList(props: FileListProps) {
@@ -24,6 +26,23 @@ export function FileList(props: FileListProps) {
       MAX_VISIBLE_FILES,
     ),
   );
+
+  // Get diff mode label for display
+  const diffModeLabel = createMemo(() => {
+    if (!props.diffMode) return null;
+    
+    const mode = props.diffMode();
+    switch (mode) {
+      case "unstaged":
+        return "Unstaged";
+      case "staged":
+        return "Staged";
+      case "branch":
+        return `vs ${props.compareBranch?.() || "main"}`;
+      default:
+        return null;
+    }
+  });
 
   return (
     <box
@@ -37,9 +56,17 @@ export function FileList(props: FileListProps) {
       paddingTop={1}
       paddingBottom={1}
     >
-      <text fg={props.isActive() ? "#00AAFF" : "#AAAAAA"}>
-        Files ({props.files().length})
-      </text>
+      <box flexDirection="row" gap={1}>
+        <text fg={props.isActive() ? "#00AAFF" : "#AAAAAA"}>
+          Files ({props.files().length})
+        </text>
+        {diffModeLabel() && (
+          <>
+            <text fg="#444444">•</text>
+            <text fg="#888888">{diffModeLabel()}</text>
+          </>
+        )}
+      </box>
       
       <box flexDirection="column" gap={0}>
         <For each={scrollWindow().visibleItems}>

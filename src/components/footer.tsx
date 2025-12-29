@@ -18,6 +18,7 @@ export function Footer(props: FooterProps) {
     { key: "a", desc: "all" },
     { key: "u", desc: "unstage" },
     { key: "c", desc: "commit" },
+    { key: "Ctrl+M", desc: "diff mode" },
     { key: "Tab", desc: "branches" },
     { key: "n", desc: "new branch" },
     { key: "p", desc: "pull" },
@@ -40,7 +41,9 @@ export function Footer(props: FooterProps) {
   const diffShortcuts = [
     { key: "↑/k", desc: "up" },
     { key: "↓/j", desc: "down" },
+    { key: "i", desc: "edit" },
     { key: "Ctrl+T", desc: "toggle view" },
+    { key: "Ctrl+M", desc: "diff mode" },
     { key: "Esc", desc: "back to files" },
     { key: "q", desc: "quit" },
   ];
