@@ -51,6 +51,9 @@ export function useGitDiff(
         let diff: string;
         if (mode === "branch" && branch) {
           diff = await gitService.getDiffAgainstBranch(filePath, branch);
+        } else if (mode === "branch" && !branch) {
+          // Branch mode but branch not yet loaded - return empty diff
+          diff = "";
         } else {
           const staged = mode === "staged";
           diff = await gitService.getDiff(filePath, staged);

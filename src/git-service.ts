@@ -320,7 +320,9 @@ export class GitService {
             mappedStatus = GitStatus.COPIED;
           }
 
-          // Create file status - mark all as unstaged since this is uncommitted work
+          // Create file status with staged=false. In branch comparison mode, this flag does not
+          // reflect working tree/index state; it only indicates these are changes relative to
+          // the target branch, not actual staged changes in the local repository.
           files.push(this.createFileStatus(filepath, false, mappedStatus));
         }
       }

@@ -110,7 +110,7 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
       case "staged":
         return "Staged";
       case "branch":
-        return `vs ${props.compareBranch()}`;
+        return `vs ${props.compareBranch() ?? "main"}`;
       default:
         return "Unknown";
     }

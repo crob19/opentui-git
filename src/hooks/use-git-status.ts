@@ -88,6 +88,7 @@ export function useGitStatus(
             color: workingDirPaths.has(file.path) ? file.color : STATUS_COLORS.BRANCH_ONLY,
           }));
           
+
           // Get current branch info for the status summary
           const branches = await gitService.getBranches();
           status = {
@@ -96,6 +97,17 @@ export function useGitStatus(
             behind: 0,
             files,
             isClean: files.length === 0,
+          };
+        } else if (source.mode === "branch" && !source.branch) {
+          // Branch mode but branch not yet loaded - return empty state
+          const branches = await gitService.getBranches();
+          files = [];
+          status = {
+            current: branches.current,
+            ahead: 0,
+            behind: 0,
+            files: [],
+            isClean: true,
           };
         } else {
           // Normal git status (unstaged or staged)

@@ -62,6 +62,8 @@ export interface UseCommandHandlerOptions {
   compareBranch: Accessor<string | null>;
   /** Branch to compare against setter */
   setCompareBranch: Setter<string | null>;
+  /** Whether compareBranch is still loading */
+  isCompareBranchLoading: Accessor<boolean>;
   /** Edit mode state */
   isEditMode: Accessor<boolean>;
   /** Edit mode setter */
@@ -116,6 +118,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     setDiffMode,
     compareBranch,
     setCompareBranch,
+    isCompareBranchLoading,
     isEditMode,
     setIsEditMode,
     editedContent,
@@ -267,6 +270,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           setDiffMode,
           compareBranch,
           setCompareBranch,
+          isCompareBranchLoading,
           isEditMode,
           setIsEditMode,
           editedContent,
@@ -300,6 +304,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           diffMode,
           setDiffMode,
           compareBranch,
+          isCompareBranchLoading,
         });
       }
     } catch (error) {
@@ -455,6 +460,7 @@ async function handleDiffPanelKeys(
     setDiffMode: Setter<DiffMode>;
     compareBranch: Accessor<string | null>;
     setCompareBranch: Setter<string | null>;
+    isCompareBranchLoading: Accessor<boolean>;
     isEditMode: Accessor<boolean>;
     setIsEditMode: Setter<boolean>;
     editedContent: Accessor<string>;
@@ -589,13 +595,20 @@ async function handleDiffPanelKeys(
         next = "unstaged";
     }
 
+    // Block switching to branch mode if compareBranch is still loading
+    if (next === "branch" && context.isCompareBranchLoading()) {
+      context.toast.warning("Loading default branch, please wait...");
+      return;
+    }
+
     context.setDiffMode(next);
 
     // Show toast to indicate mode change
+    const compareBranch = context.compareBranch();
     const modeLabel =
       next === "unstaged" ? "Unstaged changes" :
       next === "staged" ? "Staged changes" :
-      `Comparing against ${context.compareBranch()}`;
+      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
 
     context.toast.info(`Diff mode: ${modeLabel}`);
     return;
@@ -766,6 +779,7 @@ async function handleFilePanelKeys(
     diffMode: Accessor<DiffMode>;
     setDiffMode: Setter<DiffMode>;
     compareBranch: Accessor<string | null>;
+    isCompareBranchLoading: Accessor<boolean>;
   },
 ): Promise<void> {
   const { status, currentBranch, gitStatus } = context;
@@ -790,13 +804,20 @@ async function handleFilePanelKeys(
         next = "unstaged";
     }
 
+    // Block switching to branch mode if compareBranch is still loading
+    if (next === "branch" && context.isCompareBranchLoading()) {
+      context.toast.warning("Loading default branch, please wait...");
+      return;
+    }
+
     context.setDiffMode(next);
 
     // Show toast to indicate mode change
+    const compareBranch = context.compareBranch();
     const modeLabel =
       next === "unstaged" ? "Unstaged changes" :
       next === "staged" ? "Staged changes" :
-      `Comparing against ${context.compareBranch()}`;
+      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
 
     context.toast.info(`Diff mode: ${modeLabel}`);
     return;
@@ -878,11 +899,12 @@ async function handleFilePanelKeys(
         const filesInFolder = getFilesInFolder(node);
         
         if (inBranchMode) {
-          // In branch mode, get actual git status to check for unstaged changes
-          const actualStatus = await context.gitService.getStatus();
-          const hasUnstaged = actualStatus.files.some((file) => {
-            return filesInFolder.includes(file.path) && !file.staged;
-          });
+          // In branch mode, check if any files have local changes using cached data
+          const hasUnstaged = status?.files.some((file) => {
+            return filesInFolder.includes(file.path) && 
+                   file.hasLocalChanges && 
+                   !file.staged;
+          }) || false;
 
           if (!hasUnstaged) {
             context.toast.info("No unstaged changes in this folder");
@@ -905,11 +927,8 @@ async function handleFilePanelKeys(
       } else if (node.type === 'file' && node.fileStatus) {
         // Stage/unstage individual file
         if (inBranchMode) {
-          // In branch mode, check if file has actual unstaged changes
-          const actualStatus = await context.gitService.getStatus();
-          const fileInWorkingDir = actualStatus.files.find((f) => f.path === node.fileStatus?.path);
-          
-          if (!fileInWorkingDir || fileInWorkingDir.staged) {
+          // In branch mode, check if file has actual unstaged changes using cached data
+          if (!node.fileStatus.hasLocalChanges || node.fileStatus.staged) {
             context.toast.info("No unstaged changes for this file");
             break;
           }

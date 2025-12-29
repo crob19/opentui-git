@@ -65,14 +65,21 @@ function AppContent() {
   const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
   const [diffMode, setDiffMode] = createSignal<DiffMode>("unstaged");
   const [compareBranch, setCompareBranch] = createSignal<string | null>(null);
+  const [isCompareBranchLoading, setIsCompareBranchLoading] = createSignal(true);
 
   // Initialize compareBranch with the default branch (main or master)
-  // This runs once on startup
-  gitService.getDefaultBranch().then((branch) => {
-    setCompareBranch(branch);
-  }).catch((error) => {
-    console.error("Failed to get default branch:", error);
-    setCompareBranch("main"); // Fallback to main
+  // This runs once on startup and is properly tracked
+  createEffect(() => {
+    gitService.getDefaultBranch()
+      .then((branch) => {
+        setCompareBranch(branch);
+        setIsCompareBranchLoading(false);
+      })
+      .catch((error) => {
+        console.error("Failed to get default branch:", error);
+        setCompareBranch("main"); // Fallback to main
+        setIsCompareBranchLoading(false);
+      });
   });
 
   // Edit mode state
@@ -131,6 +138,7 @@ function AppContent() {
     setDiffMode,
     compareBranch,
     setCompareBranch,
+    isCompareBranchLoading,
     isEditMode,
     setIsEditMode,
     editedContent,
