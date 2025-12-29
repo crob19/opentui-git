@@ -1,0 +1,32 @@
+{
+  "name": "@opentui-git/sdk",
+  "version": "0.1.7",
+  "description": "TypeScript SDK for opentui-git API",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "git",
+    "sdk",
+    "api",
+    "client"
+  ],
+  "author": "opentui-git",
+  "license": "MIT",
+  "dependencies": {
+    "@elysiajs/eden": "^1.3.1"
+  },
+  "peerDependencies": {
+    "@opentui-git/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
