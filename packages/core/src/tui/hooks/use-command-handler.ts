@@ -535,7 +535,7 @@ async function handleDiffPanelKeys(
       }
 
       // Write back to file with modification check
-      const result = await context.client.writeFileWithCheck(
+      const result = await context.client.writeFile(
         selectedFile.path,
         lines.join('\n'),
         context.fileMtime() ?? undefined,
@@ -652,7 +652,7 @@ async function handleDiffPanelKeys(
       }
 
       // Load the full file content with metadata
-      const { content: fullContent, mtime } = await context.client.readFileWithMetadata(selectedPath);
+      const { content: fullContent, mtime } = await context.client.readFile(selectedPath);
       const lines = fullContent.split('\n');
 
       // Validate line number is within bounds

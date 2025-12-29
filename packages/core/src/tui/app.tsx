@@ -1,6 +1,6 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { createClient, type GitClient } from "@opentui-git/sdk";
+import { createClient } from "@opentui-git/sdk";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { ToastProvider, useToast } from "./components/toast.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
