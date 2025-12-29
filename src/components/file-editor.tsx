@@ -1,5 +1,6 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect, onCleanup } from "solid-js";
 import type { Highlighter } from "shiki";
+import type { TextareaRenderable } from "@opentui/core";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
 import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
@@ -54,7 +55,7 @@ export function FileEditor(props: FileEditorProps) {
 
   // Clear cache when file path changes to prevent memory leaks
   createEffect(() => {
-    const path = props.filePath();
+    props.filePath(); // Track the path for reactivity
     // Clear cache when file changes
     highlightCache.clear();
   });
@@ -203,6 +204,8 @@ interface EditorLineViewProps {
 }
 
 function EditorLineView(props: EditorLineViewProps) {
+  let textareaRef: TextareaRenderable | undefined;
+
   // Get the actual content to display (edited version if exists, otherwise original)
   const displayContent = () => {
     const edited = props.editedLines().get(props.lineNumber);
@@ -216,6 +219,33 @@ function EditorLineView(props: EditorLineViewProps) {
     if (props.isEdited) return EDITOR_BG_COLOR_EDITED;
     return "transparent";
   };
+
+// test save
+  createEffect(() => {
+    if (props.isSelected && textareaRef) {
+      // Focus the textarea
+      setTimeout(() => {
+        textareaRef?.focus();
+      }, 10);
+    }
+  });
+
+  // Poll for changes in the textarea and update editedContent
+  // This is needed because textarea doesn't have an onChange/onInput callback
+  createEffect(() => {
+    if (!props.isSelected || !textareaRef) return;
+
+    const interval = setInterval(() => {
+      if (textareaRef && textareaRef.plainText !== undefined) {
+        const currentText = textareaRef.plainText;
+        if (currentText !== props.editedContent()) {
+          props.setEditedContent(currentText);
+        }
+      }
+    }, 50); // Check every 50ms
+
+    onCleanup(() => clearInterval(interval));
+  });
 
   return (
     <box
@@ -237,7 +267,7 @@ function EditorLineView(props: EditorLineViewProps) {
         </Show>
       </box>
 
-      {/* Content - Show textbox when selected, otherwise syntax highlighted text */}
+      {/* Content - Show textarea when selected, otherwise syntax highlighted text */}
       <box flexGrow={1} flexDirection="row">
         <Show
           when={props.isSelected}
@@ -247,12 +277,16 @@ function EditorLineView(props: EditorLineViewProps) {
             </For>
           }
         >
-          <textbox
-            value={props.editedContent()}
-            onInput={(val) => props.setEditedContent(val)}
-            fg="#FFFFFF"
-            bg={bgColor()}
+          <textarea
+            ref={(el: TextareaRenderable) => {
+              textareaRef = el;
+            }}
+            height={1}
             width="100%"
+            placeholder={props.editedContent()}
+            textColor="#FFFFFF"
+            focusedTextColor="#FFFFFF"
+            cursorColor="#00AAFF"
           />
         </Show>
       </box>
