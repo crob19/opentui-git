@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { useKeyboard } from "@opentui/solid";
 import { useDialog } from "./dialog.js";
-import type { GitBranchInfo } from "../types.js";
+import type { GitBranchInfo } from "../../git/types.js";
 
 /**
  * BranchSwitcherDialog - Modal dialog for switching branches

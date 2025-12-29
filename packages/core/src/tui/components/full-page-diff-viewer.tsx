@@ -1,7 +1,7 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
 import type { Highlighter } from "shiki";
-import type { GitService } from "../git-service.js";
-import type { DiffMode } from "../types.js";
+import type { GitService } from "../../git/index.js";
+import type { DiffMode } from "../../git/types.js";
 import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";

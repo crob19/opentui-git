@@ -1,5 +1,5 @@
-import type { GitFileStatus, FileTreeNode } from "../types.js";
-import { STATUS_COLORS } from "../types.js";
+import type { GitFileStatus, FileTreeNode } from "../../git/types.js";
+import { STATUS_COLORS } from "../../git/types.js";
 
 /**
  * Priority order for status colors (higher index = higher priority)

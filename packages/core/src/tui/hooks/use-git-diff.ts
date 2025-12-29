@@ -1,6 +1,6 @@
 import { createResource, createEffect, createSignal, type Accessor, type Resource } from "solid-js";
-import type { GitService } from "../git-service.js";
-import type { GitFileStatus, DiffMode } from "../types.js";
+import type { GitService } from "../../git/index.js";
+import type { GitFileStatus, DiffMode } from "../../git/types.js";
 
 /**
  * Result object returned by useGitDiff hook

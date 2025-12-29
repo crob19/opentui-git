@@ -1,6 +1,6 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { GitService } from "./git-service.js";
+import { GitService } from "../git/index.js";
 import { DialogProvider, useDialog } from "./components/dialog.js";
 import { ToastProvider, useToast } from "./components/toast.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -14,7 +14,7 @@ import {
   useCommandHandler,
 } from "./hooks/index.js";
 import type { PanelType } from "./commands/types.js";
-import type { DiffMode } from "./types.js";
+import type { DiffMode } from "../git/types.js";
 import { registerShutdownHandler } from "./index.js";
 
 /**

@@ -2,7 +2,7 @@ import type { FileCommandContext } from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
-import type { FileTreeNode } from "../types.js";
+import type { FileTreeNode } from "../../git/types.js";
 
 /**
  * Stage a specific file

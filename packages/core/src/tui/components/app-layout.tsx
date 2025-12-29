@@ -1,8 +1,8 @@
 import { Show, type Accessor, type Setter, type Resource, type JSXElement } from "solid-js";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
+import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
-import type { GitService } from "../git-service.js";
+import type { GitService } from "../../git/index.js";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";

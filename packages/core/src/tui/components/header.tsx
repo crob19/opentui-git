@@ -1,5 +1,5 @@
 import { createMemo, type Accessor } from "solid-js";
-import type { GitStatusSummary } from "../types.js";
+import type { GitStatusSummary } from "../../git/types.js";
 
 /**
  * Header component - Displays current branch and status information

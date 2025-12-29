@@ -4,7 +4,7 @@
  * Handles CLI flags and then delegates to the appropriate command
  */
 
-import { getFullVersionString } from "./utils/version.js";
+import { getFullVersionString } from "./tui/utils/version.js";
 
 const args = process.argv.slice(2);
 

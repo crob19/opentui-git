@@ -1,5 +1,5 @@
 import { For, createMemo, type Accessor } from "solid-js";
-import type { GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
+import type { GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 
 // Maximum number of file items to show at once in the virtual scroll window

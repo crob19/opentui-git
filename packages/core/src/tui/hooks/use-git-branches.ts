@@ -1,6 +1,6 @@
 import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitService } from "../git-service.js";
-import type { GitBranchInfo } from "../types.js";
+import type { GitService } from "../../git/index.js";
+import type { GitBranchInfo } from "../../git/types.js";
 
 /**
  * Result object returned by useGitBranches hook

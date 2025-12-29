@@ -1,5 +1,5 @@
 import { useKeyboard } from "@opentui/solid";
-import type { GitService } from "../git-service.js";
+import type { GitService } from "../../git/index.js";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 import type { PanelType } from "../commands/types.js";
@@ -8,7 +8,7 @@ import type { UseGitBranchesResult } from "./use-git-branches.js";
 import type { UseGitTagsResult } from "./use-git-tags.js";
 import type { Accessor, Setter } from "solid-js";
 import type { BranchPanelTab } from "../app.js";
-import type { DiffMode } from "../types.js";
+import type { DiffMode } from "../../git/types.js";
 import * as fileCommands from "../commands/file-commands.js";
 import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";

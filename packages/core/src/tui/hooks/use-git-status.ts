@@ -1,7 +1,7 @@
 import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitService } from "../git-service.js";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../types.js";
-import { STATUS_COLORS } from "../types.js";
+import type { GitService } from "../../git/index.js";
+import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
+import { STATUS_COLORS } from "../../git/types.js";
 import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";
 
 /**

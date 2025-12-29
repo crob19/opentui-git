@@ -1,5 +1,5 @@
 import type { Setter } from "solid-js";
-import type { GitService } from "../git-service.js";
+import type { GitService } from "../../git/index.js";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 

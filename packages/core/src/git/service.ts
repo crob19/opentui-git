@@ -1,7 +1,7 @@
 import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult, MergeResult } from "simple-git";
 import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
-import { logger } from "./utils/logger.js";
+import { logger } from "../tui/utils/logger.js";
 import { promises as fs } from "fs";
 import path from "path";
 
