@@ -18,7 +18,7 @@ import solidPlugin from "@opentui/solid/bun-plugin";
 
 const ROOT_DIR = path.resolve(import.meta.dir, "..");
 const DIST_DIR = path.join(ROOT_DIR, "dist");
-const ENTRY_FILE = path.join(ROOT_DIR, "src/index.tsx");
+const ENTRY_FILE = path.join(ROOT_DIR, "src/index.ts");
 
 // Supported architectures
 const SUPPORTED_ARCHITECTURES = ["arm64", "x64"] as const;

@@ -7,12 +7,18 @@
   "scripts": {
     "dev": "bun run --cwd packages/core dev",
     "dev:server": "bun run --cwd packages/core dev:server",
-    "build": "bun run build:core && bun run build:sdk",
+    "dev:desktop": "bun run --cwd packages/desktop dev",
+    "start": "bun run --cwd packages/core start",
+    "build": "bun run build:sdk && bun run build:core",
     "build:core": "bun run --cwd packages/core build",
     "build:sdk": "bun run --cwd packages/sdk typecheck",
-    "build:desktop": "bun run --cwd packages/desktop tauri build",
-    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/sdk typecheck",
-    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules"
+    "build:binary": "bun run --cwd packages/core build:binary",
+    "build:desktop": "bun run --cwd packages/desktop build",
+    "typecheck": "bun run typecheck:sdk && bun run typecheck:core && bun run typecheck:desktop",
+    "typecheck:core": "bun run --cwd packages/core typecheck",
+    "typecheck:sdk": "bun run --cwd packages/sdk typecheck",
+    "typecheck:desktop": "bun run --cwd packages/desktop typecheck",
+    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules bun.lock"
   },
   "keywords": [
     "git",
