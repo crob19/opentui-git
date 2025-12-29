@@ -1,5 +1,6 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect, onCleanup } from "solid-js";
 import type { Highlighter } from "shiki";
+import type { TextareaRenderable } from "@opentui/core";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
 import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
@@ -54,7 +55,7 @@ export function FileEditor(props: FileEditorProps) {
 
   // Clear cache when file path changes to prevent memory leaks
   createEffect(() => {
-    const path = props.filePath();
+    props.filePath(); // Track the path for reactivity
     // Clear cache when file changes
     highlightCache.clear();
   });
@@ -203,6 +204,8 @@ interface EditorLineViewProps {
 }
 
 function EditorLineView(props: EditorLineViewProps) {
+  let textareaRef: TextareaRenderable | undefined;
+
   // Get the actual content to display (edited version if exists, otherwise original)
   const displayContent = () => {
     const edited = props.editedLines().get(props.lineNumber);
@@ -216,6 +219,47 @@ function EditorLineView(props: EditorLineViewProps) {
     if (props.isEdited) return EDITOR_BG_COLOR_EDITED;
     return "transparent";
   };
+
+  // Auto-focus the textarea when this line is selected
+  createEffect(() => {
+    if (props.isSelected && textareaRef) {
+      setTimeout(() => {
+        textareaRef?.focus();
+      }, 10);
+    }
+  });
+
+  /**
+   * Poll for changes in the textarea and update editedContent.
+   * 
+   * WORKAROUND: This polling mechanism is necessary because the TextareaRenderable API
+   * in @opentui/core@0.1.62 does not provide onChange/onInput callbacks. The plainText
+   * property is read-only, so we cannot detect changes through reactive signals.
+   * 
+   * Performance Considerations:
+   * - Polling interval: 200ms (balance between responsiveness and CPU usage)
+   * - Only active when this specific line is selected (not all lines poll simultaneously)
+   * - Properly cleaned up when line is deselected via onCleanup
+   * 
+   * Future Improvement:
+   * If/when @opentui/core adds event-based change detection (onChange/onInput callbacks)
+   * or a writable value/defaultValue prop, this polling mechanism should be replaced.
+   * See similar workaround pattern in: src/components/modals/input-modal.tsx
+   */
+  createEffect(() => {
+    if (!props.isSelected || !textareaRef) return;
+
+    const interval = setInterval(() => {
+      if (textareaRef && textareaRef.plainText !== undefined) {
+        const currentText = textareaRef.plainText;
+        if (currentText !== props.editedContent()) {
+          props.setEditedContent(currentText);
+        }
+      }
+    }, 200); // Poll every 200ms - reduced frequency for better performance
+
+    onCleanup(() => clearInterval(interval));
+  });
 
   return (
     <box
@@ -237,7 +281,7 @@ function EditorLineView(props: EditorLineViewProps) {
         </Show>
       </box>
 
-      {/* Content - Show textbox when selected, otherwise syntax highlighted text */}
+      {/* Content - Show textarea when selected, otherwise syntax highlighted text */}
       <box flexGrow={1} flexDirection="row">
         <Show
           when={props.isSelected}
@@ -247,12 +291,25 @@ function EditorLineView(props: EditorLineViewProps) {
             </For>
           }
         >
-          <textbox
-            value={props.editedContent()}
-            onInput={(val) => props.setEditedContent(val)}
-            fg="#FFFFFF"
-            bg={bgColor()}
+          {/* 
+            WORKAROUND: Using 'placeholder' prop to set initial textarea content.
+            The TextareaRenderable API does not provide a 'value' or 'defaultValue' prop,
+            and the 'plainText' property is read-only (see @opentui/core@0.1.62).
+            This pattern is used consistently across the codebase (see input-modal.tsx:112).
+            
+            Future Improvement:
+            If/when @opentui/core adds proper value/defaultValue props, update to use those instead.
+          */}
+          <textarea
+            ref={(el: TextareaRenderable) => {
+              textareaRef = el;
+            }}
+            height={1}
             width="100%"
+            placeholder={props.editedContent()}
+            textColor="#FFFFFF"
+            focusedTextColor="#FFFFFF"
+            cursorColor="#00AAFF"
           />
         </Show>
       </box>
