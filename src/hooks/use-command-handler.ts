@@ -592,22 +592,7 @@ async function handleDiffPanelKeys(
     return;
   }
 
-  // Exit edit mode with Escape
-  if (key === "escape") {
-    if (context.isEditMode()) {
-      // Clear all edit state when exiting edit mode
-      const editCount = context.editedLines().size;
-      context.setIsEditMode(false);
-      context.setEditedContent("");
-      context.setEditedLines(new Map());
-      context.setFileContent("");
-      context.setFileMtime(null);
-      if (editCount > 0) {
-        context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
-      }
-      return;
-    }
-    // Return to files panel and reset diff scroll position
+  // Helper function to navigate between lines in edit mode
   const navigateEditLine = (direction: 1 | -1) => {
     saveCurrentEdit();
     const lines = context.fileContent().split('\n');
@@ -631,6 +616,26 @@ async function handleDiffPanelKeys(
       context.setEditedContent("");
     }
   };
+  // Exit edit mode with Escape
+  if (key === "escape") {
+    if (context.isEditMode()) {
+      // Clear all edit state when exiting edit mode
+      const editCount = context.editedLines().size;
+      context.setIsEditMode(false);
+      context.setEditedContent("");
+      context.setEditedLines(new Map());
+      context.setFileContent("");
+      context.setFileMtime(null);
+      if (editCount > 0) {
+        context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
+      }
+      return;
+    }
+    // Return to files panel and reset diff scroll position
+    context.setActivePanel("files");
+    context.setSelectedDiffRow(0);
+    return;
+  }
 
   // Navigation in edit mode: ONLY arrow keys (not j/k) so user can type those letters
   if (context.isEditMode()) {
@@ -641,13 +646,6 @@ async function handleDiffPanelKeys(
 
     if (key === "up") {
       navigateEditLine(-1);
-      const newIndex = Math.max(Math.min(context.selectedLine() - 1, lines.length - 1), 0);
-      context.setSelectedLine(newIndex);
-
-      // Load content for new line (from editedLines if exists, otherwise from file)
-      const lineNumber = newIndex + 1; // Convert to 1-based
-      const existingEdit = context.editedLines().get(lineNumber);
-      context.setEditedContent(existingEdit ?? lines[newIndex]);
       return;
     }
 
