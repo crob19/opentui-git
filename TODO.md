@@ -90,13 +90,13 @@ This document tracks upcoming features and improvements for opentui-git.
 
 ### Performance
 - [ ] Lazy loading for large repositories
-- [ ] Virtual scrolling for file lists
+- [x] Virtual scrolling for file lists - **COMPLETED** - Already implemented
 - [ ] Cache git status between refreshes
 - [ ] Debounce rapid key presses
 - [ ] Optimize diff rendering
 
 ### User Experience
-- [ ] Help screen (press '?')
+- [x] Help screen (press '?') - **COMPLETED** - Shows all keyboard shortcuts with virtual scrolling
 - [ ] Command palette
 - [ ] Undo last git operation
 - [ ] Copy file path to clipboard
