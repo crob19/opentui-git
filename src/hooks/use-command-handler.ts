@@ -616,7 +616,6 @@ async function handleDiffPanelKeys(
       context.setEditedContent("");
     }
   };
-  // testing
   // Exit edit mode with Escape
   if (key === "escape") {
     if (context.isEditMode()) {
