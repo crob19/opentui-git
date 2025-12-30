@@ -1,7 +1,6 @@
 import { render } from "@opentui/solid";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
-import { logger } from "./utils/logger.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
 import { ToastProvider } from "./components/toast.js";
 import { DialogProvider } from "./components/dialog.js";
@@ -31,7 +30,7 @@ export function executeShutdown() {
       console.error("Shutdown handler error:", error);
     }
   }
-  
+
   process.exit(0);
 }
 
@@ -42,22 +41,22 @@ export function executeShutdown() {
  */
 export function startTUI(options: TUIOptions) {
   const { serverUrl } = options;
-  
+
   // Return a promise to prevent immediate exit (matches OpenCode pattern)
   return new Promise<void>(async (resolve) => {
     // Store server URL for components to use
     (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;
-    
+
     const onExit = async () => {
       executeShutdown();
       resolve();
     };
-    
+
     // Handle SIGTERM
     process.on("SIGTERM", () => {
       onExit();
     });
-    
+
     render(
       () => (
         <ErrorBoundary>
