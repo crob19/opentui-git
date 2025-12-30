@@ -23,15 +23,6 @@ function createDialogContext() {
     onClose: undefined,
   });
 
-  // Handle escape key to close dialog
-  useKeyboard((evt) => {
-    if (evt.name === "escape" && state.content) {
-      state.onClose?.();
-      setState({ content: null, onClose: undefined });
-      evt.preventDefault();
-    }
-  });
-
   return {
     get isOpen() {
       return state.content !== null;
@@ -46,6 +37,10 @@ function createDialogContext() {
     get content() {
       return state.content;
     },
+    getState() {
+      return state;
+    },
+    setState,
   };
 }
 

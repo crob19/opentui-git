@@ -12,25 +12,20 @@ export interface ErrorBoundaryProps {
 
 /**
  * Default fallback UI shown when an error occurs
+ * Note: Cannot use OpenTUI elements here as they require renderer context
+ * which may not be available when this fallback is triggered
  */
 function DefaultFallback(props: { error: Error; reset: () => void }): JSXElement {
-  return (
-    <box
-      width="100%"
-      height="100%"
-      flexDirection="column"
-      justifyContent="center"
-      alignItems="center"
-      gap={1}
-    >
-      <text fg="#FF4444">Application Error</text>
-      <text fg="#FFFFFF">{props.error.message}</text>
-      <text fg="#888888">
-        {props.error.stack?.split('\n')[1] || 'No stack trace available'}
-      </text>
-      <text fg="#00AAFF">Please restart the application</text>
-    </box>
-  );
+  // Log error to console since we can't render a UI for it
+  console.error("=".repeat(80));
+  console.error("APPLICATION ERROR:");
+  console.error(props.error.message);
+  console.error(props.error.stack);
+  console.error("=".repeat(80));
+  console.error("Please restart the application (press 'q' to quit)");
+  
+  // Return null since we can't safely render UI elements here
+  return null as any;
 }
 
 /**

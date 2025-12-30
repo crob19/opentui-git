@@ -2,6 +2,9 @@ import { render } from "@opentui/solid";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
 import { logger } from "./utils/logger.js";
+import { ErrorBoundary } from "./components/error-boundary.js";
+import { ToastProvider } from "./components/toast.js";
+import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
   serverUrl: string;
@@ -38,61 +41,80 @@ export function executeShutdown() {
 /**
  * Start the TUI
  * Note: Server must already be running - this only handles the UI
+ * Following OpenCode's architecture pattern
  */
-export async function startTUI(options: TUIOptions) {
+export function startTUI(options: TUIOptions) {
   const { serverUrl } = options;
   
-  logger.debug("[tui] ========== TUI STARTUP ==========");
-  logger.debug("[tui] Server URL:", serverUrl);
-  logger.debug("[tui] CWD:", process.cwd());
-  logger.debug("[tui] Process ID:", process.pid);
-  
-  // Store server URL for components to use
-  (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;
-  logger.debug("[tui] Server URL stored in globalThis");
-  
-  // Handle SIGTERM
-  process.on("SIGTERM", () => {
-    logger.debug("[tui] Received SIGTERM");
-    executeShutdown();
-  });
-  
-  console.log("opentui-git started");
-  console.log("Press Ctrl+\\ to toggle console overlay");
-  console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
-  
-  // Test server connectivity before rendering
-  logger.debug("[tui] Testing server connectivity...");
-  try {
-    const healthResponse = await fetch(`${serverUrl}/health`);
-    if (healthResponse.ok) {
-      logger.debug("[tui] Server health check: OK");
-    } else {
-      logger.error("[tui] Server health check failed:", healthResponse.status, healthResponse.statusText);
+  // Return a promise to prevent immediate exit (matches OpenCode pattern)
+  return new Promise<void>(async (resolve) => {
+    logger.debug("[tui] ========== TUI STARTUP ==========");
+    logger.debug("[tui] Server URL:", serverUrl);
+    logger.debug("[tui] CWD:", process.cwd());
+    logger.debug("[tui] Process ID:", process.pid);
+    
+    // Store server URL for components to use
+    (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;
+    logger.debug("[tui] Server URL stored in globalThis");
+    
+    const onExit = async () => {
+      executeShutdown();
+      resolve();
+    };
+    
+    // Handle SIGTERM
+    process.on("SIGTERM", () => {
+      logger.debug("[tui] Received SIGTERM");
+      onExit();
+    });
+    
+    console.log("opentui-git started");
+    console.log("Press Ctrl+\\ to toggle console overlay");
+    console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
+    
+    // Test server connectivity before rendering
+    logger.debug("[tui] Testing server connectivity...");
+    try {
+      const healthResponse = await fetch(`${serverUrl}/health`);
+      if (healthResponse.ok) {
+        logger.debug("[tui] Server health check: OK");
+      } else {
+        logger.error("[tui] Server health check failed:", healthResponse.status, healthResponse.statusText);
+      }
+    } catch (error) {
+      logger.error("[tui] Server health check error:", error);
     }
-  } catch (error) {
-    logger.error("[tui] Server health check error:", error);
-  }
-  
-  // Render the app
-  logger.debug("[tui] Starting render...");
-  logger.debug("[tui] App component:", typeof App);
-  console.log("[TUI] About to call render() with App component");
-  await render(
-    App,
-    {
-      targetFps: 60,
-      gatherStats: false,
-      exitOnCtrlC: false,
-      consoleOptions: {
-        keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
-        onCopySelection: (text) => {
-          Clipboard.copy(text)
-            .then(() => console.log(`Copied ${text.length} characters to clipboard`))
-            .catch((err) => console.error("Copy failed:", err));
+    
+    // Render the app - pass a function that returns the component tree (matches OpenCode)
+    // CRITICAL: ALL providers and ErrorBoundary must be inside this function
+    // This ensures the renderer context is properly established before any components render
+    logger.debug("[tui] Starting render...");
+    console.log("[TUI] About to call render() with App component");
+    
+    render(
+      () => (
+        <ErrorBoundary>
+          <ToastProvider>
+            <DialogProvider>
+              <App />
+            </DialogProvider>
+          </ToastProvider>
+        </ErrorBoundary>
+      ),
+      {
+        targetFps: 60,
+        gatherStats: false,
+        exitOnCtrlC: false,
+        consoleOptions: {
+          keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
+          onCopySelection: (text) => {
+            Clipboard.copy(text)
+              .then(() => console.log(`Copied ${text.length} characters to clipboard`))
+              .catch((err) => console.error("Copy failed:", err));
+          },
         },
-      },
-    }
-  );
-  logger.debug("[tui] Render completed");
+      }
+    );
+    logger.debug("[tui] Render completed");
+  });
 }

@@ -37,57 +37,54 @@ function getServerUrl(): string {
 
 /**
  * Main application component
- * Provides context providers for dialogs and toasts
- * CACHE_BUST_20251230_v2
+ * Handles git operations, keyboard input, and UI state
+ * Orchestrates all hooks and passes state to layout component
  */
 export function App() {
-  console.log("[APP] ========== App() CALLED (CACHE_BUST_v2) ==========");
+  console.log("[APP] ========== App() CALLED (CACHE_BUST_v5) ==========");
   logger.debug("[app] App() function executing");
-  return (
-    <ErrorBoundary>
-      <ToastProvider>
-        <DialogProvider>
-          <AppContent />
-        </DialogProvider>
-      </ToastProvider>
-    </ErrorBoundary>
-  );
+  
+  console.log("[APP] Step 1: Getting server URL...");
+  const serverUrl = getServerUrl();
+  console.log("[APP] Step 2: Server URL:", serverUrl);
+  console.log("[APP] Step 3: Creating client...");
+  const client = createClient(serverUrl);
+  console.log("[APP] Step 4: Client created");
+  
+  // Don't call useRenderer here - let AppContent call it
+  return <AppContent client={client} />;
 }
 
 /**
  * Application content component
- * Handles git operations, keyboard input, and UI state
- * Orchestrates all hooks and passes state to layout component
+ * Receives client as prop, calls useRenderer() directly
  */
-function AppContent() {
+function AppContent(props: { client: ReturnType<typeof createClient> }) {
   console.log("[APPCONTENT] ========== AppContent INIT ==========");
-  console.log("[APPCONTENT] Step 1: Getting server URL...");
   
-  const serverUrl = getServerUrl();
-  console.log("[APPCONTENT] Step 2: Server URL:", serverUrl);
-  console.log("[APPCONTENT] Step 3: Creating client...");
-  const client = createClient(serverUrl);
-  console.log("[APPCONTENT] Step 4: Client created");
+  const { client } = props;
   
-  console.log("[APPCONTENT] Step 5: Getting renderer...");
+  // Call useRenderer here instead of receiving it as a prop
+  console.log("[APPCONTENT] Step 1: Getting renderer...");
   const renderer = useRenderer();
-  console.log("[APPCONTENT] Step 6: Renderer obtained:", !!renderer);
+  console.log("[APPCONTENT] Step 2: Renderer obtained:", !!renderer);
   
-  console.log("[APPCONTENT] Step 7: Getting dialog and toast...");
+  // Get dialog and toast from providers (now wrapped at render level)
+  console.log("[APPCONTENT] Getting dialog and toast...");
   const dialog = useDialog();
   const toast = useToast();
-  console.log("[APPCONTENT] Step 8: Dialog and toast providers obtained");
+  console.log("[APPCONTENT] Dialog and toast providers obtained");
 
   // Test server connectivity
   logger.debug("[app] Testing server connectivity...");
   client.health()
     .then(() => logger.debug("[app] Server health: OK"))
-    .catch((err) => logger.error("[app] Server health: FAILED", err));
+    .catch((err) => logger.debug("[app] Server health: FAILED", err));
   
   // Test git repo info
   client.getRepoInfo()
     .then((info) => logger.debug("[app] Repo info:", JSON.stringify(info)))
-    .catch((err) => logger.error("[app] Repo info: FAILED", err));
+    .catch((err) => logger.debug("[app] Repo info: FAILED", err));
 
   // Log startup
   console.log("opentui-git started");
