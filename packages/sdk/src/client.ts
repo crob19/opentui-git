@@ -2,58 +2,16 @@
  * Git Client SDK
  * 
  * A standalone HTTP client for the opentui-git server.
- * This module intentionally avoids importing from the server package
- * to prevent module loading side effects that interfere with the TUI.
+ * Imports type definitions from core to maintain a single source of truth.
+ * Only type imports are used to avoid any runtime module loading side effects.
  */
 
-/**
- * Git file status
- */
-export interface GitFileStatus {
-  path: string;
-  working_dir: string;
-  index: string;
-  staged: boolean;
-  statusText: string;
-  color: string;
-  hasLocalChanges?: boolean;
-}
-
-/**
- * Git status summary
- */
-export interface GitStatusSummary {
-  current: string;
-  ahead: number;
-  behind: number;
-  files: GitFileStatus[];
-  isClean: boolean;
-}
-
-/**
- * Git branch info
- */
-export interface GitBranchInfo {
-  current: string;
-  all: string[];
-  branches: Record<string, {
-    current: boolean;
-    name: string;
-    commit: string;
-    label: string;
-  }>;
-}
-
-/**
- * Git commit info
- */
-export interface GitCommitInfo {
-  hash: string;
-  date: string;
-  message: string;
-  author_name: string;
-  author_email: string;
-}
+import type {
+  GitFileStatus,
+  GitStatusSummary,
+  GitBranchInfo,
+  GitCommitInfo,
+} from "@opentui-git/core/git/types";
 
 /**
  * File read response
