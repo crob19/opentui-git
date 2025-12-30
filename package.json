@@ -1,18 +1,24 @@
 {
   "name": "opentui-git",
   "version": "0.1.7",
+  "private": true,
   "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
-  "type": "module",
-  "main": "src/index.tsx",
-  "bin": {
-    "opentui-git": "./src/index.tsx"
-  },
+  "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "bun run src/index.tsx",
-    "start": "bun run src/index.tsx",
-    "build": "bun run scripts/build.ts",
-    "build:binary": "bun run scripts/build-binaries.ts",
-    "typecheck": "tsc --noEmit"
+    "dev": "bun run --cwd packages/core --conditions=browser src/index.ts",
+    "dev:server": "bun run --cwd packages/core dev:server",
+    "dev:desktop": "bun run --cwd packages/desktop dev",
+    "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
+    "build": "bun run build:sdk && bun run build:core",
+    "build:core": "bun run --cwd packages/core build",
+    "build:sdk": "bun run --cwd packages/sdk typecheck",
+    "build:binary": "bun run --cwd packages/core build:binary",
+    "build:desktop": "bun run --cwd packages/desktop build",
+    "typecheck": "bun run typecheck:sdk && bun run typecheck:core && bun run typecheck:desktop",
+    "typecheck:core": "bun run --cwd packages/core typecheck",
+    "typecheck:sdk": "bun run --cwd packages/sdk typecheck",
+    "typecheck:desktop": "bun run --cwd packages/desktop typecheck",
+    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules bun.lock"
   },
   "keywords": [
     "git",
@@ -25,14 +31,8 @@
   ],
   "author": "opentui-git",
   "license": "MIT",
-  "dependencies": {
-    "@opentui/core": "^0.1.65",
-    "@opentui/solid": "^0.1.65",
-    "@types/diff": "^7.0.2",
-    "diff": "^8.0.2",
-    "shiki": "^3.20.0",
-    "simple-git": "^3.30.0",
-    "solid-js": "^1.9.10"
+  "resolutions": {
+    "solid-js": "1.9.10"
   },
   "devDependencies": {
     "@types/bun": "latest",

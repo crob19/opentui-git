@@ -1,0 +1,30 @@
+{
+  "name": "@opentui-git/desktop",
+  "version": "0.1.7",
+  "description": "Desktop app for opentui-git",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui-git/sdk": "workspace:*",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-shell": "~2",
+    "@tauri-apps/plugin-process": "~2",
+    "solid-js": "1.9.9"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vite": "^6.3.5",
+    "vite-plugin-solid": "^2.11.6"
+  }
+}
