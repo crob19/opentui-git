@@ -3,7 +3,13 @@
  * Type-safe SDK for opentui-git API
  */
 
-export { createClient, type GitClient } from "./client.js";
+export { 
+  createClient, 
+  type GitClient,
+  type FileReadResponse,
+  type FileWriteResponse,
+  type MergeResult,
+} from "./client.js";
 
 // Re-export types from core for convenience
 export type {

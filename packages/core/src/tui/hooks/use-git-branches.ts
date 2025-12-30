@@ -41,7 +41,7 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
       } catch (error) {
         logger.error("[use-git-branches] Error loading branches:", error);
         // Return empty result to prevent resource from being in error state
-        return { all: [], current: "", branches: [], detached: false };
+        return { all: [], current: "", branches: {} };
       }
     });
 

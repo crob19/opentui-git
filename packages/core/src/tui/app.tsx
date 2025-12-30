@@ -1,9 +1,8 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
 import { createClient } from "@opentui-git/sdk";
-import { DialogProvider, useDialog } from "./components/dialog.js";
-import { ToastProvider, useToast } from "./components/toast.js";
-import { ErrorBoundary } from "./components/error-boundary.js";
+import { useDialog } from "./components/dialog.js";
+import { useToast } from "./components/toast.js";
 import { AppLayout } from "./components/app-layout.js";
 import {
   useGitStatus,
@@ -16,7 +15,6 @@ import {
 import type { PanelType } from "./commands/types.js";
 import type { DiffMode } from "../git/types.js";
 import { registerShutdownHandler } from "./index.js";
-import { logger } from "./utils/logger.js";
 
 /**
  * Tab types for the branches panel

@@ -6,7 +6,7 @@ import {
   type JSX,
 } from "solid-js";
 import { createStore } from "solid-js/store";
-import { useKeyboard, useTerminalDimensions } from "@opentui/solid";
+import { useTerminalDimensions } from "@opentui/solid";
 
 /**
  * Dialog context and provider - manages modal dialogs
