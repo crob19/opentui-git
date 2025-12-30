@@ -5,10 +5,10 @@
   "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "bun run --cwd packages/core dev",
+    "dev": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "dev:server": "bun run --cwd packages/core dev:server",
     "dev:desktop": "bun run --cwd packages/desktop dev",
-    "start": "bun run --cwd packages/core start",
+    "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "build": "bun run build:sdk && bun run build:core",
     "build:core": "bun run --cwd packages/core build",
     "build:sdk": "bun run --cwd packages/sdk typecheck",

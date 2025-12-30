@@ -14,9 +14,9 @@
     "opentui-git": "./src/index.ts"
   },
   "scripts": {
-    "dev": "bun run src/index.ts",
+    "dev": "bun run --conditions=browser src/index.ts",
     "dev:server": "bun run src/server/index.ts",
-    "start": "bun run src/index.ts",
+    "start": "bun run --conditions=browser src/index.ts",
     "build": "bun run scripts/build.ts",
     "build:binary": "bun run scripts/build-binaries.ts",
     "typecheck": "tsc --noEmit"
