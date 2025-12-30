@@ -35,7 +35,8 @@ export function useGitTags(client: GitClient): UseGitTagsResult {
         return await client.getTags();
       } catch (error) {
         console.error("Error loading tags:", error);
-        throw error;
+        // Return empty array instead of throwing to prevent resource error state
+        return [];
       }
     });
 

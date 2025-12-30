@@ -18,8 +18,12 @@ export class GitService {
    * @param repoPath - Path to the git repository (defaults to current directory)
    */
   constructor(repoPath: string = process.cwd()) {
+    logger.debug("[GitService] ========== INIT ==========");
+    logger.debug("[GitService] Repo path:", repoPath);
+    logger.debug("[GitService] CWD:", process.cwd());
     this.git = simpleGit(repoPath);
     this.repoPath = repoPath;
+    logger.debug("[GitService] Initialized with simple-git");
   }
 
   /**
@@ -27,10 +31,13 @@ export class GitService {
    * @returns Promise<boolean> - True if in a git repository
    */
   async isRepo(): Promise<boolean> {
+    logger.debug("[GitService] isRepo() checking:", this.repoPath);
     try {
       await this.git.status();
+      logger.debug("[GitService] isRepo() result: true");
       return true;
     } catch (error) {
+      logger.debug("[GitService] isRepo() result: false, error:", error);
       return false;
     }
   }

@@ -1,56 +1,149 @@
-import { treaty } from "@elysiajs/eden";
-import type { App } from "@opentui-git/core/server";
+/**
+ * Git Client SDK
+ * 
+ * A standalone HTTP client for the opentui-git server.
+ * This module intentionally avoids importing from the server package
+ * to prevent module loading side effects that interfere with the TUI.
+ */
+
+/**
+ * Git file status
+ */
+export interface GitFileStatus {
+  path: string;
+  working_dir: string;
+  index: string;
+  staged: boolean;
+  statusText: string;
+  color: string;
+  hasLocalChanges?: boolean;
+}
+
+/**
+ * Git status summary
+ */
+export interface GitStatusSummary {
+  current: string;
+  ahead: number;
+  behind: number;
+  files: GitFileStatus[];
+  isClean: boolean;
+}
+
+/**
+ * Git branch info
+ */
+export interface GitBranchInfo {
+  current: string;
+  all: string[];
+  branches: Record<string, {
+    current: boolean;
+    name: string;
+    commit: string;
+    label: string;
+  }>;
+}
+
+/**
+ * Git commit info
+ */
+export interface GitCommitInfo {
+  hash: string;
+  date: string;
+  message: string;
+  author_name: string;
+  author_email: string;
+}
+
+/**
+ * File read response
+ */
+export interface FileReadResponse {
+  content: string;
+  mtime: string;
+  exists: boolean;
+}
+
+/**
+ * File write response
+ */
+export interface FileWriteResponse {
+  success: boolean;
+  conflict: boolean;
+  currentMtime?: string;
+  message?: string;
+}
+
+/**
+ * Merge result from simple-git
+ */
+export interface MergeResult {
+  conflicts: string[];
+  merges: string[];
+  result: string;
+  readonly failed: boolean;
+  files: string[];
+}
+
+/**
+ * Simple fetch wrapper with error handling
+ */
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  
+  return response.json() as Promise<T>;
+}
 
 /**
  * Create a type-safe API client for opentui-git server
- * Uses Eden treaty for end-to-end type safety with the Elysia backend
  */
-export function createClient(baseUrl: string = "http://localhost:4096") {
-  const api = treaty<App>(baseUrl);
+export function createClient(baseUrl: string = "http://localhost:5050") {
+  const url = (path: string) => `${baseUrl}${path}`;
   
   return {
     /**
      * Health check
      */
     health: async () => {
-      const { data, error } = await api.health.get();
-      if (error) throw new Error("Health check failed");
-      return data;
+      return fetchJson<{ status: "ok" }>(url("/health"));
     },
 
     /**
      * Get repository status
      */
     getStatus: async () => {
-      const { data, error } = await api.status.get();
-      if (error) throw new Error("Failed to get status");
-      return data;
+      return fetchJson<GitStatusSummary>(url("/status"));
     },
 
     /**
      * Check if current directory is a git repository
      */
     getRepoInfo: async () => {
-      const { data, error } = await api.status.repo.get();
-      if (error) throw new Error("Failed to get repo info");
-      return data;
+      return fetchJson<{ isRepo: boolean; repoRoot: string | null }>(url("/status/repo"));
     },
 
     /**
      * Get all branches
      */
     getBranches: async () => {
-      const { data, error } = await api.branches.get();
-      if (error) throw new Error("Failed to get branches");
-      return data;
+      return fetchJson<GitBranchInfo>(url("/branches"));
     },
 
     /**
      * Get default branch name
      */
     getDefaultBranch: async () => {
-      const { data, error } = await api.branches.default.get();
-      if (error) throw new Error("Failed to get default branch");
+      const data = await fetchJson<{ defaultBranch: string }>(url("/branches/default"));
       return data.defaultBranch;
     },
 
@@ -58,44 +151,44 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Create a new branch
      */
     createBranch: async (name: string) => {
-      const { data, error } = await api.branches.post({ name });
-      if (error) throw new Error(`Failed to create branch: ${name}`);
-      return data;
+      return fetchJson<{ success: true; branch: string }>(url("/branches"), {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
     },
 
     /**
      * Checkout a branch
      */
     checkoutBranch: async (name: string) => {
-      const { data, error } = await api.branches({ name }).checkout.post();
-      if (error) throw new Error(`Failed to checkout branch: ${name}`);
-      return data;
+      return fetchJson<{ success: true }>(url(`/branches/${encodeURIComponent(name)}/checkout`), {
+        method: "POST",
+      });
     },
 
     /**
      * Merge a branch into current branch
      */
     mergeBranch: async (name: string) => {
-      const { data, error } = await api.branches({ name }).merge.post();
-      if (error) throw new Error(`Failed to merge branch: ${name}`);
-      return data;
+      return fetchJson<{ success: true; result: MergeResult }>(url(`/branches/${encodeURIComponent(name)}/merge`), {
+        method: "POST",
+      });
     },
 
     /**
      * Delete a branch
      */
     deleteBranch: async (name: string, force: boolean = false) => {
-      const { data, error } = await api.branches({ name }).delete({ query: { force: force.toString() } });
-      if (error) throw new Error(`Failed to delete branch: ${name}`);
-      return data;
+      return fetchJson<{ success: true }>(url(`/branches/${encodeURIComponent(name)}?force=${force}`), {
+        method: "DELETE",
+      });
     },
 
     /**
      * Get all tags
      */
     getTags: async () => {
-      const { data, error } = await api.tags.get();
-      if (error) throw new Error("Failed to get tags");
+      const data = await fetchJson<{ tags: string[] }>(url("/tags"));
       return data.tags;
     },
 
@@ -103,84 +196,86 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Create a new tag
      */
     createTag: async (name: string) => {
-      const { data, error } = await api.tags.post({ name });
-      if (error) throw new Error(`Failed to create tag: ${name}`);
-      return data;
+      return fetchJson<{ success: true; tag: string }>(url("/tags"), {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
     },
 
     /**
      * Push a tag to remote
      */
     pushTag: async (name: string, remote: string = "origin") => {
-      const { data, error } = await api.tags({ name }).push.post({ remote });
-      if (error) throw new Error(`Failed to push tag: ${name}`);
-      return data;
+      return fetchJson<{ success: true }>(url(`/tags/${encodeURIComponent(name)}/push`), {
+        method: "POST",
+        body: JSON.stringify({ remote }),
+      });
     },
 
     /**
      * Stage a file
      */
     stageFile: async (path: string) => {
-      const { data, error } = await api.files.stage.post({ path });
-      if (error) throw new Error(`Failed to stage file: ${path}`);
-      return data;
+      return fetchJson<{ success: true }>(url("/files/stage"), {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      });
     },
 
     /**
      * Unstage a file
      */
     unstageFile: async (path: string) => {
-      const { data, error } = await api.files.unstage.post({ path });
-      if (error) throw new Error(`Failed to unstage file: ${path}`);
-      return data;
+      return fetchJson<{ success: true }>(url("/files/unstage"), {
+        method: "POST",
+        body: JSON.stringify({ path }),
+      });
     },
 
     /**
      * Stage all files
      */
     stageAll: async () => {
-      const { data, error } = await api.files["stage-all"].post();
-      if (error) throw new Error("Failed to stage all files");
-      return data;
+      return fetchJson<{ success: true }>(url("/files/stage-all"), {
+        method: "POST",
+      });
     },
 
     /**
      * Unstage all files
      */
     unstageAll: async () => {
-      const { data, error } = await api.files["unstage-all"].post();
-      if (error) throw new Error("Failed to unstage all files");
-      return data;
+      return fetchJson<{ success: true }>(url("/files/unstage-all"), {
+        method: "POST",
+      });
     },
 
     /**
      * Read a file with metadata
      */
     readFile: async (path: string) => {
-      const { data, error } = await api.files.read.get({ query: { path } });
-      if (error) throw new Error(`Failed to read file: ${path}`);
-      return data;
+      return fetchJson<FileReadResponse>(url(`/files/read?path=${encodeURIComponent(path)}`));
     },
 
     /**
      * Write a file with conflict detection
      */
     writeFile: async (path: string, content: string, expectedMtime?: Date) => {
-      const { data, error } = await api.files.write.post({
-        path,
-        content,
-        expectedMtime: expectedMtime?.toISOString(),
+      return fetchJson<FileWriteResponse>(url("/files/write"), {
+        method: "POST",
+        body: JSON.stringify({
+          path,
+          content,
+          expectedMtime: expectedMtime?.toISOString(),
+        }),
       });
-      if (error) throw new Error(`Failed to write file: ${path}`);
-      return data;
     },
 
     /**
      * Get commit history
      */
     getCommits: async (limit: number = 50) => {
-      const { data, error } = await api.commits.get({ query: { limit: limit.toString() } });
-      if (error) throw new Error("Failed to get commits");
+      const data = await fetchJson<{ commits: GitCommitInfo[] }>(url(`/commits?limit=${limit}`));
       return data.commits;
     },
 
@@ -188,8 +283,7 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Get current commit hash
      */
     getCurrentCommitHash: async () => {
-      const { data, error } = await api.commits.current.get();
-      if (error) throw new Error("Failed to get current commit hash");
+      const data = await fetchJson<{ hash: string }>(url("/commits/current"));
       return data.hash;
     },
 
@@ -197,8 +291,10 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Create a commit
      */
     commit: async (message: string) => {
-      const { data, error } = await api.commits.post({ message });
-      if (error) throw new Error("Failed to commit");
+      const data = await fetchJson<{ success: true; hash: string }>(url("/commits"), {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      });
       return data.hash;
     },
 
@@ -206,14 +302,13 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Get diff for a file
      */
     getDiff: async (path: string, options: { staged?: boolean; branch?: string } = {}) => {
-      const query: Record<string, string> = { path };
+      const params = new URLSearchParams({ path });
       if (options.branch) {
-        query.branch = options.branch;
+        params.set("branch", options.branch);
       } else if (options.staged !== undefined) {
-        query.staged = options.staged.toString();
+        params.set("staged", options.staged.toString());
       }
-      const { data, error } = await api.diff.get({ query });
-      if (error) throw new Error(`Failed to get diff for: ${path}`);
+      const data = await fetchJson<{ diff: string }>(url(`/diff?${params}`));
       return data.diff;
     },
 
@@ -221,8 +316,7 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Get files changed against a branch
      */
     getFilesChangedAgainstBranch: async (branch: string) => {
-      const { data, error } = await api.diff.files.get({ query: { branch } });
-      if (error) throw new Error(`Failed to get files changed against: ${branch}`);
+      const data = await fetchJson<{ files: GitFileStatus[] }>(url(`/diff/files?branch=${encodeURIComponent(branch)}`));
       return data.files;
     },
 
@@ -230,25 +324,26 @@ export function createClient(baseUrl: string = "http://localhost:4096") {
      * Pull from remote
      */
     pull: async () => {
-      const { data, error } = await api.remote.pull.post();
-      if (error) throw new Error("Failed to pull");
-      return data;
+      return fetchJson<{ success: true }>(url("/remote/pull"), {
+        method: "POST",
+      });
     },
 
     /**
      * Push to remote
      */
     push: async () => {
-      const { data, error } = await api.remote.push.post();
-      if (error) throw new Error("Failed to push");
-      return data;
+      return fetchJson<{ success: true }>(url("/remote/push"), {
+        method: "POST",
+      });
     },
 
     /**
      * Subscribe to server events (SSE)
+     * Returns a fetch response for SSE stream
      */
-    subscribe: () => {
-      return api.events.get();
+    subscribe: async () => {
+      return fetch(`${baseUrl}/events`);
     },
   };
 }

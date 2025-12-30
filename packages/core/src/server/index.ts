@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { GitService } from "../git/index.js";
+import { logger } from "../tui/utils/logger.js";
 
 export interface ServerOptions {
   port?: number;
@@ -12,7 +13,9 @@ export interface ServerOptions {
  * Create the Elysia app with all routes
  */
 export function createApp(repoPath: string = process.cwd()) {
+  logger.debug("[server] Creating app with repoPath:", repoPath);
   const git = new GitService(repoPath);
+  logger.debug("[server] GitService created");
 
   const app = new Elysia()
     .use(cors())
@@ -168,7 +171,15 @@ export type App = ReturnType<typeof createApp>;
  * Start the server
  */
 export async function startServer(options: ServerOptions = {}) {
-  const { port = 4096, hostname = "localhost", repoPath = process.cwd() } = options;
+  const { port = 5050, hostname = "localhost", repoPath = process.cwd() } = options;
+  
+  logger.debug("[server] ========== SERVER STARTUP ==========");
+  logger.debug("[server] Port:", port);
+  logger.debug("[server] Hostname:", hostname);
+  logger.debug("[server] Repo path (from options):", options.repoPath || "(not specified, using cwd)");
+  logger.debug("[server] Repo path (resolved):", repoPath);
+  logger.debug("[server] CWD:", process.cwd());
+  logger.debug("[server] Process ID:", process.pid);
   
   const app = createApp(repoPath);
   
@@ -177,11 +188,13 @@ export async function startServer(options: ServerOptions = {}) {
   console.log(`Server running at http://${hostname}:${port}`);
   console.log(`Repository: ${repoPath}`);
   
+  logger.debug("[server] Server started successfully");
+  
   return app;
 }
 
 // Auto-start when run directly
 if (import.meta.main) {
-  const port = parseInt(process.env.PORT || "4096", 10);
+  const port = parseInt(process.env.PORT || "5050", 10);
   startServer({ port });
 }

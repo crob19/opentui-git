@@ -542,7 +542,7 @@ async function handleDiffPanelKeys(
       );
 
       if (!result.success) {
-        context.toast.error(result.message || "Failed to save file");
+        context.toast.error("Failed to save file - conflict detected");
         context.toast.info("File was modified externally. Exit edit mode and re-enter to see latest changes.");
         return;
       }
@@ -663,7 +663,7 @@ async function handleDiffPanelKeys(
       }
 
       context.setFileContent(fullContent);
-      context.setFileMtime(mtime);
+      context.setFileMtime(new Date(mtime));
       context.setSelectedLine(lineIndex);
       context.setEditedContent(lines[lineIndex]);
 
