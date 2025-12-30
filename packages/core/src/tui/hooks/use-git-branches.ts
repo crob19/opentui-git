@@ -30,17 +30,13 @@ export interface UseGitBranchesResult {
  * @returns Object containing branch resource, local branches list, and selection state
  */
 export function useGitBranches(client: GitClient): UseGitBranchesResult {
-  logger.debug("[use-git-branches] Hook called, initializing...");
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
-  logger.debug("[use-git-branches] Creating resource...");
   // Load branches
   const [branches, { refetch: refetchBranches }] =
     createResource<GitBranchInfo>(async () => {
       try {
-        logger.debug("[use-git-branches] Fetcher called, loading branches...");
         const result = await client.getBranches();
-        logger.debug("[use-git-branches] Loaded branches:", JSON.stringify(result));
         return result;
       } catch (error) {
         logger.error("[use-git-branches] Error loading branches:", error);
@@ -48,16 +44,12 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
         return { all: [], current: "", branches: [], detached: false };
       }
     });
-  
-  logger.debug("[use-git-branches] Resource created, branches():", branches());
 
   // Get local branches only (filter out remotes)
   const localBranches = () => {
     const b = branches();
-    logger.debug("[use-git-branches] localBranches() called, branches:", b);
     // Return empty array if resource is still loading or undefined
     if (!b || !b.all) {
-      logger.debug("[use-git-branches] Returning empty array");
       return [];
     }
     const filtered = b.all
@@ -68,7 +60,6 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
         if (bName === b.current) return 1;
         return a.localeCompare(bName);
       });
-    logger.debug("[use-git-branches] Returning", filtered.length, "branches");
     return filtered;
   };
 

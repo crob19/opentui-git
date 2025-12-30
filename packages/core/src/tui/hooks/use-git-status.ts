@@ -49,18 +49,15 @@ export function useGitStatus(
   diffMode: Accessor<DiffMode>,
   compareBranch: Accessor<string | null>,
 ): UseGitStatusResult {
-  console.log("[USE-GIT-STATUS] Hook called");
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [isGitRepo, setIsGitRepo] = createSignal(true);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const [treeNodes, setTreeNodes] = createSignal<FileTreeNode[]>([]);
 
-  console.log("[USE-GIT-STATUS] Creating resource...");
   // Load git status - make it reactive to diffMode and compareBranch
   const [gitStatus, { refetch }] = createResource<GitStatusSummary, { mode: DiffMode; branch: string | null }>(
     () => ({ mode: diffMode(), branch: compareBranch() }),
     async (source) => {
-      console.log("[USE-GIT-STATUS] Resource fetcher called, source:", source);
       try {
         // Check if we're in a git repo
         const repoInfo = await client.getRepoInfo();

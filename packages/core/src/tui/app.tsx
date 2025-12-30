@@ -1,6 +1,3 @@
-// IMMEDIATE LOG AT MODULE LOAD TIME - CACHE_BUST_v3
-console.log("[APP.TSX] ===== MODULE LOADED AT", new Date().toISOString(), "=====");
-
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
 import { createClient } from "@opentui-git/sdk";
@@ -30,9 +27,7 @@ export type BranchPanelTab = "branches" | "tags";
  * Get the server URL from global state (set by tui/index.tsx)
  */
 function getServerUrl(): string {
-  const url = ((globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ as string) || "http://localhost:5050";
-  logger.debug("[app] getServerUrl:", url);
-  return url;
+  return ((globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ as string) || "http://localhost:5050";
 }
 
 /**
@@ -41,17 +36,8 @@ function getServerUrl(): string {
  * Orchestrates all hooks and passes state to layout component
  */
 export function App() {
-  console.log("[APP] ========== App() CALLED (CACHE_BUST_v5) ==========");
-  logger.debug("[app] App() function executing");
-  
-  console.log("[APP] Step 1: Getting server URL...");
   const serverUrl = getServerUrl();
-  console.log("[APP] Step 2: Server URL:", serverUrl);
-  console.log("[APP] Step 3: Creating client...");
   const client = createClient(serverUrl);
-  console.log("[APP] Step 4: Client created");
-  
-  // Don't call useRenderer here - let AppContent call it
   return <AppContent client={client} />;
 }
 
@@ -60,36 +46,10 @@ export function App() {
  * Receives client as prop, calls useRenderer() directly
  */
 function AppContent(props: { client: ReturnType<typeof createClient> }) {
-  console.log("[APPCONTENT] ========== AppContent INIT ==========");
-  
   const { client } = props;
-  
-  // Call useRenderer here instead of receiving it as a prop
-  console.log("[APPCONTENT] Step 1: Getting renderer...");
   const renderer = useRenderer();
-  console.log("[APPCONTENT] Step 2: Renderer obtained:", !!renderer);
-  
-  // Get dialog and toast from providers (now wrapped at render level)
-  console.log("[APPCONTENT] Getting dialog and toast...");
   const dialog = useDialog();
   const toast = useToast();
-  console.log("[APPCONTENT] Dialog and toast providers obtained");
-
-  // Test server connectivity
-  logger.debug("[app] Testing server connectivity...");
-  client.health()
-    .then(() => logger.debug("[app] Server health: OK"))
-    .catch((err) => logger.debug("[app] Server health: FAILED", err));
-  
-  // Test git repo info
-  client.getRepoInfo()
-    .then((info) => logger.debug("[app] Repo info:", JSON.stringify(info)))
-    .catch((err) => logger.debug("[app] Repo info: FAILED", err));
-
-  // Log startup
-  console.log("opentui-git started");
-  console.log("Press Ctrl+\\ to toggle console overlay");
-  console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
 
   // Panel navigation state
   const [activePanel, setActivePanel] = createSignal<PanelType>("files");
@@ -129,21 +89,10 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
   const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
 
   // Custom hooks handle all git-related state & resources
-  logger.debug("[app] Calling useGitStatus...");
   const gitStatus = useGitStatus(client, diffMode, compareBranch);
-  logger.debug("[app] useGitStatus completed");
-  
-  logger.debug("[app] Calling useGitBranches...");
   const gitBranches = useGitBranches(client);
-  logger.debug("[app] useGitBranches completed");
-  
-  logger.debug("[app] Calling useGitTags...");
   const gitTags = useGitTags(client);
-  logger.debug("[app] useGitTags completed");
-  
-  logger.debug("[app] Calling useGitDiff...");
   const gitDiff = useGitDiff(client, gitStatus.selectedFile, diffMode, compareBranch);
-  logger.debug("[app] useGitDiff completed");
 
   // Auto-refresh git status, branches, and tags every second
   // Returns cleanup function for graceful shutdown

@@ -24,8 +24,6 @@ export function registerShutdownHandler(handler: () => void) {
  * Execute all registered shutdown handlers and exit
  */
 export function executeShutdown() {
-  console.log("Executing shutdown handlers...");
-  
   for (const handler of shutdownHandlers) {
     try {
       handler();
@@ -34,7 +32,6 @@ export function executeShutdown() {
     }
   }
   
-  console.log("Shutdown complete, exiting process");
   process.exit(0);
 }
 
@@ -48,14 +45,8 @@ export function startTUI(options: TUIOptions) {
   
   // Return a promise to prevent immediate exit (matches OpenCode pattern)
   return new Promise<void>(async (resolve) => {
-    logger.debug("[tui] ========== TUI STARTUP ==========");
-    logger.debug("[tui] Server URL:", serverUrl);
-    logger.debug("[tui] CWD:", process.cwd());
-    logger.debug("[tui] Process ID:", process.pid);
-    
     // Store server URL for components to use
     (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;
-    logger.debug("[tui] Server URL stored in globalThis");
     
     const onExit = async () => {
       executeShutdown();
@@ -64,32 +55,8 @@ export function startTUI(options: TUIOptions) {
     
     // Handle SIGTERM
     process.on("SIGTERM", () => {
-      logger.debug("[tui] Received SIGTERM");
       onExit();
     });
-    
-    console.log("opentui-git started");
-    console.log("Press Ctrl+\\ to toggle console overlay");
-    console.log("Press Ctrl+D to toggle debug panel (FPS stats)");
-    
-    // Test server connectivity before rendering
-    logger.debug("[tui] Testing server connectivity...");
-    try {
-      const healthResponse = await fetch(`${serverUrl}/health`);
-      if (healthResponse.ok) {
-        logger.debug("[tui] Server health check: OK");
-      } else {
-        logger.error("[tui] Server health check failed:", healthResponse.status, healthResponse.statusText);
-      }
-    } catch (error) {
-      logger.error("[tui] Server health check error:", error);
-    }
-    
-    // Render the app - pass a function that returns the component tree (matches OpenCode)
-    // CRITICAL: ALL providers and ErrorBoundary must be inside this function
-    // This ensures the renderer context is properly established before any components render
-    logger.debug("[tui] Starting render...");
-    console.log("[TUI] About to call render() with App component");
     
     render(
       () => (
@@ -115,6 +82,5 @@ export function startTUI(options: TUIOptions) {
         },
       }
     );
-    logger.debug("[tui] Render completed");
   });
 }
