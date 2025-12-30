@@ -37,12 +37,11 @@ export function executeShutdown() {
 /**
  * Start the TUI
  * Note: Server must already be running - this only handles the UI
- * Following OpenCode's architecture pattern
  */
 export function startTUI(options: TUIOptions) {
   const { serverUrl } = options;
 
-  // Return a promise to prevent immediate exit (matches OpenCode pattern)
+  // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
     // Store server URL for components to use
     (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;

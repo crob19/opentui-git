@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Entry point for opentui-git CLI
- * 
- * Architecture (matching OpenCode's pattern):
+ *
+ * Architecture:
  * - "serve" command: starts server directly (no TUI)
  * - "attach" command: starts TUI only, connects to existing server
  * - default command: starts server in-process, spawns TUI as subprocess
- * 
+ *
  * This ensures the TUI runs in a clean process without any server imports.
  */
 
@@ -46,7 +46,7 @@ if (command === "serve") {
   // Start headless server - import and run directly
   const portIndex = args.indexOf("--port");
   const port = portIndex !== -1 ? parseInt(args[portIndex + 1], 10) : 5050;
-  
+
   // Find the git repository root
   const simpleGit = (await import("simple-git")).default;
   const git = simpleGit(process.cwd());
@@ -58,10 +58,10 @@ if (command === "serve") {
     logger.warn("[index] Not in a git repository, using cwd:", process.cwd());
     repoPath = process.cwd();
   }
-  
+
   const { startServer } = await import("./server/index.js");
   await startServer({ port, repoPath });
-  
+
 } else if (command === "attach") {
   // Connect TUI to existing server
   // This command should ONLY load TUI code, never server code
@@ -71,20 +71,19 @@ if (command === "serve") {
     console.error("Usage: opentui-git attach <url>");
     process.exit(1);
   }
-  
+
   // Dynamically import TUI module - this is the only import in attach mode
   const { startTUI } = await import("./tui/index.js");
   await startTUI({ serverUrl: url });
-  
+
 } else {
   // Default: start server in-process, spawn TUI as subprocess
-  // This matches OpenCode's architecture where:
   // 1. Server runs in main process (doesn't use solid-js)
   // 2. TUI runs in clean subprocess (only loads TUI code)
   const portIndex = args.indexOf("--port");
   const port = portIndex !== -1 ? parseInt(args[portIndex + 1], 10) : 5050;
   const serverUrl = `http://localhost:${port}`;
-  
+
   // Find the git repository root
   // We need to go up from packages/core to the actual repo root
   const simpleGit = (await import("simple-git")).default;
@@ -95,16 +94,16 @@ if (command === "serve") {
   } catch (error) {
     repoPath = process.cwd();
   }
-  
+
   // Start server in this process with the correct repo path
   const { startServer } = await import("./server/index.js");
   const server = await startServer({ port, repoPath });
-  
+
   // Spawn TUI as a separate process using the "attach" command
   // This ensures TUI runs in a clean environment without server imports
   const scriptPath = new URL(import.meta.url).pathname;
   const cwd = new URL("../", import.meta.url).pathname;
-  
+
   const tuiProc = Bun.spawn({
     cmd: [
       process.execPath,
@@ -125,10 +124,10 @@ if (command === "serve") {
       BUN_OPTIONS: "",
     },
   });
-  
+
   // Wait for TUI to exit
   await tuiProc.exited;
-  
+
   // Stop server when TUI exits
   server.stop();
   process.exit(0);
