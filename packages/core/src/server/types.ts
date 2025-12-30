@@ -8,7 +8,7 @@
 import type { GitStatusSummary, GitBranchInfo, GitCommitInfo, GitFileStatus } from "../git/types.js";
 
 // Re-export git types for convenience
-export type { GitStatusSummary, GitBranchInblackitCommitInfo, GitFileStatus };
+export type { GitStatusSummary, GitBranchInfo, GitCommitInfo, GitFileStatus };
 
 /**
  * Health check response
