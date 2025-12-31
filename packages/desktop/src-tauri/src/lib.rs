@@ -44,7 +44,7 @@ fn kill_sidecar(app: AppHandle) {
 #[tauri::command]
 async fn get_logs(app: AppHandle) -> Result<String, String> {
     let log_state = app.try_state::<LogState>().ok_or("Log state not found")?;
-    let guard = log_state.0.lock().map_err(|e| e.to_string())?;
+    let guard = log_state.0.lock().map_err(|e| format!("Failed to acquire lock on log state: {}", e))?;
     Ok(guard.iter().cloned().collect::<Vec<_>>().join(""))
 }
 
@@ -68,6 +68,22 @@ fn get_sidecar_port() -> u32 {
 /// Get the user's shell (for macOS/Linux)
 fn get_user_shell() -> String {
     std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+}
+
+/// Check if the shell is fish (which uses different flags)
+fn is_fish_shell(shell: &str) -> bool {
+    shell.ends_with("/fish") || shell == "fish"
+}
+
+/// Get the appropriate shell flags for login/interactive mode
+fn get_shell_flags(shell: &str) -> Vec<&'static str> {
+    if is_fish_shell(shell) {
+        // fish uses -l for login, doesn't support -i the same way
+        vec!["-l", "-c"]
+    } else {
+        // bash, zsh, sh all support -il -c
+        vec!["-il", "-c"]
+    }
 }
 
 /// Check if the server is running by attempting a TCP connection
@@ -110,19 +126,21 @@ fn spawn_sidecar(app: &AppHandle, port: u32, repo_path: &str) -> CommandChild {
             .join("opentui-git-server");
         
         let shell = get_user_shell();
+        let shell_flags = get_shell_flags(&shell);
+        
+        let command_str = format!(
+            "{} --port {} --repo \"{}\"",
+            sidecar_path.display(),
+            port,
+            repo_path
+        );
+
+        let mut args: Vec<&str> = shell_flags;
+        args.push(&command_str);
         
         app.shell()
             .command(&shell)
-            .args([
-                "-il",
-                "-c",
-                &format!(
-                    "{} --port {} --repo \"{}\"",
-                    sidecar_path.display(),
-                    port,
-                    repo_path
-                ),
-            ])
+            .args(&args)
             .spawn()
             .expect("Failed to spawn sidecar")
     };
@@ -243,10 +261,10 @@ pub fn run() {
                     r#"
                     window.__OPENTUI__ = window.__OPENTUI__ || {{}};
                     window.__OPENTUI__.port = {};
-                    window.__OPENTUI__.repoPath = "{}";
+                    window.__OPENTUI__.repoPath = {};
                     "#,
                     port,
-                    repo_path.replace('\\', "\\\\").replace('"', "\\\"")
+                    serde_json::to_string(&repo_path).unwrap_or_else(|_| "\"\"".to_string())
                 ))
                 .build();
 

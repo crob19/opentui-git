@@ -27,6 +27,15 @@ function App() {
     setTimeout(async () => {
       await handleConnect();
     }, 100);
+
+    // Add hover effect styles (done in onMount to ensure we're in browser environment)
+    const style = document.createElement("style");
+    style.textContent = `
+      li[style*="cursor: pointer"]:hover {
+        background-color: #333 !important;
+      }
+    `;
+    document.head.appendChild(style);
   });
 
   // Fetch status when connected
@@ -382,16 +391,5 @@ const styles: Record<string, any> = {
     "font-style": "italic",
   },
 };
-
-// Add hover effect via CSS-in-JS workaround
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = `
-    li[style*="cursor: pointer"]:hover {
-      background-color: #333 !important;
-    }
-  `;
-  document.head.appendChild(style);
-}
 
 export default App;
