@@ -19,6 +19,7 @@
     "start": "bun run --conditions=browser src/index.ts",
     "build": "bun run scripts/build.ts",
     "build:binary": "bun run scripts/build-binaries.ts",
+    "build:sidecar": "bun run scripts/build-sidecar.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

@@ -8,9 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "predev": "bun scripts/predev.ts",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:dev": "bun run predev && tauri dev",
+    "tauri:build": "bun run --cwd ../core build:sidecar && tauri build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
