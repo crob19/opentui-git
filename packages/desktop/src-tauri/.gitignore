@@ -1,0 +1,8 @@
+# Build artifacts
+target/
+
+# Sidecar binaries (built separately)
+sidecars/opentui-git-server-*
+
+# Generated files
+gen/
