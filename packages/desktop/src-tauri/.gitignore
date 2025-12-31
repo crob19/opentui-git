@@ -6,3 +6,6 @@ sidecars/opentui-git-server-*
 
 # Generated files
 gen/
+
+# Development files
+.repo-path

@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::net::{SocketAddr, TcpListener};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+use std::path::PathBuf;
 use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindow};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
@@ -84,6 +85,35 @@ fn get_shell_flags(shell: &str) -> Vec<&'static str> {
         // bash, zsh, sh all support -il -c
         vec!["-il", "-c"]
     }
+}
+
+/// Get the repository path
+/// Priority:
+/// 1. OPENTUI_REPO environment variable
+/// 2. .repo-path file (written by predev script)
+/// 3. Current working directory (fallback)
+fn get_repo_path() -> String {
+    // Check for environment variable first
+    if let Ok(repo) = std::env::var("OPENTUI_REPO") {
+        if !repo.is_empty() {
+            return repo;
+        }
+    }
+
+    // Check for .repo-path file written by predev script
+    // This file is next to the executable or in src-tauri during dev
+    let repo_path_file = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".repo-path");
+    if let Ok(contents) = std::fs::read_to_string(&repo_path_file) {
+        let path = contents.trim().to_string();
+        if !path.is_empty() {
+            return path;
+        }
+    }
+
+    // Fallback to current directory
+    std::env::current_dir()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| ".".to_string())
 }
 
 /// Check if the server is running by attempting a TCP connection
@@ -205,10 +235,8 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 let port = get_sidecar_port();
 
-                // Get the current working directory as the repo path
-                let repo_path = std::env::current_dir()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|_| ".".to_string());
+                // Get the repository path (from env var, .repo-path file, or current dir)
+                let repo_path = get_repo_path();
 
                 println!("[tauri] Starting server on port {}", port);
                 println!("[tauri] Repository path: {}", repo_path);

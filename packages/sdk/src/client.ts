@@ -47,6 +47,8 @@ export interface MergeResult {
  * Simple fetch wrapper with error handling
  */
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  console.log(`[SDK] Fetching: ${options?.method || 'GET'} ${url}`);
+  
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -56,10 +58,23 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   });
   
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Try to get error details from response body
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorBody = await response.text();
+      console.error(`[SDK] Error response body:`, errorBody);
+      if (errorBody) {
+        errorMessage += ` - ${errorBody}`;
+      }
+    } catch {
+      // Ignore if we can't read the body
+    }
+    throw new Error(errorMessage);
   }
   
-  return response.json() as Promise<T>;
+  const data = await response.json() as T;
+  console.log(`[SDK] Response from ${url}:`, data);
+  return data;
 }
 
 /**

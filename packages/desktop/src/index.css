@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* Custom theme configuration */
+@theme {
+  /* Git status colors */
+  --color-git-added: #44FF44;
+  --color-git-modified: #FFAA00;
+  --color-git-deleted: #FF4444;
+  --color-git-untracked: #888888;
+  --color-git-renamed: #00AAFF;
+  --color-git-branch-only: #AAAAAA;
+  
+  /* Diff colors */
+  --color-diff-add-bg: #1F3F1F;
+  --color-diff-remove-bg: #3F1F1F;
+  --color-diff-header-bg: #1F2F3F;
+  --color-diff-add-linenum-bg: #0F2F0F;
+  --color-diff-remove-linenum-bg: #2F0F0F;
+  --color-diff-header-linenum-bg: #0F1F2F;
+  --color-diff-context-linenum-bg: #1A1A1A;
+  
+  /* App colors */
+  --color-app-bg: #1a1a1a;
+  --color-app-surface: #242424;
+  --color-app-border: #333333;
+  --color-app-accent: #00AAFF;
+  --color-app-text: #e0e0e0;
+  --color-app-text-muted: #888888;
+  
+  /* Font family */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Base styles */
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom utility for thin scrollbars */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #444 #1a1a1a;
+}
