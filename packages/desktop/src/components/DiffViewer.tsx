@@ -1,4 +1,4 @@
-import { For, Show, createMemo, createResource, createEffect, type Accessor } from "solid-js";
+import { For, Show, createMemo, createResource, type Accessor } from "solid-js";
 import { createHighlighter, type Highlighter, type BundledLanguage } from "shiki";
 import type { DiffMode } from "@opentui-git/core/git/types";
 import { parseDiffLines, parseSideBySideDiff, type DiffLine, type DiffRow } from "@opentui-git/core/utils/diff-parser";
@@ -57,7 +57,8 @@ function highlightCode(code: string, language: string, highlighter: Highlighter)
   }
 }
 
-// Cache for highlighted tokens
+// Cache for highlighted tokens with size limit to prevent memory leaks
+const MAX_CACHE_SIZE = 1000;
 const highlightCache = new Map<string, HighlightedToken[]>();
 
 function getCachedHighlight(code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] {
@@ -68,6 +69,18 @@ function getCachedHighlight(code: string, lang: string, hl: Highlighter | undefi
   if (cached) return cached;
   
   const tokens = highlightCode(code, lang, hl);
+  
+  // Implement cache size limit with simple eviction
+  if (highlightCache.size >= MAX_CACHE_SIZE) {
+    // Clear half the cache when limit is reached
+    const entries = Array.from(highlightCache.entries());
+    highlightCache.clear();
+    // Keep the more recent half
+    entries.slice(Math.floor(entries.length / 2)).forEach(([key, value]) => {
+      highlightCache.set(key, value);
+    });
+  }
+  
   highlightCache.set(cacheKey, tokens);
   return tokens;
 }
@@ -87,23 +100,12 @@ function getDiffModeLabel(mode: DiffMode, compareBranch: string | null): string 
  * DiffViewer component - Displays unified or side-by-side diff with syntax highlighting
  */
 export function DiffViewer(props: DiffViewerProps) {
-  // Debug effect to track prop changes
-  createEffect(() => {
-    console.log("[DiffViewer] Props update:", {
-      filePath: props.filePath(),
-      isLoading: props.isLoading(),
-      diffLength: props.diff()?.length ?? 0,
-      diffMode: props.diffMode(),
-    });
-  });
-
   // Load highlighter
   const [highlighter] = createResource(getShikiHighlighter);
 
   // Parse diff based on view mode
   const diffLines = createMemo(() => {
     const diff = props.diff();
-    console.log("[DiffViewer] diff value:", diff ? `${diff.length} chars` : diff);
     if (!diff) return [];
     return parseDiffLines(diff);
   });
