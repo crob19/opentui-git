@@ -130,7 +130,6 @@ export function useGitStatus(
     if (!path) return null;
     const status = gitStatus();
     if (!status) return null;
-    console.log("[useGitStatus] selectedFile memo recalculated:", path, "found:", status.files.find(f => f.path === path) ? "yes" : "no");
     return status.files.find(f => f.path === path) || null;
   });
 

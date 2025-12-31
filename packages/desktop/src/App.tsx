@@ -1,4 +1,4 @@
-import { createSignal, createEffect, createResource, Show, onMount } from "solid-js";
+import { createSignal, createResource, Show, onMount, onCleanup } from "solid-js";
 import { createClient, type GitClient } from "@opentui-git/sdk";
 import type { DiffMode } from "@opentui-git/core/git/types";
 import { Header } from "./components/Header.js";
@@ -110,20 +110,6 @@ function AppContent(props: AppContentProps) {
   // Git diff hook
   const gitDiff = useGitDiff(client, gitStatus.selectedFile, props.diffMode, props.compareBranch);
 
-  // Debug effect to watch diff content changes
-  createEffect(() => {
-    const content = gitDiff.diffContent();
-    const loading = gitDiff.isLoading();
-    console.log("[App] gitDiff state changed - loading:", loading, "content:", content ? `${content.length} chars` : content);
-  });
-
-  // Debug effect to watch selected file changes
-  createEffect(() => {
-    const file = gitStatus.selectedFile();
-    const path = gitStatus.selectedPath();
-    console.log("[App] selection state - path:", path, "file:", file);
-  });
-
   // Fetch branches
   const [branches, { refetch: refetchBranches }] = createResource(
     () => true,
@@ -146,59 +132,47 @@ function AppContent(props: AppContentProps) {
   const currentBranch = () => gitStatus.gitStatus()?.current || branches()?.current || "";
 
   // Auto-refresh every 2 seconds
-  createEffect(() => {
+  onMount(() => {
     const interval = setInterval(() => {
       gitStatus.refetch();
       refetchBranches();
     }, 2000);
-    return () => clearInterval(interval);
+    onCleanup(() => clearInterval(interval));
   });
 
   // Staging actions
   const handleStageFile = async (path: string) => {
-    console.log("[App] handleStageFile called with path:", path);
     try {
       await client.stageFile(path);
-      console.log("[App] stageFile succeeded for:", path);
       gitStatus.refetch();
     } catch (e) {
-      console.error("[App] stageFile failed:", e);
       props.setError(e instanceof Error ? e.message : "Failed to stage file");
     }
   };
 
   const handleUnstageFile = async (path: string) => {
-    console.log("[App] handleUnstageFile called with path:", path);
     try {
       await client.unstageFile(path);
-      console.log("[App] unstageFile succeeded for:", path);
       gitStatus.refetch();
     } catch (e) {
-      console.error("[App] unstageFile failed:", e);
       props.setError(e instanceof Error ? e.message : "Failed to unstage file");
     }
   };
 
   const handleStageAll = async () => {
-    console.log("[App] handleStageAll called");
     try {
       await client.stageAll();
-      console.log("[App] stageAll succeeded");
       gitStatus.refetch();
     } catch (e) {
-      console.error("[App] stageAll failed:", e);
       props.setError(e instanceof Error ? e.message : "Failed to stage all files");
     }
   };
 
   const handleUnstageAll = async () => {
-    console.log("[App] handleUnstageAll called");
     try {
       await client.unstageAll();
-      console.log("[App] unstageAll succeeded");
       gitStatus.refetch();
     } catch (e) {
-      console.error("[App] unstageAll failed:", e);
       props.setError(e instanceof Error ? e.message : "Failed to unstage all files");
     }
   };
@@ -222,10 +196,7 @@ function AppContent(props: AppContentProps) {
 
   // File selection
   const handleSelectFile = (path: string) => {
-    console.log("[App] handleSelectFile called with path:", path);
-    console.log("[App] Current files:", gitStatus.gitStatus()?.files.map(f => f.path));
     gitStatus.setSelectedPath(path);
-    console.log("[App] selectedFile after set:", gitStatus.selectedFile());
   };
 
   return (

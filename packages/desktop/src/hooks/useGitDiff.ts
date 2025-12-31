@@ -26,19 +26,15 @@ export function useGitDiff(
   // Create a reactive source that combines all the relevant values
   const diffSource = createMemo(() => {
     const file = selectedFile();
-    console.log("[useGitDiff] diffSource memo evaluated - selectedFile:", file);
     if (!file) {
-      console.log("[useGitDiff] diffSource returning null (no file selected)");
       return null;
     }
-    const source = {
+    return {
       path: file.path,
       staged: file.staged || false,
       mode: diffMode(),
       branch: compareBranch(),
     };
-    console.log("[useGitDiff] diffSource returning:", source);
-    return source;
   });
 
   // Load diff for selected file - reactive to the source
@@ -48,8 +44,6 @@ export function useGitDiff(
       if (!source) return null;
       
       try {
-        console.log(`[useGitDiff] Loading diff for: ${source.path} (mode: ${source.mode}, branch: ${source.branch})`);
-
         let diff: string;
         if (source.mode === "branch" && source.branch) {
           diff = await client.getDiff(source.path, { branch: source.branch });
@@ -61,10 +55,9 @@ export function useGitDiff(
           diff = await client.getDiff(source.path, { staged });
         }
 
-        console.log(`[useGitDiff] Got diff for ${source.path}: ${diff ? diff.length + ' chars' : 'empty'}`);
         return diff || null;
       } catch (error) {
-        console.error("[useGitDiff] Error loading diff:", error);
+        console.error("Error loading diff:", error);
         return null;
       }
     },

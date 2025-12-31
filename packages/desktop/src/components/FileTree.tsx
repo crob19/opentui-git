@@ -160,7 +160,6 @@ function FileTreeItem(props: FileTreeItemProps) {
   };
 
   const handleClick = () => {
-    console.log("[FileTreeItem] clicked:", props.node.path, "isFolder:", isFolder());
     if (isFolder()) {
       props.onToggle();
     } else {
@@ -170,7 +169,6 @@ function FileTreeItem(props: FileTreeItemProps) {
 
   const handleStageClick = (e: MouseEvent) => {
     e.stopPropagation();
-    console.log("[FileTreeItem] stage/unstage clicked:", props.node.path, "isStaged:", isStaged());
     if (isStaged()) {
       props.onUnstage();
     } else {
