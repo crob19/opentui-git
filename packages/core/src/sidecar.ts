@@ -18,8 +18,10 @@ const { values } = parseArgs({
 
 const port = values.port ? parseInt(values.port, 10) : 5050;
 const repoPath = values.repo || process.cwd();
+// Always bind to 127.0.0.1 for Tauri health checks
+const hostname = "127.0.0.1";
 
 console.log(`[sidecar] Starting server on port ${port}`);
 console.log(`[sidecar] Repository path: ${repoPath}`);
 
-await startServer({ port, repoPath });
+await startServer({ port, hostname, repoPath });
