@@ -56,7 +56,17 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   });
   
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    // Try to get error details from response body
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorBody = await response.text();
+      if (errorBody) {
+        errorMessage += ` - ${errorBody}`;
+      }
+    } catch {
+      // Ignore if we can't read the body
+    }
+    throw new Error(errorMessage);
   }
   
   return response.json() as Promise<T>;

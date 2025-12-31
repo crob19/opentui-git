@@ -8,7 +8,11 @@
     ".": "./src/index.ts",
     "./server": "./src/server/index.ts",
     "./git": "./src/git/index.ts",
-    "./git/types": "./src/git/types.ts"
+    "./git/types": "./src/git/types.ts",
+    "./utils/file-tree": "./src/tui/utils/file-tree.ts",
+    "./utils/diff-parser": "./src/tui/utils/diff-parser.ts",
+    "./utils/language-detection": "./src/tui/utils/language-detection.ts",
+    "./utils/syntax-highlighting": "./src/tui/utils/syntax-highlighting.ts"
   },
   "bin": {
     "opentui-git": "./src/index.ts"

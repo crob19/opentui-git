@@ -4,8 +4,9 @@
  * 
  * Ensures the sidecar binary exists before running Tauri dev mode.
  * Builds the sidecar for the current platform if it doesn't exist.
+ * Also saves the git repository root for Tauri to use.
  */
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { $ } from "bun";
 import path from "node:path";
 
@@ -20,6 +21,17 @@ function getTarget(): string {
     return "x86_64-pc-windows-msvc";
   } else {
     return "x86_64-unknown-linux-gnu";
+  }
+}
+
+// Get the git repository root
+async function getGitRepoRoot(): Promise<string> {
+  try {
+    const result = await $`git rev-parse --show-toplevel`.text();
+    return result.trim();
+  } catch {
+    // Fallback to current directory if not in a git repo
+    return process.cwd();
   }
 }
 
@@ -44,5 +56,13 @@ if (!existsSync(sidecarPath)) {
 } else {
   console.log("Sidecar already exists");
 }
+
+// Save the git repository root to a file that Tauri can read
+// This is needed because Tauri's cargo build runs from src-tauri directory
+// We use the git repo root, not just CWD, to ensure paths work correctly
+const repoRoot = await getGitRepoRoot();
+const repoPathFile = path.resolve(import.meta.dir, "../src-tauri/.repo-path");
+writeFileSync(repoPathFile, repoRoot, "utf-8");
+console.log(`Saved repo path: ${repoRoot}`);
 
 console.log("Pre-dev setup complete");
