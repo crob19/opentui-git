@@ -12,8 +12,6 @@ export interface ModalProps {
  * Reusable modal component with backdrop blur
  */
 export const Modal: ParentComponent<ModalProps> = (props) => {
-  let modalRef: HTMLDivElement | undefined;
-
   // Handle ESC key to close
   createEffect(() => {
     if (props.open) {
@@ -52,7 +50,6 @@ export const Modal: ParentComponent<ModalProps> = (props) => {
           onClick={handleBackdropClick}
         >
           <div
-            ref={modalRef}
             class="bg-app-surface border border-app-border rounded-lg shadow-2xl max-w-lg w-full mx-4"
             role="dialog"
             aria-modal="true"

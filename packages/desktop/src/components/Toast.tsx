@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, For } from "solid-js";
 
 export interface ToastMessage {
   id: string;
@@ -10,6 +10,7 @@ export interface ToastMessage {
 let toastIdCounter = 0;
 
 const [toasts, setToasts] = createSignal<ToastMessage[]>([]);
+const toastTimeouts = new Map<string, number>();
 
 /**
  * Show a toast notification
@@ -21,9 +22,10 @@ export function showToast(message: string, type: "success" | "error" | "info" = 
   setToasts((prev) => [...prev, toast]);
   
   if (duration > 0) {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       removeToast(id);
     }, duration);
+    toastTimeouts.set(id, timeoutId);
   }
   
   return id;
@@ -33,6 +35,13 @@ export function showToast(message: string, type: "success" | "error" | "info" = 
  * Remove a toast by id
  */
 export function removeToast(id: string) {
+  // Clear the timeout if it exists
+  const timeoutId = toastTimeouts.get(id);
+  if (timeoutId !== undefined) {
+    clearTimeout(timeoutId);
+    toastTimeouts.delete(id);
+  }
+  
   setToasts((prev) => prev.filter((t) => t.id !== id));
 }
 
@@ -42,9 +51,9 @@ export function removeToast(id: string) {
 export function ToastContainer() {
   return (
     <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
-      {toasts().map((toast) => (
-        <Toast toast={toast} />
-      ))}
+      <For each={toasts()}>
+        {(toast) => <Toast toast={toast} />}
+      </For>
     </div>
   );
 }

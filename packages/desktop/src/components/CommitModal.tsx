@@ -52,10 +52,12 @@ export function CommitModal(props: CommitModalProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to submit
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
     }
+    // Allow plain Enter for newlines in the textarea (default behavior)
   };
 
   const isValid = () => message().trim().length > 0;
@@ -89,7 +91,7 @@ export function CommitModal(props: CommitModalProps) {
             disabled={isSubmitting()}
           />
           <div class="text-xs text-app-text-muted">
-            Press <kbd class="px-1 py-0.5 rounded bg-app-border text-app-text">Enter</kbd> to commit
+            Press <kbd class="px-1 py-0.5 rounded bg-app-border text-app-text">Ctrl+Enter</kbd> (or <kbd class="px-1 py-0.5 rounded bg-app-border text-app-text">Cmd+Enter</kbd>) to commit
           </div>
         </div>
 
