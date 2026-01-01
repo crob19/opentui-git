@@ -25,6 +25,7 @@ export function showToast(message: string, type: "success" | "error" | "info" = 
   
   if (duration > 0) {
     const timeoutId = setTimeout(() => {
+      toastTimeouts.delete(id);
       removeToast(id);
     }, duration);
     toastTimeouts.set(id, timeoutId);
