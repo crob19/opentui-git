@@ -12,7 +12,7 @@ let toastIdCounter = 0;
 const [toasts, setToasts] = createSignal<ToastMessage[]>([]);
 
 // Map to store timeout IDs for cleanup
-const toastTimeouts = new Map<string, number>();
+const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
 /**
  * Show a toast notification
@@ -26,7 +26,7 @@ export function showToast(message: string, type: "success" | "error" | "info" = 
   if (duration > 0) {
     const timeoutId = setTimeout(() => {
       removeToast(id);
-    }, duration) as unknown as number;
+    }, duration);
     toastTimeouts.set(id, timeoutId);
   }
   
