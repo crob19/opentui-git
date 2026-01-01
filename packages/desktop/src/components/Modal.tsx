@@ -1,4 +1,4 @@
-import { createEffect, onCleanup, type JSX, type ParentComponent } from "solid-js";
+import { createEffect, onCleanup, Show, type JSX, type ParentComponent } from "solid-js";
 import { Portal } from "solid-js/web";
 
 export interface ModalProps {
@@ -13,8 +13,6 @@ export interface ModalProps {
  */
 export const Modal: ParentComponent<ModalProps> = (props) => {
   let modalRef: HTMLDivElement | undefined;
-  
-  console.log("[Modal] Rendering with open:", props.open);
 
   // Handle ESC key to close
   createEffect(() => {
@@ -39,8 +37,6 @@ export const Modal: ParentComponent<ModalProps> = (props) => {
     }
   });
 
-  if (!props.open) return null;
-
   const handleBackdropClick = (e: MouseEvent) => {
     if (e.target === e.currentTarget) {
       props.onClose();
@@ -48,31 +44,33 @@ export const Modal: ParentComponent<ModalProps> = (props) => {
   };
 
   return (
-    <Portal>
-      <div
-        class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
-        style={{ "backdrop-filter": "blur(4px)" }}
-        onClick={handleBackdropClick}
-      >
+    <Show when={props.open}>
+      <Portal>
         <div
-          ref={modalRef}
-          class="bg-app-surface border border-app-border rounded-lg shadow-2xl max-w-lg w-full mx-4"
-          role="dialog"
-          aria-modal="true"
+          class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
+          style={{ "backdrop-filter": "blur(4px)" }}
+          onClick={handleBackdropClick}
         >
-          {/* Header */}
-          {props.title && (
-            <div class="px-6 py-4 border-b border-app-border">
-              <h2 class="text-lg font-semibold text-app-text">{props.title}</h2>
-            </div>
-          )}
+          <div
+            ref={modalRef}
+            class="bg-app-surface border border-app-border rounded-lg shadow-2xl max-w-lg w-full mx-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            <Show when={props.title}>
+              <div class="px-6 py-4 border-b border-app-border">
+                <h2 class="text-lg font-semibold text-app-text">{props.title}</h2>
+              </div>
+            </Show>
 
-          {/* Content */}
-          <div class="px-6 py-4">
-            {props.children}
+            {/* Content */}
+            <div class="px-6 py-4">
+              {props.children}
+            </div>
           </div>
         </div>
-      </div>
-    </Portal>
+      </Portal>
+    </Show>
   );
 };
