@@ -5,6 +5,8 @@ import { Header } from "./components/Header.js";
 import { FileTree } from "./components/FileTree.js";
 import { BranchList } from "./components/BranchList.js";
 import { DiffViewer } from "./components/DiffViewer.js";
+import { CommitModal } from "./components/CommitModal.js";
+import { ToastContainer, showToast } from "./components/Toast.js";
 import { useGitStatus, useGitDiff } from "./hooks/index.js";
 
 /**
@@ -104,6 +106,9 @@ interface AppContentProps {
 function AppContent(props: AppContentProps) {
   const { client } = props;
 
+  // Commit modal state
+  const [showCommitModal, setShowCommitModal] = createSignal(false);
+
   // Git status hook
   const gitStatus = useGitStatus(client, props.diffMode, props.compareBranch);
 
@@ -138,6 +143,28 @@ function AppContent(props: AppContentProps) {
       refetchBranches();
     }, 2000);
     onCleanup(() => clearInterval(interval));
+  });
+
+  // Keyboard shortcuts
+  onMount(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // 'c' key to open commit modal (if there are staged files)
+      if (e.key === "c" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const hasStagedFiles = gitStatus.gitStatus()?.files.some(f => f.staged);
+        if (hasStagedFiles) {
+          e.preventDefault();
+          setShowCommitModal(true);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", handleKeyDown));
   });
 
   // Staging actions
@@ -175,6 +202,27 @@ function AppContent(props: AppContentProps) {
     } catch (e) {
       props.setError(e instanceof Error ? e.message : "Failed to unstage all files");
     }
+  };
+
+  // Commit action
+  const handleCommit = async (message: string) => {
+    console.log("[App] Committing with message:", message);
+    try {
+      const hash = await client.commit(message);
+      console.log("[App] Commit successful, hash:", hash);
+      showToast(`Successfully committed: ${hash.substring(0, 7)}`, "success");
+      gitStatus.refetch();
+      setShowCommitModal(false);
+    } catch (e) {
+      console.error("[App] Commit failed:", e);
+      props.setError(e instanceof Error ? e.message : "Failed to commit");
+      throw e; // Re-throw so CommitModal knows it failed
+    }
+  };
+
+  const handleOpenCommitModal = () => {
+    console.log("[App] Opening commit modal");
+    setShowCommitModal(true);
   };
 
   // Branch checkout
@@ -242,6 +290,7 @@ function AppContent(props: AppContentProps) {
                 onUnstageFile={handleUnstageFile}
                 onStageAll={handleStageAll}
                 onUnstageAll={handleUnstageAll}
+                onCommit={handleOpenCommitModal}
                 diffMode={props.diffMode}
                 compareBranch={props.compareBranch}
               />
@@ -273,6 +322,20 @@ function AppContent(props: AppContentProps) {
           </div>
         </div>
       </Show>
+
+      {/* Commit Modal */}
+      <CommitModal
+        open={showCommitModal()}
+        onClose={() => {
+          console.log("[App] Closing commit modal");
+          setShowCommitModal(false);
+        }}
+        onCommit={handleCommit}
+        stagedCount={gitStatus.gitStatus()?.files.filter(f => f.staged).length ?? 0}
+      />
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 }
