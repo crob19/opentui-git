@@ -12,6 +12,7 @@ export interface FileTreeProps {
   onUnstageFile: (path: string) => void;
   onStageAll: () => void;
   onUnstageAll: () => void;
+  onCommit: () => void;
   diffMode: Accessor<DiffMode>;
   compareBranch: Accessor<string | null>;
 }
@@ -80,7 +81,7 @@ export function FileTree(props: FileTreeProps) {
           </Show>
         </div>
         
-        {/* Stage All / Unstage All buttons */}
+        {/* Stage All / Unstage All / Commit buttons */}
         <div class="flex items-center gap-2">
           <Show when={hasUnstagedFiles()}>
             <button
@@ -98,6 +99,18 @@ export function FileTree(props: FileTreeProps) {
               title="Unstage all files"
             >
               Unstage All
+            </button>
+          </Show>
+          <Show when={hasStagedFiles()}>
+            <button
+              onClick={() => {
+                console.log("[FileTree] Commit button clicked");
+                props.onCommit();
+              }}
+              class="text-xs px-2 py-1 rounded bg-app-accent/30 text-blue-400 hover:bg-app-accent/50 transition-colors"
+              title="Commit staged files (c)"
+            >
+              Commit
             </button>
           </Show>
         </div>
