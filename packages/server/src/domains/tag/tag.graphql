@@ -3,8 +3,13 @@ type TagResult {
   tag: String
 }
 
+type Tag {
+  name: String!
+  date: String!
+}
+
 extend type Query {
-  tags: [String!]!
+  tags: [Tag!]!
 }
 
 extend type Mutation {
