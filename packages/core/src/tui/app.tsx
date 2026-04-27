@@ -1,6 +1,7 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { createClient } from "@opentui-git/sdk";
+import { createClient } from "./git-client.js";
+import { GitService } from "../git/service.js";
 import { useDialog } from "./components/dialog.js";
 import { useToast } from "./components/toast.js";
 import { AppLayout } from "./components/app-layout.js";
@@ -21,11 +22,11 @@ import { registerShutdownHandler } from "./index.js";
  */
 export type BranchPanelTab = "branches" | "tags";
 
-/**
- * Get the server URL from global state (set by tui/index.tsx)
- */
-function getServerUrl(): string {
-  return ((globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ as string) || "http://localhost:5050";
+function getRepoPath(): string {
+  return (
+    ((globalThis as Record<string, unknown>)
+      .__OPENTUI_GIT_REPO_PATH__ as string) || process.cwd()
+  );
 }
 
 /**
@@ -34,8 +35,8 @@ function getServerUrl(): string {
  * Orchestrates all hooks and passes state to layout component
  */
 export function App() {
-  const serverUrl = getServerUrl();
-  const client = createClient(serverUrl);
+  const git = new GitService(getRepoPath());
+  const client = createClient(git);
   return <AppContent client={client} />;
 }
 
@@ -51,21 +52,26 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
 
   // Panel navigation state
   const [activePanel, setActivePanel] = createSignal<PanelType>("files");
-  
+
   // Branch panel tab state (branches vs tags)
-  const [branchPanelTab, setBranchPanelTab] = createSignal<BranchPanelTab>("branches");
+  const [branchPanelTab, setBranchPanelTab] =
+    createSignal<BranchPanelTab>("branches");
 
   // Diff panel state
   const [selectedDiffRow, setSelectedDiffRow] = createSignal(0);
-  const [diffViewMode, setDiffViewMode] = createSignal<"unified" | "side-by-side">("side-by-side");
+  const [diffViewMode, setDiffViewMode] = createSignal<
+    "unified" | "side-by-side"
+  >("side-by-side");
   const [diffMode, setDiffMode] = createSignal<DiffMode>("unstaged");
   const [compareBranch, setCompareBranch] = createSignal<string | null>(null);
-  const [isCompareBranchLoading, setIsCompareBranchLoading] = createSignal(true);
+  const [isCompareBranchLoading, setIsCompareBranchLoading] =
+    createSignal(true);
 
   // Initialize compareBranch with the default branch (main or master)
   // This runs once on startup and is properly tracked
   createEffect(() => {
-    client.getDefaultBranch()
+    client
+      .getDefaultBranch()
       .then((branch) => {
         setCompareBranch(branch);
         setIsCompareBranchLoading(false);
@@ -81,7 +87,9 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
   const [isEditMode, setIsEditMode] = createSignal(false);
   const [editedContent, setEditedContent] = createSignal("");
   // Track all edited lines: Map<lineNumber, editedContent>
-  const [editedLines, setEditedLines] = createSignal<Map<number, string>>(new Map());
+  const [editedLines, setEditedLines] = createSignal<Map<number, string>>(
+    new Map(),
+  );
   const [fileContent, setFileContent] = createSignal("");
   const [selectedLine, setSelectedLine] = createSignal(0);
   const [fileMtime, setFileMtime] = createSignal<Date | null>(null);
@@ -90,11 +98,21 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
   const gitStatus = useGitStatus(client, diffMode, compareBranch);
   const gitBranches = useGitBranches(client);
   const gitTags = useGitTags(client);
-  const gitDiff = useGitDiff(client, gitStatus.selectedFile, diffMode, compareBranch);
+  const gitDiff = useGitDiff(
+    client,
+    gitStatus.selectedFile,
+    diffMode,
+    compareBranch,
+  );
 
   // Auto-refresh git status, branches, and tags every second
   // Returns cleanup function for graceful shutdown
-  const cleanupAutoRefresh = useAutoRefresh(dialog, gitStatus.refetch, gitBranches.refetchBranches, gitTags.refetchTags);
+  const cleanupAutoRefresh = useAutoRefresh(
+    dialog,
+    gitStatus.refetch,
+    gitBranches.refetchBranches,
+    gitTags.refetchTags,
+  );
 
   // Register cleanup handlers for graceful shutdown
   // These will be called when the app exits via q, Ctrl+C, or SIGTERM
@@ -151,12 +169,12 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
 
   // Track last file path to detect actual file changes (not just refreshes)
   const [lastFilePath, setLastFilePath] = createSignal<string | null>(null);
-  
+
   // Reset diff scroll position when file path actually changes
   createEffect(() => {
     const file = gitStatus.selectedFile();
     const currentPath = file?.path || null;
-    
+
     // Only reset if the file path actually changed
     if (currentPath !== lastFilePath()) {
       setLastFilePath(currentPath);
