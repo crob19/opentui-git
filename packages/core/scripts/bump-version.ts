@@ -186,8 +186,8 @@ async function commitAndTag() {
   console.log("\n📦 Creating release commit and tag...");
 
   try {
-    // Stage package.json
-    await $`git add package.json`;
+    // Stage package.json (use absolute path — script may be run from any cwd)
+    await $`git add ${PACKAGE_JSON}`;
     console.log(`   ✓ Staged package.json`);
 
     // Commit with conventional commit format
