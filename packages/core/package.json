@@ -1,6 +1,6 @@
 {
   "name": "@opentui-git/core",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Core package: CLI and TUI for opentui-git",
   "type": "module",
   "main": "src/index.ts",
