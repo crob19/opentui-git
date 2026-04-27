@@ -10,6 +10,7 @@
     "dev": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "build": "bun run --cwd packages/core build",
+    "build:binary": "bun run --cwd packages/core build:binary",
     "typecheck": "bun run --cwd packages/core typecheck",
     "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules bun.lock"
   },
