@@ -1,6 +1,6 @@
 import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
 import type { Highlighter } from "shiki";
-import type { GitClient } from "@opentui-git/sdk";
+import type { GitClient } from "../git-client.js";
 import type { DiffMode } from "../../git/types.js";
 import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";

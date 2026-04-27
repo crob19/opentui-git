@@ -6,7 +6,7 @@ import { ToastProvider } from "./components/toast.js";
 import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
-  serverUrl: string;
+  repoPath: string;
 }
 
 // Global shutdown registry
@@ -36,15 +36,14 @@ export function executeShutdown() {
 
 /**
  * Start the TUI
- * Note: Server must already be running - this only handles the UI
  */
 export function startTUI(options: TUIOptions) {
-  const { serverUrl } = options;
+  const { repoPath } = options;
 
   // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
-    // Store server URL for components to use
-    (globalThis as Record<string, unknown>).__OPENTUI_GIT_SERVER_URL__ = serverUrl;
+    (globalThis as Record<string, unknown>).__OPENTUI_GIT_REPO_PATH__ =
+      repoPath;
 
     const onExit = async () => {
       executeShutdown();
@@ -74,11 +73,13 @@ export function startTUI(options: TUIOptions) {
           keyBindings: [{ name: "y", ctrl: true, action: "copy-selection" }],
           onCopySelection: (text) => {
             Clipboard.copy(text)
-              .then(() => console.log(`Copied ${text.length} characters to clipboard`))
+              .then(() =>
+                console.log(`Copied ${text.length} characters to clipboard`),
+              )
               .catch((err) => console.error("Copy failed:", err));
           },
         },
-      }
+      },
     );
   });
 }

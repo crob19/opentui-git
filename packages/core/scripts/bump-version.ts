@@ -2,12 +2,12 @@
 
 /**
  * Version bumping script for releases
- * 
+ *
  * Usage:
  *   bun run scripts/bump-version.ts --major  # 0.1.0 → 1.0.0
  *   bun run scripts/bump-version.ts --minor  # 0.1.0 → 0.2.0
  *   bun run scripts/bump-version.ts --patch  # 0.1.0 → 0.1.1
- * 
+ *
  * Features:
  * - Validates git working directory is clean
  * - Requires main branch for releases
@@ -36,7 +36,9 @@ else if (args.includes("--patch")) bumpType = "patch";
 
 if (!bumpType) {
   console.error("❌ Error: Missing version bump type");
-  console.error("Usage: bun run scripts/bump-version.ts --major|--minor|--patch");
+  console.error(
+    "Usage: bun run scripts/bump-version.ts --major|--minor|--patch",
+  );
   process.exit(1);
 }
 
@@ -45,13 +47,18 @@ let pkg: any;
 try {
   pkg = await Bun.file(PACKAGE_JSON).json();
 } catch (err) {
-  console.error("❌ Error: Failed to read or parse package.json at:", PACKAGE_JSON);
+  console.error(
+    "❌ Error: Failed to read or parse package.json at:",
+    PACKAGE_JSON,
+  );
   console.error("Details:", err);
   process.exit(1);
 }
 
 if (!pkg || typeof pkg !== "object") {
-  console.error("❌ Error: package.json is invalid. Expected an object at the top level.");
+  console.error(
+    "❌ Error: package.json is invalid. Expected an object at the top level.",
+  );
   process.exit(1);
 }
 
@@ -67,10 +74,17 @@ if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
 const [major, minor, patch] = currentVersion.split(".").map(Number);
 
 // Validate numeric components
-if (!Number.isInteger(major) || major < 0 ||
-    !Number.isInteger(minor) || minor < 0 ||
-    !Number.isInteger(patch) || patch < 0) {
-  console.error(`❌ Error: Invalid numeric components in version "${currentVersion}"`);
+if (
+  !Number.isInteger(major) ||
+  major < 0 ||
+  !Number.isInteger(minor) ||
+  minor < 0 ||
+  !Number.isInteger(patch) ||
+  patch < 0
+) {
+  console.error(
+    `❌ Error: Invalid numeric components in version "${currentVersion}"`,
+  );
   process.exit(1);
 }
 
@@ -94,7 +108,7 @@ console.log(`Version bump: ${currentVersion} → ${newVersion} (${bumpType})`);
 // Pre-flight checks
 async function checkGitStatus() {
   console.log("\n📋 Running pre-flight checks...");
-  
+
   try {
     const status = await $`git status --porcelain`.text();
     if (status.trim()) {
@@ -114,7 +128,9 @@ async function checkBranch() {
   try {
     const branch = (await $`git branch --show-current`.text()).trim();
     if (branch !== "main") {
-      console.error(`\n❌ Error: You must be on 'main' branch to create a release`);
+      console.error(
+        `\n❌ Error: You must be on 'main' branch to create a release`,
+      );
       console.error(`   Current branch: '${branch}'`);
       console.error(`\n   Switch to main branch:`);
       console.error(`   git checkout main`);
@@ -132,12 +148,14 @@ async function checkRemoteUpToDate() {
   try {
     // Fetch latest from remote
     await $`git fetch origin`.quiet();
-    
+
     const localCommit = (await $`git rev-parse HEAD`.text()).trim();
     const remoteCommit = (await $`git rev-parse origin/main`.text()).trim();
-    
+
     if (localCommit !== remoteCommit) {
-      console.error("\n❌ Error: Your local main branch is not up to date with origin/main");
+      console.error(
+        "\n❌ Error: Your local main branch is not up to date with origin/main",
+      );
       console.error("   Please pull the latest changes before releasing:");
       console.error("   git pull origin main");
       process.exit(1);
@@ -166,16 +184,16 @@ async function updatePackageJson() {
 // Commit, tag, and push
 async function commitAndTag() {
   console.log("\n📦 Creating release commit and tag...");
-  
+
   try {
     // Stage package.json
     await $`git add package.json`;
     console.log(`   ✓ Staged package.json`);
-    
+
     // Commit with conventional commit format
     await $`git commit -m ${`chore: release v${newVersion}`}`;
     console.log(`   ✓ Created commit: "chore: release v${newVersion}"`);
-    
+
     // Create annotated tag
     await $`git tag -a ${`v${newVersion}`} -m ${`chore: release v${newVersion}`}`;
     console.log(`   ✓ Created tag v${newVersion}`);
@@ -187,14 +205,14 @@ async function commitAndTag() {
 
 async function pushToRemote() {
   console.log("\n🚢 Pushing to remote...");
-  
+
   try {
     const branch = (await $`git branch --show-current`.text()).trim();
-    
+
     // Push branch
     await $`git push origin ${branch}`;
     console.log(`   ✓ Pushed ${branch} branch`);
-    
+
     // Push tag
     await $`git push origin ${`v${newVersion}`}`;
     console.log(`   ✓ Pushed tag v${newVersion}`);
@@ -207,43 +225,15 @@ async function pushToRemote() {
   }
 }
 
-async function calculateChecksums() {
-  console.log("\n🔐 Calculating SHA256 checksums for Homebrew...");
-  console.log("   (This will take a moment after GitHub Actions creates the release)\n");
-  
-  const repoUrl = "https://github.com/crob19/opentui-git";
-  
-  console.log("   After the release is published, run these commands to get SHA256s:");
-  console.log(`   curl -sL ${repoUrl}/releases/download/v${newVersion}/opentui-git-v${newVersion}-darwin-arm64.tar.gz | shasum -a 256`);
-  console.log(`   curl -sL ${repoUrl}/releases/download/v${newVersion}/opentui-git-v${newVersion}-darwin-x64.tar.gz | shasum -a 256`);
-}
-
-// Main execution
 async function main() {
   try {
-    // Pre-flight checks
     await checkGitStatus();
     await checkBranch();
     await checkRemoteUpToDate();
-    
-    // Update version
     await updatePackageJson();
-    
-    // Create commit and tag
     await commitAndTag();
-    
-    // Push to remote
     await pushToRemote();
-    
-    // Success!
     console.log("\n✨ Release v" + newVersion + " complete!\n");
-    console.log("🎯 Next steps:");
-    console.log(`   1. GitHub Actions is building the release: ${pkg.homepage}/actions`);
-    console.log(`   2. Release will be published at: ${pkg.homepage}/releases/tag/v${newVersion}`);
-    console.log(`   3. Update Homebrew formula with new SHA256s (see below)\n`);
-    
-    await calculateChecksums();
-    
   } catch (err) {
     console.error("\n❌ Release failed:", err);
     process.exit(1);

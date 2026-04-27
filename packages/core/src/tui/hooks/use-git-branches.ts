@@ -1,5 +1,5 @@
 import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "@opentui-git/sdk";
+import type { GitClient } from "../git-client.js";
 import type { GitBranchInfo } from "../../git/types.js";
 import { logger } from "../utils/logger.js";
 

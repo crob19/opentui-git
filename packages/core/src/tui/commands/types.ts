@@ -1,5 +1,5 @@
 import type { Setter } from "solid-js";
-import type { GitClient } from "@opentui-git/sdk";
+import type { GitClient } from "../git-client.js";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 
