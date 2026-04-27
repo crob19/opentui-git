@@ -8,16 +8,7 @@ const result = await Bun.build({
   target: "bun",
   plugins: [solidTransformPlugin],
   // Don't bundle node_modules to keep the build fast
-  external: [
-    "@opentui/*",
-    "@opentui-git/*",
-    "@elysiajs/*",
-    "solid-js",
-    "simple-git",
-    "shiki",
-    "diff",
-    "elysia",
-  ],
+  external: ["@opentui/*", "solid-js", "simple-git", "shiki", "diff"],
 });
 
 if (!result.success) {
