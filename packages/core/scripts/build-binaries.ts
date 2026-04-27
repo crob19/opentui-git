@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Compile the TUI to a standalone executable via `bun build --compile`.
+ * Compile the TUI to a standalone executable via Bun's compile target.
  *
  * Usage: bun run build:binary --arch arm64|x64
  *
- * Output:
+ * Output (at repo root, where the release workflow expects them):
  *   dist/opentui-git-darwin-{arch}                   (executable)
  *   dist/opentui-git-v{version}-darwin-{arch}.tar.gz (release artifact)
  */
@@ -23,22 +23,23 @@ if (arch !== "arm64" && arch !== "x64") {
   process.exit(1);
 }
 
-const ROOT_DIR = path.resolve(import.meta.dir, "..");
-const PKG = await Bun.file(path.join(ROOT_DIR, "package.json")).json();
+const PKG_DIR = path.resolve(import.meta.dir, "..");
+const REPO_ROOT = path.resolve(PKG_DIR, "../..");
+const PKG = await Bun.file(path.join(PKG_DIR, "package.json")).json();
 const version = PKG.version as string;
 
 const target = arch === "arm64" ? "bun-darwin-arm64" : "bun-darwin-x64";
 const binName = `opentui-git-darwin-${arch}`;
 const tarName = `opentui-git-v${version}-darwin-${arch}.tar.gz`;
 
-const distDir = path.join(ROOT_DIR, "dist");
+const distDir = path.join(REPO_ROOT, "dist");
 await rm(distDir, { recursive: true, force: true });
 await mkdir(distDir, { recursive: true });
 
 console.log(`Compiling ${binName} (target: ${target})...`);
 
 const result = await Bun.build({
-  entrypoints: [path.join(ROOT_DIR, "src/index.ts")],
+  entrypoints: [path.join(PKG_DIR, "src/index.ts")],
   outdir: distDir,
   target: "bun",
   plugins: [solidTransformPlugin],
