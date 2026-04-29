@@ -7,6 +7,7 @@ import {
   createResource,
 } from "solid-js";
 import type { Highlighter } from "shiki";
+import { useTerminalDimensions } from "@opentui/solid";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
 import { parseDiffLines, type DiffLine } from "../utils/diff-parser.js";
@@ -184,10 +185,23 @@ function padLineNum(num: number | null, pad: number): string {
   return cached;
 }
 
-// Maximum number of diff lines to show at once in the virtual scroll window
-const MAX_VISIBLE_DIFF_LINES = 35;
+// Chrome above/below the diff line list (app header + footer + viewer
+// border/padding + viewer's own header row). Subtracted from terminal height
+// to size the virtual scroll window so the diff fills the viewport.
+const DIFF_VIEWER_CHROME_HEIGHT = 12;
+// Floor for the visible window when the terminal is very short.
+const MIN_VISIBLE_DIFF_LINES = 5;
 
 export function DiffViewer(props: DiffViewerProps) {
+  const dimensions = useTerminalDimensions();
+
+  const maxVisibleDiffLines = createMemo(() =>
+    Math.max(
+      MIN_VISIBLE_DIFF_LINES,
+      dimensions().height - DIFF_VIEWER_CHROME_HEIGHT,
+    ),
+  );
+
   const diffLines = () => {
     const diff = props.diff();
     if (!diff) return [];
@@ -207,7 +221,7 @@ export function DiffViewer(props: DiffViewerProps) {
     calculateVirtualScrollWindow(
       diffLines(),
       props.selectedLine(),
-      MAX_VISIBLE_DIFF_LINES,
+      maxVisibleDiffLines(),
     ),
   );
 
