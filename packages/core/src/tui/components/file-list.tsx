@@ -5,6 +5,15 @@ import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 // Maximum number of file items to show at once in the virtual scroll window
 const MAX_VISIBLE_FILES = 20;
 
+// Cache of indent strings keyed by depth to avoid repeated `'  '.repeat(depth)` allocations on every render
+const INDENT_CACHE: string[] = [""];
+function getIndent(depth: number): string {
+  for (let i = INDENT_CACHE.length; i <= depth; i++) {
+    INDENT_CACHE[i] = INDENT_CACHE[i - 1] + "  ";
+  }
+  return INDENT_CACHE[depth];
+}
+
 /**
  * FileList component - Displays the list of changed files with colors and selection
  */
@@ -30,7 +39,7 @@ export function FileList(props: FileListProps) {
   // Get diff mode label for display
   const diffModeLabel = createMemo(() => {
     if (!props.diffMode) return null;
-    
+
     const mode = props.diffMode();
     switch (mode) {
       case "unstaged":
@@ -67,26 +76,27 @@ export function FileList(props: FileListProps) {
           </>
         )}
       </box>
-      
+
       <box flexDirection="column" gap={0}>
         <For each={scrollWindow().visibleItems}>
           {(node, index) => {
             const actualIndex = () => scrollWindow().start + index();
             const isSelected = () => actualIndex() === props.selectedIndex();
-            
+
             // Determine display properties based on node type
             const displayName = () => {
-              if (node.type === 'folder') {
-                const indicator = node.expanded ? '▼' : '▶';
-                return `${'  '.repeat(node.depth)}${indicator} ${node.name}/`;
+              const indent = getIndent(node.depth);
+              if (node.type === "folder") {
+                const indicator = node.expanded ? "▼" : "▶";
+                return `${indent}${indicator} ${node.name}/`;
               } else {
-                return `${'  '.repeat(node.depth)}  ${node.name}`;
+                return `${indent}  ${node.name}`;
               }
             };
-            
+
             const color = () => {
               // File nodes show staged status or status color
-              if (node.type === 'file' && node.fileStatus) {
+              if (node.type === "file" && node.fileStatus) {
                 // In branch mode, use the color we already set (which considers hasLocalChanges)
                 if (props.diffMode?.() === "branch") {
                   return node.color;
@@ -97,10 +107,12 @@ export function FileList(props: FileListProps) {
               // Folder nodes use their calculated color
               return node.color || "#AAAAAA";
             };
-            
+
             return (
               <box
-                backgroundColor={isSelected() && props.isActive() ? "#333333" : "transparent"}
+                backgroundColor={
+                  isSelected() && props.isActive() ? "#333333" : "transparent"
+                }
                 width="100%"
                 height={1}
                 flexDirection="row"
@@ -108,19 +120,17 @@ export function FileList(props: FileListProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={isSelected() && props.isActive() ? "#FFFFFF" : color()}>
+                <text
+                  fg={isSelected() && props.isActive() ? "#FFFFFF" : color()}
+                >
                   {displayName()}
                 </text>
               </box>
             );
           }}
         </For>
-        
-        {props.files().length === 0 && (
-          <text fg="#888888">
-            No changes
-          </text>
-        )}
+
+        {props.files().length === 0 && <text fg="#888888">No changes</text>}
       </box>
     </box>
   );

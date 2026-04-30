@@ -1,14 +1,36 @@
-import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect } from "solid-js";
+import {
+  For,
+  Show,
+  type Accessor,
+  type Setter,
+  createMemo,
+  createResource,
+  createEffect,
+} from "solid-js";
 import type { Highlighter } from "shiki";
+import { useTerminalDimensions } from "@opentui/solid";
 import type { GitClient } from "../git-client.js";
 import type { DiffMode } from "../../git/types.js";
-import { parseSideBySideDiff, parseDiffLines, type DiffRow, type DiffLine } from "../utils/diff-parser.js";
+import {
+  parseSideBySideDiff,
+  parseDiffLines,
+  type DiffRow,
+  type DiffLine,
+} from "../utils/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
-import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
+import {
+  getHighlighter,
+  highlightCode,
+  type HighlightedToken,
+} from "../utils/syntax-highlighting.js";
 
-// Maximum number of diff rows to show at once (virtual scrolling)
-const MAX_VISIBLE_ROWS = 30;
+// Chrome above/below the diff list (header height=3 + footer height=3).
+// Subtracted from terminal height to size the virtual scroll window so the
+// diff fills the viewport.
+const FULL_PAGE_CHROME_HEIGHT = 6;
+// Floor for the visible window when the terminal is very short.
+const MIN_VISIBLE_ROWS = 5;
 
 // Background color constants
 const DIFF_BG_COLOR_ADD = "#1F3F1F";
@@ -42,6 +64,12 @@ const DIFF_LINE_NUM_BG_COLOR_HEADER = "#0F1F2F";
 const DIFF_LINE_NUM_BG_COLOR_CONTEXT = "#1A1A1A";
 
 export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
+  const dimensions = useTerminalDimensions();
+
+  const maxVisibleRows = createMemo(() =>
+    Math.max(MIN_VISIBLE_ROWS, dimensions().height - FULL_PAGE_CHROME_HEIGHT),
+  );
+
   // Parse diff into rows for side-by-side view
   const diffRows = createMemo(() => {
     const diff = props.diff();
@@ -70,7 +98,7 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
     calculateVirtualScrollWindow(
       diffRows(),
       props.selectedRow(),
-      MAX_VISIBLE_ROWS,
+      maxVisibleRows(),
     ),
   );
 
@@ -79,27 +107,35 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
     calculateVirtualScrollWindow(
       diffLines(),
       props.selectedRow(),
-      MAX_VISIBLE_ROWS,
+      maxVisibleRows(),
     ),
   );
 
   // Highlight cache
   const highlightCache = new Map<string, HighlightedToken[]>();
-  
-  const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+
+  const getHighlightedTokens = (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ): HighlightedToken[] => {
     if (!hl || code === "") return [{ text: code, color: "#CCCCCC" }];
-    
+
     const cacheKey = `${lang}:${code}`;
     const cached = highlightCache.get(cacheKey);
     if (cached) return cached;
-    
+
     const tokens = highlightCode(code, lang, hl);
     highlightCache.set(cacheKey, tokens);
     return tokens;
   };
 
-  const viewModeLabel = () => props.viewMode() === "side-by-side" ? "Side-by-Side" : "Unified";
-  const totalItems = () => props.viewMode() === "side-by-side" ? diffRows().length : diffLines().length;
+  const viewModeLabel = () =>
+    props.viewMode() === "side-by-side" ? "Side-by-Side" : "Unified";
+  const totalItems = () =>
+    props.viewMode() === "side-by-side"
+      ? diffRows().length
+      : diffLines().length;
 
   // Helper to get diff mode label
   const diffModeLabel = () => {
@@ -152,7 +188,9 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
         </box>
         <box flexDirection="row" gap={2}>
           <text fg="#00AAFF">[{diffModeLabel()}]</text>
-          <text fg="#666666">Row {props.selectedRow() + 1}/{totalItems()}</text>
+          <text fg="#666666">
+            Row {props.selectedRow() + 1}/{totalItems()}
+          </text>
           <text fg="#888888">[{viewModeLabel()}]</text>
         </box>
       </box>
@@ -174,7 +212,9 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
             <box flexGrow={1} justifyContent="center" alignItems="center">
               <Show
                 when={highlighter.error}
-                fallback={<text fg="#888888">Loading syntax highlighter...</text>}
+                fallback={
+                  <text fg="#888888">Loading syntax highlighter...</text>
+                }
               >
                 <text fg="#FF5555">Failed to load syntax highlighter</text>
               </Show>
@@ -253,7 +293,10 @@ export function FullPageDiffViewer(props: FullPageDiffViewerProps) {
           <text fg="#FFAA00">EDIT MODE</text>
           <Show when={props.editedLines().size > 0}>
             <text fg="#444444"> - </text>
-            <text fg="#44FF44">{props.editedLines().size} line{props.editedLines().size > 1 ? 's' : ''} edited</text>
+            <text fg="#44FF44">
+              {props.editedLines().size} line
+              {props.editedLines().size > 1 ? "s" : ""} edited
+            </text>
           </Show>
           <text fg="#444444">│</text>
           <text fg="#00AAFF">↑/↓</text>
@@ -277,7 +320,11 @@ interface SideBySideDiffViewProps {
   selectedRow: Accessor<number>;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
   isEditMode: Accessor<boolean>;
   editedContent: Accessor<string>;
   setEditedContent: Setter<string>;
@@ -316,7 +363,11 @@ interface DiffRowViewProps {
   row: DiffRow;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
   isSelected: boolean;
   isEditMode: Accessor<boolean>;
   editedContent: Accessor<string>;
@@ -325,8 +376,18 @@ interface DiffRowViewProps {
 }
 
 function DiffRowView(props: DiffRowViewProps) {
-  const leftTokens = () => props.getHighlightedTokens(props.row.left, props.language, props.highlighter);
-  const rightTokens = () => props.getHighlightedTokens(props.row.right, props.language, props.highlighter);
+  const leftTokens = () =>
+    props.getHighlightedTokens(
+      props.row.left,
+      props.language,
+      props.highlighter,
+    );
+  const rightTokens = () =>
+    props.getHighlightedTokens(
+      props.row.right,
+      props.language,
+      props.highlighter,
+    );
 
   // Check if this line has been edited
   const isEdited = () => {
@@ -336,13 +397,15 @@ function DiffRowView(props: DiffRowViewProps) {
 
   const leftBg = () => {
     if (props.isSelected) return DIFF_BG_COLOR_SELECTED;
-    if (props.row.type === "removed" || props.row.type === "modified") return DIFF_BG_COLOR_REMOVE;
+    if (props.row.type === "removed" || props.row.type === "modified")
+      return DIFF_BG_COLOR_REMOVE;
     return "transparent";
   };
 
   const rightBg = () => {
     if (props.isSelected) return DIFF_BG_COLOR_SELECTED;
-    if (props.row.type === "added" || props.row.type === "modified") return DIFF_BG_COLOR_ADD;
+    if (props.row.type === "added" || props.row.type === "modified")
+      return DIFF_BG_COLOR_ADD;
     return "transparent";
   };
 
@@ -358,17 +421,21 @@ function DiffRowView(props: DiffRowViewProps) {
         {/* Line number */}
         <box width={6} paddingRight={1}>
           <Show when={props.row.leftLineNum !== null}>
-            <text fg="#666666">{String(props.row.leftLineNum).padStart(4, " ")}</text>
+            <text fg="#666666">
+              {String(props.row.leftLineNum).padStart(4, " ")}
+            </text>
           </Show>
         </box>
-        
+
         {/* Indicator */}
         <box width={2}>
-          <Show when={props.row.type === "removed" || props.row.type === "modified"}>
+          <Show
+            when={props.row.type === "removed" || props.row.type === "modified"}
+          >
             <text fg="#FF5555">-</text>
           </Show>
         </box>
-        
+
         {/* Content */}
         <box flexGrow={1} flexDirection="row">
           <For each={leftTokens()}>
@@ -392,7 +459,9 @@ function DiffRowView(props: DiffRowViewProps) {
         {/* Line number */}
         <box width={6} paddingRight={1}>
           <Show when={props.row.rightLineNum !== null}>
-            <text fg="#666666">{String(props.row.rightLineNum).padStart(4, " ")}</text>
+            <text fg="#666666">
+              {String(props.row.rightLineNum).padStart(4, " ")}
+            </text>
           </Show>
         </box>
 
@@ -401,7 +470,12 @@ function DiffRowView(props: DiffRowViewProps) {
           <Show when={isEdited()}>
             <text fg="#FFAA00">*</text>
           </Show>
-          <Show when={!isEdited() && (props.row.type === "added" || props.row.type === "modified")}>
+          <Show
+            when={
+              !isEdited() &&
+              (props.row.type === "added" || props.row.type === "modified")
+            }
+          >
             <text fg="#44FF44">+</text>
           </Show>
         </box>
@@ -409,7 +483,11 @@ function DiffRowView(props: DiffRowViewProps) {
         {/* Content - Show textbox when in edit mode, selected, and on an editable line */}
         <box flexGrow={1} flexDirection="row">
           <Show
-            when={props.isEditMode() && props.isSelected && props.row.rightLineNum !== null}
+            when={
+              props.isEditMode() &&
+              props.isSelected &&
+              props.row.rightLineNum !== null
+            }
             fallback={
               <Show
                 when={isEdited() && props.row.rightLineNum !== null}
@@ -425,7 +503,9 @@ function DiffRowView(props: DiffRowViewProps) {
           >
             <textbox
               value={props.editedContent()}
-              onInput={(newContent: string) => props.setEditedContent(newContent)}
+              onInput={(newContent: string) =>
+                props.setEditedContent(newContent)
+              }
               fg="#FFFFFF"
               bg={rightBg()}
               width="100%"
@@ -444,7 +524,11 @@ interface UnifiedDiffViewProps {
   selectedRow: Accessor<number>;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
 }
 
 function UnifiedDiffView(props: UnifiedDiffViewProps) {
@@ -452,8 +536,10 @@ function UnifiedDiffView(props: UnifiedDiffViewProps) {
   const lineNumberPadding = createMemo(() => {
     let max = 0;
     for (const line of props.lines) {
-      if (line.oldLineNum !== null && line.oldLineNum > max) max = line.oldLineNum;
-      if (line.newLineNum !== null && line.newLineNum > max) max = line.newLineNum;
+      if (line.oldLineNum !== null && line.oldLineNum > max)
+        max = line.oldLineNum;
+      if (line.newLineNum !== null && line.newLineNum > max)
+        max = line.newLineNum;
     }
     return max > 0 ? Math.max(String(max).length, 4) : 4;
   });
@@ -466,7 +552,7 @@ function UnifiedDiffView(props: UnifiedDiffViewProps) {
         {(line, index) => {
           const actualIndex = () => props.scrollStart + index();
           const isSelected = () => actualIndex() === props.selectedRow();
-          
+
           return (
             <UnifiedDiffLineView
               line={line}
@@ -518,7 +604,11 @@ interface UnifiedDiffLineViewProps {
   line: DiffLine;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
   lineNumberWidth: number;
   lineNumberPadding: number;
   isSelected: boolean;
@@ -554,9 +644,19 @@ function UnifiedDiffLineView(props: UnifiedDiffLineViewProps) {
     );
   }
 
-  const tokens = props.getHighlightedTokens(props.line.content, props.language, props.highlighter);
-  const oldNum = props.line.oldLineNum !== null ? String(props.line.oldLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
-  const newNum = props.line.newLineNum !== null ? String(props.line.newLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
+  const tokens = props.getHighlightedTokens(
+    props.line.content,
+    props.language,
+    props.highlighter,
+  );
+  const oldNum =
+    props.line.oldLineNum !== null
+      ? String(props.line.oldLineNum).padStart(props.lineNumberPadding, " ")
+      : " ".repeat(props.lineNumberPadding);
+  const newNum =
+    props.line.newLineNum !== null
+      ? String(props.line.newLineNum).padStart(props.lineNumberPadding, " ")
+      : " ".repeat(props.lineNumberPadding);
 
   return (
     <box

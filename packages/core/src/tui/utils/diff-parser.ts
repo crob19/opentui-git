@@ -1,5 +1,7 @@
 import { parsePatch } from "diff";
 
+const HUNK_HEADER_RE = /@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
+
 /**
  * Represents a line in a unified diff view
  */
@@ -33,10 +35,10 @@ export interface DiffRow {
  */
 export function parseSideBySideDiff(diffString: string): DiffRow[] {
   const diffRows: DiffRow[] = [];
-  
+
   try {
     const patches = parsePatch(diffString);
-    
+
     for (const patch of patches) {
       for (const hunk of patch.hunks) {
         // Initialize line numbers from this hunk's start positions
@@ -44,31 +46,31 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
         let rightLineNum = hunk.newStart || 1;
         const lines = hunk.lines;
         let i = 0;
-        
+
         while (i < lines.length) {
           const line = lines[i];
-          
+
           // Skip empty lines
           if (line.length === 0) {
             i++;
             continue;
           }
-          
+
           const content = line.slice(1);
           const prefix = line[0];
-          
+
           if (prefix === "-") {
             // Collect consecutive removals
             const removals: string[] = [content];
             const removalLineNums: number[] = [leftLineNum++];
             let j = i + 1;
-            
+
             while (j < lines.length && lines[j][0] === "-") {
               removals.push(lines[j].slice(1));
               removalLineNums.push(leftLineNum++);
               j++;
             }
-            
+
             // Collect consecutive additions that follow
             const additions: string[] = [];
             const additionLineNums: number[] = [];
@@ -77,13 +79,13 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
               additionLineNums.push(rightLineNum++);
               j++;
             }
-            
+
             // Pair removals with additions
             const maxLength = Math.max(removals.length, additions.length);
             for (let k = 0; k < maxLength; k++) {
               const hasLeft = k < removals.length;
               const hasRight = k < additions.length;
-              
+
               if (hasLeft && hasRight) {
                 // Both sides exist - this is a modification
                 diffRows.push({
@@ -113,7 +115,7 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
                 });
               }
             }
-            
+
             i = j;
           } else if (prefix === "+") {
             // Standalone addition (not paired with removal)
@@ -151,10 +153,10 @@ export function parseSideBySideDiff(diffString: string): DiffRow[] {
       "Preview:",
       diffPreview,
       "Error:",
-      error
+      error,
     );
   }
-  
+
   return diffRows;
 }
 
@@ -182,24 +184,49 @@ export function parseDiffLines(diff: string): DiffLine[] {
     })
     .map((line) => {
       if (line.startsWith("@@")) {
-        const match = line.match(/@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
+        const match = line.match(HUNK_HEADER_RE);
         if (match) {
           oldLineNum = parseInt(match[1]) - 1;
           newLineNum = parseInt(match[3]) - 1;
         }
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+        return {
+          content: line,
+          type: "header" as const,
+          oldLineNum: null,
+          newLineNum: null,
+        };
       } else if (line.startsWith("+++") || line.startsWith("---")) {
-        return { content: line, type: "header" as const, oldLineNum: null, newLineNum: null };
+        return {
+          content: line,
+          type: "header" as const,
+          oldLineNum: null,
+          newLineNum: null,
+        };
       } else if (line.startsWith("+")) {
         newLineNum++;
-        return { content: line.slice(1), type: "add" as const, oldLineNum: null, newLineNum };
+        return {
+          content: line.slice(1),
+          type: "add" as const,
+          oldLineNum: null,
+          newLineNum,
+        };
       } else if (line.startsWith("-")) {
         oldLineNum++;
-        return { content: line.slice(1), type: "remove" as const, oldLineNum, newLineNum: null };
+        return {
+          content: line.slice(1),
+          type: "remove" as const,
+          oldLineNum,
+          newLineNum: null,
+        };
       } else {
         oldLineNum++;
         newLineNum++;
-        return { content: line.length > 0 ? line.slice(1) : "", type: "context" as const, oldLineNum, newLineNum };
+        return {
+          content: line.length > 0 ? line.slice(1) : "",
+          type: "context" as const,
+          oldLineNum,
+          newLineNum,
+        };
       }
     });
 }

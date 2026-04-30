@@ -1,9 +1,22 @@
-import { For, Show, type Accessor, type Setter, createMemo, createResource, createEffect, onCleanup } from "solid-js";
+import {
+  For,
+  Show,
+  type Accessor,
+  type Setter,
+  createMemo,
+  createResource,
+  createEffect,
+  onCleanup,
+} from "solid-js";
 import type { Highlighter } from "shiki";
 import type { TextareaRenderable } from "@opentui/core";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
-import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
+import {
+  getHighlighter,
+  highlightCode,
+  type HighlightedToken,
+} from "../utils/syntax-highlighting.js";
 
 // Maximum number of lines to show at once (virtual scrolling)
 const MAX_VISIBLE_LINES = 30;
@@ -29,7 +42,7 @@ export function FileEditor(props: FileEditorProps) {
   // Parse file into lines
   const lines = createMemo(() => {
     const content = props.fileContent();
-    return content.split('\n');
+    return content.split("\n");
   });
 
   // Load highlighter
@@ -65,7 +78,11 @@ export function FileEditor(props: FileEditorProps) {
     highlightCache.clear();
   });
 
-  const getHighlightedTokens = (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+  const getHighlightedTokens = (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ): HighlightedToken[] => {
     if (!hl || code === "") return [{ text: code, color: "#CCCCCC" }];
 
     const cacheKey = `${lang}:${code}`;
@@ -74,15 +91,14 @@ export function FileEditor(props: FileEditorProps) {
 
     const tokens = highlightCode(code, lang, hl);
 
-    // Implement simple cache size limit
+    // FIFO eviction: Map iteration order is insertion order, so the first key
+    // is the oldest. Drop one entry per insert once we hit the cap, avoiding
+    // the O(n) Array.from + clear + reinsert rebuild.
     if (highlightCache.size >= MAX_CACHE_SIZE) {
-      // Clear half the cache when limit is reached (simple eviction strategy)
-      const entries = Array.from(highlightCache.entries());
-      highlightCache.clear();
-      // Keep the more recent half
-      entries.slice(Math.floor(entries.length / 2)).forEach(([key, value]) => {
-        highlightCache.set(key, value);
-      });
+      const oldestKey = highlightCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        highlightCache.delete(oldestKey);
+      }
     }
 
     highlightCache.set(cacheKey, tokens);
@@ -115,10 +131,15 @@ export function FileEditor(props: FileEditorProps) {
           </Show>
         </box>
         <box flexDirection="row" gap={2}>
-          <text fg="#666666">Line {props.selectedLine() + 1}/{lines().length}</text>
+          <text fg="#666666">
+            Line {props.selectedLine() + 1}/{lines().length}
+          </text>
           <Show when={props.editedLines().size > 0}>
             <text fg="#444444">│</text>
-            <text fg="#44FF44">{props.editedLines().size} line{props.editedLines().size > 1 ? 's' : ''} modified</text>
+            <text fg="#44FF44">
+              {props.editedLines().size} line
+              {props.editedLines().size > 1 ? "s" : ""} modified
+            </text>
           </Show>
         </box>
       </box>
@@ -141,7 +162,8 @@ export function FileEditor(props: FileEditorProps) {
           <For each={scrollWindow().visibleItems}>
             {(line, index) => {
               const lineNumber = () => scrollWindow().start + index() + 1;
-              const isSelected = () => scrollWindow().start + index() === props.selectedLine();
+              const isSelected = () =>
+                scrollWindow().start + index() === props.selectedLine();
               const isEdited = () => props.editedLines().has(lineNumber());
 
               return (
@@ -197,7 +219,11 @@ interface EditorLineViewProps {
   isEdited: boolean;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
   editedContent: Accessor<string>;
   setEditedContent: Setter<string>;
   editedLines: Accessor<Map<number, string>>;
@@ -212,7 +238,12 @@ function EditorLineView(props: EditorLineViewProps) {
     return edited ?? props.line;
   };
 
-  const tokens = () => props.getHighlightedTokens(displayContent(), props.language, props.highlighter);
+  const tokens = () =>
+    props.getHighlightedTokens(
+      displayContent(),
+      props.language,
+      props.highlighter,
+    );
 
   const bgColor = () => {
     if (props.isSelected) return EDITOR_BG_COLOR_SELECTED;
@@ -231,16 +262,16 @@ function EditorLineView(props: EditorLineViewProps) {
 
   /**
    * Poll for changes in the textarea and update editedContent.
-   * 
+   *
    * WORKAROUND: This polling mechanism is necessary because the TextareaRenderable API
    * in @opentui/core@0.1.62 does not provide onChange/onInput callbacks. The plainText
    * property is read-only, so we cannot detect changes through reactive signals.
-   * 
+   *
    * Performance Considerations:
    * - Polling interval: 200ms (balance between responsiveness and CPU usage)
    * - Only active when this specific line is selected (not all lines poll simultaneously)
    * - Properly cleaned up when line is deselected via onCleanup
-   * 
+   *
    * Future Improvement:
    * If/when @opentui/core adds event-based change detection (onChange/onInput callbacks)
    * or a writable value/defaultValue prop, this polling mechanism should be replaced.

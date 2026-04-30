@@ -1,9 +1,21 @@
-import { For, Show, type Accessor, type Setter, createMemo, createResource } from "solid-js";
+import {
+  For,
+  Show,
+  type Accessor,
+  type Setter,
+  createMemo,
+  createResource,
+} from "solid-js";
 import type { Highlighter } from "shiki";
+import { useTerminalDimensions } from "@opentui/solid";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 import { getLanguageFromPath } from "../utils/language-detection.js";
 import { parseDiffLines, type DiffLine } from "../utils/diff-parser.js";
-import { getHighlighter, highlightCode, type HighlightedToken } from "../utils/syntax-highlighting.js";
+import {
+  getHighlighter,
+  highlightCode,
+  type HighlightedToken,
+} from "../utils/syntax-highlighting.js";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting
@@ -65,7 +77,11 @@ interface DiffLineViewProps {
   line: DiffLine;
   language: string;
   highlighter: Highlighter | undefined;
-  getHighlightedTokens: (code: string, lang: string, hl: Highlighter | undefined) => HighlightedToken[];
+  getHighlightedTokens: (
+    code: string,
+    lang: string,
+    hl: Highlighter | undefined,
+  ) => HighlightedToken[];
   lineNumberWidth: number;
   lineNumberPadding: number;
   isSelected: boolean;
@@ -106,11 +122,15 @@ function DiffLineView(props: DiffLineViewProps) {
   }
 
   // Get highlighted tokens (memoized)
-  const tokens = props.getHighlightedTokens(props.line.content, props.language, props.highlighter);
-  
-  // Format line numbers with dynamic padding
-  const oldNum = props.line.oldLineNum !== null ? String(props.line.oldLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
-  const newNum = props.line.newLineNum !== null ? String(props.line.newLineNum).padStart(props.lineNumberPadding, " ") : " ".repeat(props.lineNumberPadding);
+  const tokens = props.getHighlightedTokens(
+    props.line.content,
+    props.language,
+    props.highlighter,
+  );
+
+  // Format line numbers with dynamic padding (memoized to avoid per-render allocs)
+  const oldNum = padLineNum(props.line.oldLineNum, props.lineNumberPadding);
+  const newNum = padLineNum(props.line.newLineNum, props.lineNumberPadding);
 
   return (
     <box
@@ -143,10 +163,45 @@ function DiffLineView(props: DiffLineViewProps) {
 // Moved outside component to persist across renders
 const highlightCache = new Map<string, HighlightedToken[]>();
 
-// Maximum number of diff lines to show at once in the virtual scroll window
-const MAX_VISIBLE_DIFF_LINES = 35;
+// Cache padded line-number strings keyed by `${num}:${pad}` to avoid
+// repeated `String(num).padStart(pad, " ")` allocations in the render loop.
+const paddedLineNumCache = new Map<string, string>();
+const blankPadCache: string[] = [];
+function padLineNum(num: number | null, pad: number): string {
+  if (num === null) {
+    let blank = blankPadCache[pad];
+    if (blank === undefined) {
+      blank = " ".repeat(pad);
+      blankPadCache[pad] = blank;
+    }
+    return blank;
+  }
+  const key = `${num}:${pad}`;
+  let cached = paddedLineNumCache.get(key);
+  if (cached === undefined) {
+    cached = String(num).padStart(pad, " ");
+    paddedLineNumCache.set(key, cached);
+  }
+  return cached;
+}
+
+// Chrome above/below the diff line list (app header + footer + viewer
+// border/padding + viewer's own header row). Subtracted from terminal height
+// to size the virtual scroll window so the diff fills the viewport.
+const DIFF_VIEWER_CHROME_HEIGHT = 12;
+// Floor for the visible window when the terminal is very short.
+const MIN_VISIBLE_DIFF_LINES = 5;
 
 export function DiffViewer(props: DiffViewerProps) {
+  const dimensions = useTerminalDimensions();
+
+  const maxVisibleDiffLines = createMemo(() =>
+    Math.max(
+      MIN_VISIBLE_DIFF_LINES,
+      dimensions().height - DIFF_VIEWER_CHROME_HEIGHT,
+    ),
+  );
+
   const diffLines = () => {
     const diff = props.diff();
     if (!diff) return [];
@@ -166,10 +221,9 @@ export function DiffViewer(props: DiffViewerProps) {
     calculateVirtualScrollWindow(
       diffLines(),
       props.selectedLine(),
-      MAX_VISIBLE_DIFF_LINES,
+      maxVisibleDiffLines(),
     ),
   );
-
 
   // Calculate the maximum line number to determine width needed
   const maxLineNumber = createMemo(() => {
@@ -201,13 +255,17 @@ export function DiffViewer(props: DiffViewerProps) {
   // Memoize getHighlightedTokens function to maintain referential equality
   // Uses module-level highlightCache (line 229) that persists across renders
   const getHighlightedTokens = createMemo(() => {
-    return (code: string, lang: string, hl: Highlighter | undefined): HighlightedToken[] => {
+    return (
+      code: string,
+      lang: string,
+      hl: Highlighter | undefined,
+    ): HighlightedToken[] => {
       if (!hl) return [{ text: code, color: "#CCCCCC" }];
-      
+
       const cacheKey = `${lang}:${code}`;
       const cached = highlightCache.get(cacheKey);
       if (cached) return cached;
-      
+
       const tokens = highlightCode(code, lang, hl);
       highlightCache.set(cacheKey, tokens);
       return tokens;
@@ -227,15 +285,25 @@ export function DiffViewer(props: DiffViewerProps) {
       paddingBottom={1}
       overflow="hidden"
     >
-      <box flexDirection="row" gap={1} marginBottom={1} justifyContent="space-between">
+      <box
+        flexDirection="row"
+        gap={1}
+        marginBottom={1}
+        justifyContent="space-between"
+      >
         <box flexDirection="row" gap={1}>
           <text fg="#AAAAAA">Diff:</text>
-          <Show when={props.filePath()} fallback={<text fg="#888888">No file selected</text>}>
+          <Show
+            when={props.filePath()}
+            fallback={<text fg="#888888">No file selected</text>}
+          >
             <text fg="#FFFFFF">{props.filePath()}</text>
           </Show>
         </box>
         <Show when={diffLines().length > 0}>
-          <text fg="#666666">Line {props.selectedLine() + 1}/{diffLines().length}</text>
+          <text fg="#666666">
+            Line {props.selectedLine() + 1}/{diffLines().length}
+          </text>
         </Show>
       </box>
 
@@ -264,7 +332,7 @@ export function DiffViewer(props: DiffViewerProps) {
               {(line, index) => {
                 const actualIndex = () => scrollWindow().start + index();
                 const isSelected = () => actualIndex() === props.selectedLine();
-                
+
                 return (
                   <DiffLineView
                     line={line}
