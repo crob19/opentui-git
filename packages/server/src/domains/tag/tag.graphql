@@ -1,0 +1,13 @@
+type TagResult {
+  success: Boolean!
+  tag: String
+}
+
+extend type Query {
+  tags: [String!]!
+}
+
+extend type Mutation {
+  createTag(name: String!): TagResult!
+  pushTag(name: String!, remote: String): TagResult!
+}

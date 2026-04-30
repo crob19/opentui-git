@@ -1,0 +1,31 @@
+{
+  "name": "@opentui-git/server",
+  "version": "0.1.0",
+  "description": "GraphQL backend for opentui-git",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "generate": "graphql-codegen --config codegen.ts"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.2",
+    "@graphql-tools/load-files": "^7.0.1",
+    "@graphql-tools/merge": "^9.0.8",
+    "@graphql-tools/schema": "^10.0.7",
+    "@opentui-git/core": "workspace:*",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
+    "simple-git": "^3.30.0"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.3",
+    "@graphql-codegen/typescript": "^4.1.1",
+    "@graphql-codegen/typescript-resolvers": "^4.4.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}

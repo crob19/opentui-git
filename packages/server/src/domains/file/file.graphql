@@ -1,0 +1,27 @@
+type FileReadResult {
+  content: String!
+  mtime: String!
+  exists: Boolean!
+}
+
+type FileWriteResult {
+  success: Boolean!
+  conflict: Boolean!
+  message: String
+}
+
+type StageResult {
+  success: Boolean!
+}
+
+extend type Query {
+  readFile(path: String!): FileReadResult!
+}
+
+extend type Mutation {
+  writeFile(path: String!, content: String!, expectedMtime: String): FileWriteResult!
+  stageFile(path: String!): StageResult!
+  unstageFile(path: String!): StageResult!
+  stageAll: StageResult!
+  unstageAll: StageResult!
+}
