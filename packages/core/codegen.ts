@@ -12,6 +12,9 @@ const config: CodegenConfig = {
       },
     },
   },
+  hooks: {
+    afterOneFileWrite: ["bun run scripts/ensure-trailing-newline.ts"],
+  },
 };
 
 export default config;

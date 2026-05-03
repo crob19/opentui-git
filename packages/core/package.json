@@ -22,7 +22,8 @@
     "build": "bun run scripts/build.ts",
     "build:binary": "bun run scripts/build-binaries.ts",
     "typecheck": "tsc --noEmit",
-    "generate": "graphql-codegen --config codegen.ts"
+    "generate": "graphql-codegen --config codegen.ts",
+    "generate:check": "bun run generate && git diff --exit-code -- src/graphql/generated.ts"
   },
   "keywords": [
     "git",

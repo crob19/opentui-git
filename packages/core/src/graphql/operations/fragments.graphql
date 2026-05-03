@@ -1,0 +1,9 @@
+fragment FileStatusFields on FileStatus {
+  path
+  workingDir
+  index
+  staged
+  statusText
+  color
+  hasLocalChanges
+}

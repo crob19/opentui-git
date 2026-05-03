@@ -320,6 +320,8 @@ export type UnstageAllMutationVariables = Exact<{ [key: string]: never; }>;
 
 export type UnstageAllMutation = { __typename?: 'Mutation', unstageAll: { __typename?: 'StageResult', success: boolean } };
 
+export type FileStatusFieldsFragment = { __typename?: 'FileStatus', path: string, workingDir: string, index: string, staged: boolean, statusText: string, color: string, hasLocalChanges: boolean | null };
+
 export type PullMutationVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -329,8 +331,6 @@ export type PushMutationVariables = Exact<{ [key: string]: never; }>;
 
 
 export type PushMutation = { __typename?: 'Mutation', push: { __typename?: 'RemoteResult', success: boolean } };
-
-export type FileStatusFieldsFragment = { __typename?: 'FileStatus', path: string, workingDir: string, index: string, staged: boolean, statusText: string, color: string, hasLocalChanges: boolean | null };
 
 export type RepoInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
