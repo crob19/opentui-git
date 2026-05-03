@@ -1,0 +1,8 @@
+type RemoteResult {
+  success: Boolean!
+}
+
+extend type Mutation {
+  pull: RemoteResult!
+  push: RemoteResult!
+}

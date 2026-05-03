@@ -1,0 +1,36 @@
+type BranchDetail {
+  name: String!
+  commit: String!
+  label: String!
+  current: Boolean!
+}
+
+type Branches {
+  current: String!
+  all: [String!]!
+  branches: [BranchDetail!]!
+}
+
+type BranchResult {
+  success: Boolean!
+  branch: String
+}
+
+type MergeOutcome {
+  success: Boolean!
+  merges: [String!]!
+  conflicts: [String!]!
+  result: String!
+}
+
+extend type Query {
+  branches: Branches!
+  defaultBranch: String!
+}
+
+extend type Mutation {
+  createBranch(name: String!): BranchResult!
+  checkoutBranch(name: String!): BranchResult!
+  deleteBranch(name: String!, force: Boolean): BranchResult!
+  mergeBranch(name: String!): MergeOutcome!
+}

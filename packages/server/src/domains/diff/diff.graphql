@@ -1,0 +1,9 @@
+input DiffOptions {
+  staged: Boolean
+  branch: String
+}
+
+extend type Query {
+  diff(path: String!, options: DiffOptions): String!
+  filesChangedAgainstBranch(branch: String!): [FileStatus!]!
+}

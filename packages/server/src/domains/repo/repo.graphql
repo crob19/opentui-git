@@ -1,0 +1,46 @@
+type RepoInfo {
+  isRepo: Boolean!
+  repoRoot: String
+}
+
+type FileStatus {
+  path: String!
+  workingDir: String!
+  index: String!
+  staged: Boolean!
+  statusText: String!
+  color: String!
+  hasLocalChanges: Boolean
+}
+
+type RepoStatus {
+  current: String!
+  ahead: Int!
+  behind: Int!
+  files: [FileStatus!]!
+  isClean: Boolean!
+}
+
+type Commit {
+  hash: String!
+  date: String!
+  message: String!
+  authorName: String!
+  authorEmail: String!
+}
+
+type CommitResult {
+  success: Boolean!
+  commit: String
+}
+
+extend type Query {
+  repoInfo: RepoInfo!
+  status: RepoStatus!
+  commits(limit: Int = 50): [Commit!]!
+  currentCommitHash: String!
+}
+
+extend type Mutation {
+  commit(message: String!): CommitResult!
+}
