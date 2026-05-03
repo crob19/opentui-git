@@ -1,0 +1,9 @@
+query Diff($path: String!, $options: DiffOptions) {
+  diff(path: $path, options: $options)
+}
+
+query FilesChangedAgainstBranch($branch: String!) {
+  filesChangedAgainstBranch(branch: $branch) {
+    ...FileStatusFields
+  }
+}

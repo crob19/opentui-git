@@ -1,0 +1,11 @@
+mutation Pull {
+  pull {
+    success
+  }
+}
+
+mutation Push {
+  push {
+    success
+  }
+}

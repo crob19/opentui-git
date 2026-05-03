@@ -1,0 +1,46 @@
+query Branches {
+  branches {
+    current
+    all
+    branches {
+      name
+      commit
+      label
+      current
+    }
+  }
+}
+
+query DefaultBranch {
+  defaultBranch
+}
+
+mutation CreateBranch($name: String!) {
+  createBranch(name: $name) {
+    success
+    branch
+  }
+}
+
+mutation CheckoutBranch($name: String!) {
+  checkoutBranch(name: $name) {
+    success
+    branch
+  }
+}
+
+mutation DeleteBranch($name: String!, $force: Boolean) {
+  deleteBranch(name: $name, force: $force) {
+    success
+    branch
+  }
+}
+
+mutation MergeBranch($name: String!) {
+  mergeBranch(name: $name) {
+    success
+    merges
+    conflicts
+    result
+  }
+}
