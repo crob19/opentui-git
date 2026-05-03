@@ -4,7 +4,7 @@ export const fileResolvers: Resolvers = {
   Query: {
     readFile: async (_p, { path }, { git }) => {
       const { content, mtime } = await git.readFileWithMetadata(path);
-      return { content, mtime: mtime.toISOString(), exists: true };
+      return { content, mtime: mtime.toISOString() };
     },
   },
   Mutation: {

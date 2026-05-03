@@ -1,7 +1,6 @@
 type FileReadResult {
   content: String!
   mtime: String!
-  exists: Boolean!
 }
 
 type FileWriteResult {

@@ -62,7 +62,6 @@ export type DiffOptions = {
 export type FileReadResult = {
   __typename?: 'FileReadResult';
   content: Scalars['String']['output'];
-  exists: Scalars['Boolean']['output'];
   mtime: Scalars['String']['output'];
 };
 
@@ -386,7 +385,6 @@ export type CommitResultResolvers<ContextType = Context, ParentType extends Reso
 
 export type FileReadResultResolvers<ContextType = Context, ParentType extends ResolversParentTypes['FileReadResult'] = ResolversParentTypes['FileReadResult']> = ResolversObject<{
   content?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  exists?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   mtime?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
