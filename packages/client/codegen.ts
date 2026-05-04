@@ -11,6 +11,9 @@ const config: CodegenConfig = {
         avoidOptionals: { field: true },
       },
     },
+    "src/graphql/apollo-helpers.ts": {
+      plugins: ["typescript-apollo-client-helpers"],
+    },
   },
 };
 

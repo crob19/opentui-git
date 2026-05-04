@@ -1,6 +1,12 @@
 import type { TagCommandContext } from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
+import { runMutation, runQuery } from "../data/operations.js";
+import {
+  CreateTagDocument,
+  PushTagDocument,
+  TagsDocument,
+} from "@opentui-git/client";
 
 /**
  * Validate a tag name according to git tag naming rules
@@ -8,7 +14,10 @@ import { InputModal } from "../components/modals/input-modal.js";
  * @param existingTags - Array of existing tag names to check against
  * @returns Error message if invalid, null if valid
  */
-export function validateTagName(value: string, existingTags: string[] = []): string | null {
+export function validateTagName(
+  value: string,
+  existingTags: string[] = [],
+): string | null {
   if (!value.trim()) {
     return "Tag name cannot be empty";
   }
@@ -45,7 +54,7 @@ export async function createTag(
   console.log(`Creating tag: ${tagName}`);
 
   const result = await handleAsyncOperation(
-    () => context.client.createTag(tagName),
+    () => runMutation(context.client, CreateTagDocument, { name: tagName }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -74,7 +83,7 @@ export async function pushTag(
   context.toast.info(`Pushing tag: ${tagName}...`);
 
   const result = await handleAsyncOperation(
-    () => context.client.pushTag(tagName),
+    () => runMutation(context.client, PushTagDocument, { name: tagName }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -106,7 +115,7 @@ export async function showTagDialog(
   // Fetch existing tags for validation
   let existingTags: string[] = [];
   try {
-    existingTags = await context.client.getTags();
+    existingTags = (await runQuery(context.client, TagsDocument)).tags;
   } catch (error) {
     console.error("Failed to fetch existing tags:", error);
     // Continue with empty array - validation will still work for other rules

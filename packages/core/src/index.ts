@@ -2,7 +2,8 @@
 import { getFullVersionString } from "./tui/utils/version.js";
 import { logger } from "./tui/utils/logger.js";
 import { bootstrapServer } from "./server-bootstrap.js";
-import { createHttpClient } from "@opentui-git/client";
+import { createClient, RepoInfoDocument } from "@opentui-git/client";
+import { runQuery } from "./tui/data/operations.js";
 
 const args = process.argv.slice(2);
 
@@ -34,9 +35,10 @@ if (args.includes("--help") || args.includes("-h")) {
 const { url, dispose } = await bootstrapServer(process.cwd());
 logger.debug("[index] GraphQL endpoint:", url);
 
-const client = createHttpClient({ endpoint: url });
+const client = createClient({ endpoint: url });
 
-const { isRepo, repoRoot } = await client.getRepoInfo();
+const { repoInfo } = await runQuery(client, RepoInfoDocument);
+const { isRepo, repoRoot } = repoInfo;
 const repoPath = isRepo && repoRoot ? repoRoot : process.cwd();
 if (!isRepo) {
   logger.warn("[index] Not in a git repository, using cwd:", process.cwd());

@@ -1,5 +1,7 @@
 import type { RemoteCommandContext } from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
+import { runMutation } from "../data/operations.js";
+import { PullDocument, PushDocument } from "@opentui-git/client";
 
 /**
  * Pull changes from remote repository
@@ -11,7 +13,7 @@ export async function pull(context: RemoteCommandContext): Promise<void> {
   context.toast.info("Pulling from remote...");
 
   const result = await handleAsyncOperation(
-    () => context.client.pull(),
+    () => runMutation(context.client, PullDocument),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -36,7 +38,7 @@ export async function push(context: RemoteCommandContext): Promise<void> {
   context.toast.info("Pushing to remote...");
 
   const result = await handleAsyncOperation(
-    () => context.client.push(),
+    () => runMutation(context.client, PushDocument),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,

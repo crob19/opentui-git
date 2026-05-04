@@ -1,5 +1,5 @@
 import { render } from "@opentui/solid";
-import type { GitClient } from "@opentui-git/client";
+import type { ApolloClient } from "@opentui-git/client";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -8,7 +8,7 @@ import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
   repoPath: string;
-  client: GitClient;
+  client: ApolloClient<unknown>;
 }
 
 // Global shutdown registry

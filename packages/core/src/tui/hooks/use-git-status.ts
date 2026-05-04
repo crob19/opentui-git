@@ -1,8 +1,32 @@
-import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "@opentui-git/client";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
+import {
+  createSignal,
+  createResource,
+  createMemo,
+  type Accessor,
+  type Setter,
+  type Resource,
+} from "solid-js";
+import {
+  type ApolloClient,
+  BranchesDocument,
+  FilesChangedAgainstBranchDocument,
+  RepoInfoDocument,
+  StatusDocument,
+} from "@opentui-git/client";
+import type {
+  GitStatusSummary,
+  GitFileStatus,
+  FileTreeNode,
+  DiffMode,
+} from "../../git/types.js";
 import { STATUS_COLORS } from "../../git/types.js";
-import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";
+import {
+  buildFileTree,
+  flattenTree,
+  toggleFolder,
+  preserveExpansionState,
+} from "../utils/file-tree.js";
+import { runQuery } from "../data/operations.js";
 
 /**
  * Result object returned by useGitStatus hook
@@ -45,7 +69,7 @@ export interface UseGitStatusResult {
  * @returns Object containing git status resource, selection state, and error state
  */
 export function useGitStatus(
-  client: GitClient,
+  client: ApolloClient<unknown>,
   diffMode: Accessor<DiffMode>,
   compareBranch: Accessor<string | null>,
 ): UseGitStatusResult {
@@ -55,12 +79,15 @@ export function useGitStatus(
   const [treeNodes, setTreeNodes] = createSignal<FileTreeNode[]>([]);
 
   // Load git status - make it reactive to diffMode and compareBranch
-  const [gitStatus, { refetch }] = createResource<GitStatusSummary, { mode: DiffMode; branch: string | null }>(
+  const [gitStatus, { refetch }] = createResource<
+    GitStatusSummary,
+    { mode: DiffMode; branch: string | null }
+  >(
     () => ({ mode: diffMode(), branch: compareBranch() }),
     async (source) => {
       try {
         // Check if we're in a git repo
-        const repoInfo = await client.getRepoInfo();
+        const { repoInfo } = await runQuery(client, RepoInfoDocument);
         setIsGitRepo(repoInfo.isRepo);
 
         if (!repoInfo.isRepo) {
@@ -80,24 +107,34 @@ export function useGitStatus(
 
         // Fetch files based on diff mode
         if (source.mode === "branch" && source.branch) {
-          // Get files changed compared to branch
-          files = await client.getFilesChangedAgainstBranch(source.branch);
-          
+          const { filesChangedAgainstBranch } = await runQuery(
+            client,
+            FilesChangedAgainstBranchDocument,
+            { branch: source.branch },
+          );
+          files = filesChangedAgainstBranch;
+
           // Also get actual working directory status to mark files with local changes
-          const workingDirStatus = await client.getStatus();
-          const workingDirPaths = new Set(workingDirStatus.files.map((f: GitFileStatus) => f.path));
-          
+          const { status: workingDirStatus } = await runQuery(
+            client,
+            StatusDocument,
+          );
+          const workingDirPaths = new Set(
+            workingDirStatus.files.map((f) => f.path),
+          );
+
           // Mark files that have local changes
-          files = files.map((file: GitFileStatus) => ({
+          files = files.map((file) => ({
             ...file,
             hasLocalChanges: workingDirPaths.has(file.path),
             // Update color for files without local changes
-            color: workingDirPaths.has(file.path) ? file.color : STATUS_COLORS.BRANCH_ONLY,
+            color: workingDirPaths.has(file.path)
+              ? file.color
+              : STATUS_COLORS.BRANCH_ONLY,
           }));
-          
 
           // Get current branch info for the status summary
-          const branches = await client.getBranches();
+          const { branches } = await runQuery(client, BranchesDocument);
           status = {
             current: branches.current,
             ahead: 0,
@@ -107,7 +144,7 @@ export function useGitStatus(
           };
         } else if (source.mode === "branch" && !source.branch) {
           // Branch mode but branch not yet loaded - return empty state
-          const branches = await client.getBranches();
+          const { branches } = await runQuery(client, BranchesDocument);
           files = [];
           status = {
             current: branches.current,
@@ -118,7 +155,8 @@ export function useGitStatus(
           };
         } else {
           // Normal git status (unstaged or staged)
-          status = await client.getStatus();
+          const result = await runQuery(client, StatusDocument);
+          status = result.status;
           files = status.files;
         }
 
@@ -164,12 +202,12 @@ export function useGitStatus(
   const selectedFile = () => {
     const node = selectedNode();
     if (!node) return null;
-    
+
     // If it's a file node, return its file status
-    if (node.type === 'file' && node.fileStatus) {
+    if (node.type === "file" && node.fileStatus) {
       return node.fileStatus;
     }
-    
+
     // If it's a folder, don't return a file (no diff to show)
     return null;
   };

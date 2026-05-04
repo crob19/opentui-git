@@ -2,7 +2,7 @@ import { Show, type Accessor, type Setter, type Resource, type JSXElement } from
 import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
-import type { GitClient } from "@opentui-git/client";
+import type { ApolloClient } from "@opentui-git/client";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
@@ -78,7 +78,7 @@ export interface AppLayoutProps {
   /** Setter for selected line */
   setSelectedLine: Setter<number>;
   /** SDK client for file operations */
-  client: GitClient;
+  client: ApolloClient<unknown>;
   /** Refetch diff after save */
   refetchDiff: () => void;
 }

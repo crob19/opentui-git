@@ -1,20 +1,7 @@
-export { createHttpClient } from "./http.js";
-export type { HttpClientOptions } from "./http.js";
+export { createClient } from "./apollo.js";
 export type {
-  GitClient,
-  GitFileStatus,
-  GitStatusSummary,
-  GitBranchInfo,
-  GitCommitInfo,
-  RepoInfo,
-  BranchResult,
-  MergeOutcome,
-  TagResult,
-  CommitResult,
-  StageResult,
-  RemoteResult,
-  FileReadResult,
-  FileWriteResult,
-  DiffOptions,
-} from "./types.js";
+  CreateClientOptions,
+  ApolloClient,
+  NormalizedCacheObject,
+} from "./apollo.js";
 export * from "./graphql/generated.js";

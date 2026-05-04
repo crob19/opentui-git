@@ -1,6 +1,7 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import type { GitClient } from "@opentui-git/client";
+import { type ApolloClient, DefaultBranchDocument } from "@opentui-git/client";
+import { runQuery } from "./data/operations.js";
 import { useDialog } from "./components/dialog.js";
 import { useToast } from "./components/toast.js";
 import { AppLayout } from "./components/app-layout.js";
@@ -21,11 +22,11 @@ import { registerShutdownHandler } from "./index.js";
  */
 export type BranchPanelTab = "branches" | "tags";
 
-function getClient(): GitClient {
+function getClient(): ApolloClient<unknown> {
   const client = (globalThis as Record<string, unknown>)
-    .__OPENTUI_GIT_CLIENT__ as GitClient | undefined;
+    .__OPENTUI_GIT_CLIENT__ as ApolloClient<unknown> | undefined;
   if (!client) {
-    throw new Error("GitClient was not initialized before mounting the TUI");
+    throw new Error("ApolloClient was not initialized before mounting the TUI");
   }
   return client;
 }
@@ -43,7 +44,7 @@ export function App() {
  * Application content component
  * Receives client as prop, calls useRenderer() directly
  */
-function AppContent(props: { client: GitClient }) {
+function AppContent(props: { client: ApolloClient<unknown> }) {
   const { client } = props;
   const renderer = useRenderer();
   const dialog = useDialog();
@@ -69,10 +70,9 @@ function AppContent(props: { client: GitClient }) {
   // Initialize compareBranch with the default branch (main or master)
   // This runs once on startup and is properly tracked
   createEffect(() => {
-    client
-      .getDefaultBranch()
-      .then((branch) => {
-        setCompareBranch(branch);
+    runQuery(client, DefaultBranchDocument)
+      .then(({ defaultBranch }) => {
+        setCompareBranch(defaultBranch);
         setIsCompareBranchLoading(false);
       })
       .catch((error) => {

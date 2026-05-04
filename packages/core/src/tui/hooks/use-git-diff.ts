@@ -1,6 +1,13 @@
-import { createResource, createEffect, createSignal, type Accessor, type Resource } from "solid-js";
-import type { GitClient } from "@opentui-git/client";
+import {
+  createResource,
+  createEffect,
+  createSignal,
+  type Accessor,
+  type Resource,
+} from "solid-js";
+import { type ApolloClient, DiffDocument } from "@opentui-git/client";
 import type { GitFileStatus, DiffMode } from "../../git/types.js";
+import { runQuery } from "../data/operations.js";
 
 /**
  * Result object returned by useGitDiff hook
@@ -24,7 +31,7 @@ export interface UseGitDiffResult {
  * @returns Object containing diff content resource and loading state
  */
 export function useGitDiff(
-  client: GitClient,
+  client: ApolloClient<unknown>,
   selectedFile: Accessor<GitFileStatus | null>,
   diffMode: Accessor<DiffMode>,
   compareBranch: Accessor<string | null>,
@@ -46,17 +53,29 @@ export function useGitDiff(
         const mode = diffMode();
         const branch = compareBranch();
 
-        console.log(`Loading diff for: ${filePath} (mode: ${mode}, branch: ${branch})`);
+        console.log(
+          `Loading diff for: ${filePath} (mode: ${mode}, branch: ${branch})`,
+        );
 
         let diff: string;
         if (mode === "branch" && branch) {
-          diff = await client.getDiff(filePath, { branch });
+          diff = (
+            await runQuery(client, DiffDocument, {
+              path: filePath,
+              options: { branch },
+            })
+          ).diff;
         } else if (mode === "branch" && !branch) {
           // Branch mode but branch not yet loaded - return empty diff
           diff = "";
         } else {
           const staged = mode === "staged";
-          diff = await client.getDiff(filePath, { staged });
+          diff = (
+            await runQuery(client, DiffDocument, {
+              path: filePath,
+              options: { staged },
+            })
+          ).diff;
         }
 
         return diff || null;

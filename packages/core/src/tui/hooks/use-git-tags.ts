@@ -1,5 +1,12 @@
-import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "@opentui-git/client";
+import {
+  createSignal,
+  createResource,
+  type Accessor,
+  type Setter,
+  type Resource,
+} from "solid-js";
+import { type ApolloClient, TagsDocument } from "@opentui-git/client";
+import { runQuery } from "../data/operations.js";
 
 /**
  * Result object returned by useGitTags hook
@@ -25,20 +32,22 @@ export interface UseGitTagsResult {
  * @param client - SDK client for API operations
  * @returns Object containing tags resource, sorted tags list, and selection state
  */
-export function useGitTags(client: GitClient): UseGitTagsResult {
+export function useGitTags(client: ApolloClient<unknown>): UseGitTagsResult {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
   // Load tags
-  const [tags, { refetch: refetchTags }] =
-    createResource<string[]>(async () => {
+  const [tags, { refetch: refetchTags }] = createResource<string[]>(
+    async () => {
       try {
-        return await client.getTags();
+        const { tags } = await runQuery(client, TagsDocument);
+        return tags;
       } catch (error) {
         console.error("Error loading tags:", error);
         // Return empty array instead of throwing to prevent resource error state
         return [];
       }
-    });
+    },
+  );
 
   // Get all tags sorted alphabetically (most recent versions usually sort last)
   const allTags = () => {
