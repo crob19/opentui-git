@@ -1,1 +1,2 @@
 schema: "packages/server/src/**/*.graphql"
+documents: "packages/core/src/graphql/operations/**/*.graphql"

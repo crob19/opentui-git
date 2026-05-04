@@ -1,0 +1,17 @@
+query Tags {
+  tags
+}
+
+mutation CreateTag($name: String!) {
+  createTag(name: $name) {
+    success
+    tag
+  }
+}
+
+mutation PushTag($name: String!, $remote: String) {
+  pushTag(name: $name, remote: $remote) {
+    success
+    tag
+  }
+}

@@ -1,0 +1,39 @@
+query RepoInfo {
+  repoInfo {
+    isRepo
+    repoRoot
+  }
+}
+
+query Status {
+  status {
+    current
+    ahead
+    behind
+    isClean
+    files {
+      ...FileStatusFields
+    }
+  }
+}
+
+query Commits($limit: Int) {
+  commits(limit: $limit) {
+    hash
+    date
+    message
+    authorName
+    authorEmail
+  }
+}
+
+query CurrentCommitHash {
+  currentCommitHash
+}
+
+mutation Commit($message: String!) {
+  commit(message: $message) {
+    success
+    commit
+  }
+}

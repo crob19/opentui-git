@@ -1,0 +1,38 @@
+query ReadFile($path: String!) {
+  readFile(path: $path) {
+    content
+    mtime
+  }
+}
+
+mutation WriteFile($path: String!, $content: String!, $expectedMtime: String) {
+  writeFile(path: $path, content: $content, expectedMtime: $expectedMtime) {
+    success
+    conflict
+    message
+  }
+}
+
+mutation StageFile($path: String!) {
+  stageFile(path: $path) {
+    success
+  }
+}
+
+mutation UnstageFile($path: String!) {
+  unstageFile(path: $path) {
+    success
+  }
+}
+
+mutation StageAll {
+  stageAll {
+    success
+  }
+}
+
+mutation UnstageAll {
+  unstageAll {
+    success
+  }
+}
