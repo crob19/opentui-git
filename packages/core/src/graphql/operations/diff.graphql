@@ -1,3 +1,6 @@
+# TODO(server): enforce that DiffOptions.branch and DiffOptions.staged are
+# mutually exclusive — the client routes to getDiffAgainstBranch when branch
+# is set, otherwise getDiff(staged). The resolver must mirror that disjunction.
 query Diff($path: String!, $options: DiffOptions) {
   diff(path: $path, options: $options)
 }
