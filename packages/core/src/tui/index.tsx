@@ -1,4 +1,5 @@
 import { render } from "@opentui/solid";
+import type { GitClient } from "@opentui-git/client";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -7,6 +8,7 @@ import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
   repoPath: string;
+  client: GitClient;
 }
 
 // Global shutdown registry
@@ -38,12 +40,13 @@ export function executeShutdown() {
  * Start the TUI
  */
 export function startTUI(options: TUIOptions) {
-  const { repoPath } = options;
+  const { repoPath, client } = options;
 
   // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
     (globalThis as Record<string, unknown>).__OPENTUI_GIT_REPO_PATH__ =
       repoPath;
+    (globalThis as Record<string, unknown>).__OPENTUI_GIT_CLIENT__ = client;
 
     const onExit = async () => {
       executeShutdown();

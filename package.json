@@ -4,6 +4,7 @@
   "private": true,
   "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
   "workspaces": [
+    "packages/client",
     "packages/core",
     "packages/server"
   ],
@@ -14,10 +15,10 @@
     "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "build": "bun run --cwd packages/core build",
     "build:binary": "bun run --cwd packages/core build:binary",
-    "typecheck": "bun run --cwd packages/core typecheck && bun run --cwd packages/server typecheck",
-    "generate": "bun run --cwd packages/server generate && bun run --cwd packages/core generate",
+    "typecheck": "bun run --cwd packages/client typecheck && bun run --cwd packages/core typecheck && bun run --cwd packages/server typecheck",
+    "generate": "bun run --cwd packages/server generate && bun run --cwd packages/client generate",
     "generate:server": "bun run --cwd packages/server generate",
-    "generate:core": "bun run --cwd packages/core generate",
+    "generate:client": "bun run --cwd packages/client generate",
     "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules bun.lock"
   },
   "keywords": [

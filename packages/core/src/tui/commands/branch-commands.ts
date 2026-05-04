@@ -1,5 +1,8 @@
 import type { Setter } from "solid-js";
-import type { BranchCommandContext, BranchCommandWithSelectionContext } from "./types.js";
+import type {
+  BranchCommandContext,
+  BranchCommandWithSelectionContext,
+} from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
 import { ConfirmationModal } from "../components/modals/confirmation-modal.js";
@@ -113,8 +116,7 @@ export async function mergeBranch(
   if (result !== null) {
     console.log(`Merge result:`, result);
 
-    const mergeResult = result.result;
-    if (mergeResult.files.length === 0 && mergeResult.merges.length === 0) {
+    if (result.merges.length === 0 && result.conflicts.length === 0) {
       context.toast.info("Already up to date");
     } else {
       context.toast.success(`Merged ${sourceBranch} into ${targetBranch}`);
@@ -189,22 +191,23 @@ export function showDeleteBranchDialog(
   console.log(`Opening delete confirmation for branch: ${branchName}`);
 
   context.dialog.show(
-    () => ConfirmationModal({
-      title: "Delete Branch",
-      message: `Are you sure you want to delete branch: ${branchName}?`,
-      variant: "danger",
-      confirmText: "Delete",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        await deleteBranch(branchName, context);
-        await context.refetchBranches();
-        // Reset selection index to the first branch after refetch
-        context.setBranchSelectedIndex(0);
-      },
-      onCancel: () => {
-        console.log("Branch deletion cancelled");
-      },
-    }),
+    () =>
+      ConfirmationModal({
+        title: "Delete Branch",
+        message: `Are you sure you want to delete branch: ${branchName}?`,
+        variant: "danger",
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          await deleteBranch(branchName, context);
+          await context.refetchBranches();
+          // Reset selection index to the first branch after refetch
+          context.setBranchSelectedIndex(0);
+        },
+        onCancel: () => {
+          console.log("Branch deletion cancelled");
+        },
+      }),
     () => console.log("Delete branch dialog closed"),
   );
 }
@@ -230,19 +233,20 @@ export function showMergeBranchDialog(
   );
 
   context.dialog.show(
-    () => ConfirmationModal({
-      title: "Merge Branch",
-      message: `Merge ${sourceBranch} into ${targetBranch}? This will merge the changes into your current branch.`,
-      variant: "warning",
-      confirmText: "Merge",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        await mergeBranch(sourceBranch, targetBranch, context);
-      },
-      onCancel: () => {
-        console.log("Branch merge cancelled");
-      },
-    }),
+    () =>
+      ConfirmationModal({
+        title: "Merge Branch",
+        message: `Merge ${sourceBranch} into ${targetBranch}? This will merge the changes into your current branch.`,
+        variant: "warning",
+        confirmText: "Merge",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          await mergeBranch(sourceBranch, targetBranch, context);
+        },
+        onCancel: () => {
+          console.log("Branch merge cancelled");
+        },
+      }),
     () => console.log("Merge branch dialog closed"),
   );
 }

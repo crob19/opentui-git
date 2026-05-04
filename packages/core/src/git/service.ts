@@ -1,5 +1,16 @@
-import simpleGit, { SimpleGit, StatusResult, BranchSummary, LogResult, MergeResult } from "simple-git";
-import type { GitFileStatus, GitStatusSummary, GitBranchInfo, GitCommitInfo } from "./types.js";
+import simpleGit, {
+  SimpleGit,
+  StatusResult,
+  BranchSummary,
+  LogResult,
+  MergeResult,
+} from "simple-git";
+import type {
+  GitFileStatus,
+  GitStatusSummary,
+  GitBranchInfo,
+  GitCommitInfo,
+} from "./types.js";
 import { STATUS_COLORS, GitStatus } from "./types.js";
 import { logger } from "../tui/utils/logger.js";
 import { promises as fs } from "fs";
@@ -124,7 +135,7 @@ export class GitService {
   private createFileStatus(
     path: string,
     staged: boolean,
-    statusCode: string
+    statusCode: string,
   ): GitFileStatus {
     let statusText = "";
     let color: string = STATUS_COLORS.DEFAULT;
@@ -164,7 +175,7 @@ export class GitService {
 
     return {
       path,
-      working_dir: statusCode,
+      workingDir: statusCode,
       index: staged ? statusCode : " ",
       staged,
       statusText,
@@ -212,7 +223,12 @@ export class GitService {
     return {
       current: branches.current,
       all: branches.all,
-      branches: branches.branches,
+      branches: Object.values(branches.branches).map((b) => ({
+        current: b.current,
+        name: b.name,
+        commit: b.commit,
+        label: b.label,
+      })),
     };
   }
 
@@ -228,8 +244,8 @@ export class GitService {
       hash: commit.hash,
       date: commit.date,
       message: commit.message,
-      author_name: commit.author_name,
-      author_email: commit.author_email,
+      authorName: commit.author_name,
+      authorEmail: commit.author_email,
     }));
   }
 
@@ -260,10 +276,16 @@ export class GitService {
    * @param branch - Branch to compare against (e.g., "main", "origin/main")
    * @returns Promise<string> - Diff output
    */
-  async getDiffAgainstBranch(filepath: string, branch: string): Promise<string> {
+  async getDiffAgainstBranch(
+    filepath: string,
+    branch: string,
+  ): Promise<string> {
     try {
       const branchSummary = await this.git.branch();
-      const branchExists = Object.prototype.hasOwnProperty.call(branchSummary.branches, branch);
+      const branchExists = Object.prototype.hasOwnProperty.call(
+        branchSummary.branches,
+        branch,
+      );
 
       if (!branchExists) {
         const message = `Branch "${branch}" does not exist in repository "${this.repoPath}".`;
@@ -291,7 +313,10 @@ export class GitService {
     try {
       // First verify the branch exists
       const branchSummary = await this.git.branch();
-      const branchExists = Object.prototype.hasOwnProperty.call(branchSummary.branches, branch);
+      const branchExists = Object.prototype.hasOwnProperty.call(
+        branchSummary.branches,
+        branch,
+      );
 
       if (!branchExists) {
         const message = `Branch "${branch}" does not exist in repository "${this.repoPath}".`;
@@ -301,28 +326,28 @@ export class GitService {
 
       // Get the diff with name-status to see which files changed
       const diffOutput = await this.git.diff([branch, "--name-status"]);
-      
+
       if (!diffOutput.trim()) {
         // No changes
         return [];
       }
 
       const files: GitFileStatus[] = [];
-      const lines = diffOutput.trim().split('\n');
+      const lines = diffOutput.trim().split("\n");
 
       for (const line of lines) {
         // Format: "M\tpath/to/file" or "A\tpath/to/file" etc.
-        const parts = line.split('\t');
+        const parts = line.split("\t");
         if (parts.length >= 2) {
           const statusCode = parts[0].trim();
           const filepath = parts[1].trim();
 
           // Map git status codes to our status codes
           let mappedStatus = statusCode;
-          if (statusCode.startsWith('R')) {
+          if (statusCode.startsWith("R")) {
             // Renamed files show as "R100" or similar
             mappedStatus = GitStatus.RENAMED;
-          } else if (statusCode.startsWith('C')) {
+          } else if (statusCode.startsWith("C")) {
             // Copied files
             mappedStatus = GitStatus.COPIED;
           }
@@ -352,19 +377,25 @@ export class GitService {
   async getDefaultBranch(): Promise<string> {
     try {
       const branchSummary = await this.git.branch();
-      
+
       // Check if "main" exists
-      if (Object.prototype.hasOwnProperty.call(branchSummary.branches, "main")) {
+      if (
+        Object.prototype.hasOwnProperty.call(branchSummary.branches, "main")
+      ) {
         return "main";
       }
-      
+
       // Check if "master" exists
-      if (Object.prototype.hasOwnProperty.call(branchSummary.branches, "master")) {
+      if (
+        Object.prototype.hasOwnProperty.call(branchSummary.branches, "master")
+      ) {
         return "master";
       }
-      
+
       // If neither exists, default to "main"
-      logger.warn("Neither 'main' nor 'master' branch found, defaulting to 'main'");
+      logger.warn(
+        "Neither 'main' nor 'master' branch found, defaulting to 'main'",
+      );
       return "main";
     } catch (error) {
       logger.error("Failed to detect default branch, defaulting to 'main'");
@@ -390,7 +421,10 @@ export class GitService {
       await this.git.push();
     } catch (error) {
       // If push fails due to no upstream, try with --set-upstream
-      if (error instanceof Error && error.message.includes("no upstream branch")) {
+      if (
+        error instanceof Error &&
+        error.message.includes("no upstream branch")
+      ) {
         const status = await this.git.status();
         const currentBranch = status.current;
         if (currentBranch) {
@@ -423,7 +457,10 @@ export class GitService {
    * @param branchName - Name of the branch to delete
    * @param force - Force delete even if not fully merged (default: false)
    */
-  async deleteBranch(branchName: string, force: boolean = false): Promise<void> {
+  async deleteBranch(
+    branchName: string,
+    force: boolean = false,
+  ): Promise<void> {
     const flag = force ? "-D" : "-d";
     await this.git.branch([flag, branchName]);
   }
@@ -511,7 +548,9 @@ export class GitService {
    * @param filepath - Path to the file relative to the repository root
    * @returns Promise with content and modification time
    */
-  async readFileWithMetadata(filepath: string): Promise<{ content: string; mtime: Date }> {
+  async readFileWithMetadata(
+    filepath: string,
+  ): Promise<{ content: string; mtime: Date }> {
     const fullPath = this.validateFilePath(filepath);
     try {
       const [content, stats] = await Promise.all([
@@ -562,8 +601,7 @@ export class GitService {
     try {
       await fs.writeFile(fullPath, content, "utf-8");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to write file at "${fullPath}": ${message}`);
       return {
         success: false,

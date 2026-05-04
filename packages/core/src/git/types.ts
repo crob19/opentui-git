@@ -1,5 +1,3 @@
-
-
 /**
  * Represents the status of a single file in the git repository
  */
@@ -7,7 +5,7 @@ export interface GitFileStatus {
   /** Relative path to the file */
   path: string;
   /** Working directory status (modified, deleted, etc.) */
-  working_dir: string;
+  workingDir: string;
   /** Index/staging area status */
   index: string;
   /** Whether the file is staged */
@@ -17,7 +15,7 @@ export interface GitFileStatus {
   /** Color for terminal display */
   color: string;
   /** Whether the file has local changes (used in branch comparison mode) */
-  hasLocalChanges?: boolean;
+  hasLocalChanges?: boolean | null;
 }
 
 /**
@@ -44,8 +42,8 @@ export interface GitBranchInfo {
   current: string;
   /** All branch names */
   all: string[];
-  /** Branches on remote */
-  branches: Record<string, {
+  /** Branch details (local + remote) */
+  branches: Array<{
     current: boolean;
     name: string;
     commit: string;
@@ -64,9 +62,9 @@ export interface GitCommitInfo {
   /** Commit message */
   message: string;
   /** Author name */
-  author_name: string;
+  authorName: string;
   /** Author email */
-  author_email: string;
+  authorEmail: string;
 }
 
 /**
@@ -104,15 +102,15 @@ export enum GitStatus {
  * Color scheme for file statuses
  */
 export const STATUS_COLORS = {
-  MODIFIED: "#FFAA00",    // Yellow/Orange
-  DELETED: "#FF4444",     // Red
-  UNTRACKED: "#888888",   // Gray
-  ADDED: "#44FF44",       // Green
-  RENAMED: "#00AAFF",     // Blue
-  COPIED: "#00AAFF",      // Blue
-  UNMERGED: "#FF00FF",    // Magenta
+  MODIFIED: "#FFAA00", // Yellow/Orange
+  DELETED: "#FF4444", // Red
+  UNTRACKED: "#888888", // Gray
+  ADDED: "#44FF44", // Green
+  RENAMED: "#00AAFF", // Blue
+  COPIED: "#00AAFF", // Blue
+  UNMERGED: "#FF00FF", // Magenta
   BRANCH_ONLY: "#AAAAAA", // Dim white - file changed in branch but no local edits
-  DEFAULT: "#FFFFFF",     // White
+  DEFAULT: "#FFFFFF", // White
 } as const;
 
 /**
@@ -120,7 +118,7 @@ export const STATUS_COLORS = {
  */
 export interface FileTreeNode {
   /** Node type */
-  type: 'file' | 'folder';
+  type: "file" | "folder";
   /** Display name (just the filename/folder name, not full path) */
   name: string;
   /** Full path from repository root */

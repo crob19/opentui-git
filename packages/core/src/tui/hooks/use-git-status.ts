@@ -1,5 +1,5 @@
 import { createSignal, createResource, createMemo, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "../git-client.js";
+import type { GitClient } from "@opentui-git/client";
 import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
 import { STATUS_COLORS } from "../../git/types.js";
 import { buildFileTree, flattenTree, toggleFolder, preserveExpansionState } from "../utils/file-tree.js";

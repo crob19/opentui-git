@@ -1,7 +1,6 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { createClient } from "./git-client.js";
-import { GitService } from "../git/service.js";
+import type { GitClient } from "@opentui-git/client";
 import { useDialog } from "./components/dialog.js";
 import { useToast } from "./components/toast.js";
 import { AppLayout } from "./components/app-layout.js";
@@ -22,11 +21,13 @@ import { registerShutdownHandler } from "./index.js";
  */
 export type BranchPanelTab = "branches" | "tags";
 
-function getRepoPath(): string {
-  return (
-    ((globalThis as Record<string, unknown>)
-      .__OPENTUI_GIT_REPO_PATH__ as string) || process.cwd()
-  );
+function getClient(): GitClient {
+  const client = (globalThis as Record<string, unknown>)
+    .__OPENTUI_GIT_CLIENT__ as GitClient | undefined;
+  if (!client) {
+    throw new Error("GitClient was not initialized before mounting the TUI");
+  }
+  return client;
 }
 
 /**
@@ -35,16 +36,14 @@ function getRepoPath(): string {
  * Orchestrates all hooks and passes state to layout component
  */
 export function App() {
-  const git = new GitService(getRepoPath());
-  const client = createClient(git);
-  return <AppContent client={client} />;
+  return <AppContent client={getClient()} />;
 }
 
 /**
  * Application content component
  * Receives client as prop, calls useRenderer() directly
  */
-function AppContent(props: { client: ReturnType<typeof createClient> }) {
+function AppContent(props: { client: GitClient }) {
   const { client } = props;
   const renderer = useRenderer();
   const dialog = useDialog();

@@ -9,7 +9,7 @@ import {
 } from "solid-js";
 import type { Highlighter } from "shiki";
 import { useTerminalDimensions } from "@opentui/solid";
-import type { GitClient } from "../git-client.js";
+import type { GitClient } from "@opentui-git/client";
 import type { DiffMode } from "../../git/types.js";
 import {
   parseSideBySideDiff,

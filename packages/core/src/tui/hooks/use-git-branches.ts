@@ -1,5 +1,11 @@
-import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "../git-client.js";
+import {
+  createSignal,
+  createResource,
+  type Accessor,
+  type Setter,
+  type Resource,
+} from "solid-js";
+import type { GitClient } from "@opentui-git/client";
 import type { GitBranchInfo } from "../../git/types.js";
 import { logger } from "../utils/logger.js";
 
@@ -41,7 +47,7 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
       } catch (error) {
         logger.error("[use-git-branches] Error loading branches:", error);
         // Return empty result to prevent resource from being in error state
-        return { all: [], current: "", branches: {} };
+        return { all: [], current: "", branches: [] };
       }
     });
 
@@ -76,7 +82,9 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
 
   return {
     branches,
-    refetchBranches: refetchBranches as () => Promise<GitBranchInfo | undefined>,
+    refetchBranches: refetchBranches as () => Promise<
+      GitBranchInfo | undefined
+    >,
     localBranches,
     selectedIndex,
     setSelectedIndex,

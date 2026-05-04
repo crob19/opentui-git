@@ -1,5 +1,5 @@
 import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "../git-client.js";
+import type { GitClient } from "@opentui-git/client";
 
 /**
  * Result object returned by useGitTags hook

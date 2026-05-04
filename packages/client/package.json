@@ -1,0 +1,29 @@
+{
+  "name": "@opentui-git/client",
+  "version": "0.1.0",
+  "description": "Framework-agnostic GraphQL client for the opentui-git server. Consumed by the TUI today; designed for an Electron/web client to share the same data layer.",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./graphql": "./src/graphql/generated.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "generate": "graphql-codegen --config codegen.ts"
+  },
+  "dependencies": {
+    "@graphql-typed-document-node/core": "^3.2.0",
+    "graphql": "^16.9.0",
+    "graphql-request": "^7.1.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.3",
+    "@graphql-codegen/typed-document-node": "^5.0.12",
+    "@graphql-codegen/typescript": "^4.1.1",
+    "@graphql-codegen/typescript-operations": "^4.4.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
