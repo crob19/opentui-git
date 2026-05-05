@@ -22,22 +22,13 @@ import { registerShutdownHandler } from "./index.js";
  */
 export type BranchPanelTab = "branches" | "tags";
 
-function getClient(): ApolloClient<unknown> {
-  const client = (globalThis as Record<string, unknown>)
-    .__OPENTUI_GIT_CLIENT__ as ApolloClient<unknown> | undefined;
-  if (!client) {
-    throw new Error("ApolloClient was not initialized before mounting the TUI");
-  }
-  return client;
-}
-
 /**
  * Main application component
  * Handles git operations, keyboard input, and UI state
  * Orchestrates all hooks and passes state to layout component
  */
-export function App() {
-  return <AppContent client={getClient()} />;
+export function App(props: { client: ApolloClient<unknown> }) {
+  return <AppContent client={props.client} />;
 }
 
 /**

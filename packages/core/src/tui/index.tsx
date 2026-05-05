@@ -43,8 +43,6 @@ export function startTUI(options: TUIOptions) {
 
   // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
-    (globalThis as Record<string, unknown>).__OPENTUI_GIT_CLIENT__ = client;
-
     const onExit = async () => {
       executeShutdown();
       resolve();
@@ -60,7 +58,7 @@ export function startTUI(options: TUIOptions) {
         <ErrorBoundary>
           <ToastProvider>
             <DialogProvider>
-              <App />
+              <App client={client} />
             </DialogProvider>
           </ToastProvider>
         </ErrorBoundary>

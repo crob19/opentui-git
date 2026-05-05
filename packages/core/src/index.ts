@@ -46,5 +46,5 @@ const { startTUI } = await import("./tui/index.js");
 try {
   await startTUI({ client });
 } finally {
-  dispose();
+  await dispose();
 }

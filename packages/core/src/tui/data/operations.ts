@@ -5,11 +5,22 @@ import type { TypedDocumentNode } from "@graphql-typed-document-node/core";
  * Thin wrappers around `client.query` / `client.mutate` that consume the
  * codegen-generated TypedDocumentNodes and return the unwrapped `data` payload.
  *
- * These exist so call sites read like `await runQuery(client, StatusDocument)`
- * instead of `(await client.query({ query: StatusDocument })).data`. They are
- * NOT a hand-rolled SDK — there's no per-operation method here. Solid hooks
- * codegen would replace these entirely; until then this is the minimum sugar.
+ * Apollo's defaultOptions sets `errorPolicy: "all"`, so GraphQL errors come
+ * back on `result.errors` rather than throwing. We surface them: a single
+ * error becomes a regular Error (cause = the GraphQLError); multiple become
+ * an AggregateError so none are silently dropped. Partial data is discarded.
  */
+
+function throwGraphqlErrors(errors: ReadonlyArray<{ message: string }>): never {
+  if (errors.length === 1) {
+    const only = errors[0];
+    throw new Error(only.message, { cause: only });
+  }
+  throw new AggregateError(
+    errors.map((e) => new Error(e.message, { cause: e })),
+    `GraphQL request failed with ${errors.length} errors`,
+  );
+}
 
 export async function runQuery<
   TData,
@@ -25,8 +36,7 @@ export async function runQuery<
   });
   if (result.error) throw result.error;
   if (result.errors && result.errors.length > 0) {
-    const first = result.errors[0];
-    throw new Error(first.message, { cause: first });
+    throwGraphqlErrors(result.errors);
   }
   if (!result.data) {
     throw new Error("Query returned no data");
@@ -47,8 +57,7 @@ export async function runMutation<
     variables,
   });
   if (result.errors && result.errors.length > 0) {
-    const first = result.errors[0];
-    throw new Error(first.message, { cause: first });
+    throwGraphqlErrors(result.errors);
   }
   if (!result.data) {
     throw new Error("Mutation returned no data");
