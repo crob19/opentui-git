@@ -53,10 +53,6 @@ export function useGitDiff(
         const mode = diffMode();
         const branch = compareBranch();
 
-        console.log(
-          `Loading diff for: ${filePath} (mode: ${mode}, branch: ${branch})`,
-        );
-
         let diff: string;
         if (mode === "branch" && branch) {
           diff = (

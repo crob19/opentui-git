@@ -7,7 +7,6 @@ import { ToastProvider } from "./components/toast.js";
 import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
-  repoPath: string;
   client: ApolloClient<unknown>;
 }
 
@@ -40,12 +39,10 @@ export function executeShutdown() {
  * Start the TUI
  */
 export function startTUI(options: TUIOptions) {
-  const { repoPath, client } = options;
+  const { client } = options;
 
   // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
-    (globalThis as Record<string, unknown>).__OPENTUI_GIT_REPO_PATH__ =
-      repoPath;
     (globalThis as Record<string, unknown>).__OPENTUI_GIT_CLIENT__ = client;
 
     const onExit = async () => {

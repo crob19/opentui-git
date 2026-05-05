@@ -22,9 +22,15 @@ export async function runQuery<
   const result = await client.query({
     query: document,
     variables,
-    fetchPolicy: "network-only",
   });
   if (result.error) throw result.error;
+  if (result.errors && result.errors.length > 0) {
+    const first = result.errors[0];
+    throw new Error(first.message, { cause: first });
+  }
+  if (!result.data) {
+    throw new Error("Query returned no data");
+  }
   return result.data;
 }
 
@@ -41,7 +47,8 @@ export async function runMutation<
     variables,
   });
   if (result.errors && result.errors.length > 0) {
-    throw result.errors[0];
+    const first = result.errors[0];
+    throw new Error(first.message, { cause: first });
   }
   if (!result.data) {
     throw new Error("Mutation returned no data");

@@ -38,15 +38,13 @@ logger.debug("[index] GraphQL endpoint:", url);
 const client = createClient({ endpoint: url });
 
 const { repoInfo } = await runQuery(client, RepoInfoDocument);
-const { isRepo, repoRoot } = repoInfo;
-const repoPath = isRepo && repoRoot ? repoRoot : process.cwd();
-if (!isRepo) {
+if (!repoInfo.isRepo) {
   logger.warn("[index] Not in a git repository, using cwd:", process.cwd());
 }
 
 const { startTUI } = await import("./tui/index.js");
 try {
-  await startTUI({ repoPath, client });
+  await startTUI({ client });
 } finally {
   dispose();
 }
