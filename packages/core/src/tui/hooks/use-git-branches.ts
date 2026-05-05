@@ -1,7 +1,14 @@
-import { createSignal, createResource, type Accessor, type Setter, type Resource } from "solid-js";
-import type { GitClient } from "../git-client.js";
+import {
+  createSignal,
+  createResource,
+  type Accessor,
+  type Setter,
+  type Resource,
+} from "solid-js";
+import { type ApolloClient, BranchesDocument } from "@opentui-git/client";
 import type { GitBranchInfo } from "../../git/types.js";
 import { logger } from "../utils/logger.js";
+import { runQuery } from "../data/operations.js";
 
 /**
  * Result object returned by useGitBranches hook
@@ -29,19 +36,21 @@ export interface UseGitBranchesResult {
  * @param client - SDK client for API operations
  * @returns Object containing branch resource, local branches list, and selection state
  */
-export function useGitBranches(client: GitClient): UseGitBranchesResult {
+export function useGitBranches(
+  client: ApolloClient<unknown>,
+): UseGitBranchesResult {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
 
   // Load branches
   const [branches, { refetch: refetchBranches }] =
     createResource<GitBranchInfo>(async () => {
       try {
-        const result = await client.getBranches();
-        return result;
+        const { branches } = await runQuery(client, BranchesDocument);
+        return branches;
       } catch (error) {
         logger.error("[use-git-branches] Error loading branches:", error);
         // Return empty result to prevent resource from being in error state
-        return { all: [], current: "", branches: {} };
+        return { all: [], current: "", branches: [] };
       }
     });
 
@@ -76,7 +85,9 @@ export function useGitBranches(client: GitClient): UseGitBranchesResult {
 
   return {
     branches,
-    refetchBranches: refetchBranches as () => Promise<GitBranchInfo | undefined>,
+    refetchBranches: refetchBranches as () => Promise<
+      GitBranchInfo | undefined
+    >,
     localBranches,
     selectedIndex,
     setSelectedIndex,

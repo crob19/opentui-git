@@ -21,9 +21,7 @@
     "start": "bun run --conditions=browser src/index.ts",
     "build": "bun run scripts/build.ts",
     "build:binary": "bun run scripts/build-binaries.ts",
-    "typecheck": "tsc --noEmit",
-    "generate": "graphql-codegen --config codegen.ts",
-    "generate:check": "bun run generate && git diff --exit-code -- src/graphql/generated.ts"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "git",
@@ -37,21 +35,16 @@
   "author": "opentui-git",
   "license": "MIT",
   "dependencies": {
+    "@opentui-git/client": "workspace:*",
     "@opentui/core": "^0.1.67",
     "@opentui/solid": "^0.1.67",
     "@types/diff": "^7.0.2",
     "diff": "^8.0.2",
-    "graphql": "^16.9.0",
-    "graphql-request": "^7.1.2",
     "shiki": "^3.20.0",
     "simple-git": "^3.30.0",
     "solid-js": "1.9.10"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.3",
-    "@graphql-codegen/typed-document-node": "^5.0.12",
-    "@graphql-codegen/typescript": "^4.1.1",
-    "@graphql-codegen/typescript-operations": "^4.4.0",
     "@types/bun": "latest",
     "typescript": "^5.9.3"
   }

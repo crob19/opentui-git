@@ -1,4 +1,5 @@
 import { render } from "@opentui/solid";
+import type { ApolloClient } from "@opentui-git/client";
 import { App } from "./app.js";
 import { Clipboard } from "./utils/clipboard.js";
 import { ErrorBoundary } from "./components/error-boundary.js";
@@ -6,7 +7,7 @@ import { ToastProvider } from "./components/toast.js";
 import { DialogProvider } from "./components/dialog.js";
 
 export interface TUIOptions {
-  repoPath: string;
+  client: ApolloClient<unknown>;
 }
 
 // Global shutdown registry
@@ -38,13 +39,10 @@ export function executeShutdown() {
  * Start the TUI
  */
 export function startTUI(options: TUIOptions) {
-  const { repoPath } = options;
+  const { client } = options;
 
   // Return a promise to prevent immediate exit
   return new Promise<void>(async (resolve) => {
-    (globalThis as Record<string, unknown>).__OPENTUI_GIT_REPO_PATH__ =
-      repoPath;
-
     const onExit = async () => {
       executeShutdown();
       resolve();
@@ -60,7 +58,7 @@ export function startTUI(options: TUIOptions) {
         <ErrorBoundary>
           <ToastProvider>
             <DialogProvider>
-              <App />
+              <App client={client} />
             </DialogProvider>
           </ToastProvider>
         </ErrorBoundary>

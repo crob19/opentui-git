@@ -1,5 +1,5 @@
 import type { Setter } from "solid-js";
-import type { GitClient } from "../git-client.js";
+import type { ApolloClient } from "@opentui-git/client";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 
@@ -13,7 +13,7 @@ export type PanelType = "files" | "branches" | "diff";
  */
 export interface CommandContext {
   /** SDK client for API operations */
-  client: GitClient;
+  client: ApolloClient<unknown>;
   /** Toast context for user notifications */
   toast: ToastContext;
   /** Dialog context for modal dialogs */

@@ -1,8 +1,18 @@
 import type { Setter } from "solid-js";
-import type { BranchCommandContext, BranchCommandWithSelectionContext } from "./types.js";
+import type {
+  BranchCommandContext,
+  BranchCommandWithSelectionContext,
+} from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
 import { ConfirmationModal } from "../components/modals/confirmation-modal.js";
+import { runMutation } from "../data/operations.js";
+import {
+  CheckoutBranchDocument,
+  CreateBranchDocument,
+  DeleteBranchDocument,
+  MergeBranchDocument,
+} from "@opentui-git/client";
 
 /**
  * Checkout (switch to) a different branch
@@ -17,7 +27,8 @@ export async function checkoutBranch(
   context.toast.info(`Switching to ${branchName}...`);
 
   const result = await handleAsyncOperation(
-    () => context.client.checkoutBranch(branchName),
+    () =>
+      runMutation(context.client, CheckoutBranchDocument, { name: branchName }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -45,7 +56,8 @@ export async function createBranch(
   console.log(`Creating branch: ${branchName}`);
 
   const result = await handleAsyncOperation(
-    () => context.client.createBranch(branchName),
+    () =>
+      runMutation(context.client, CreateBranchDocument, { name: branchName }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -73,7 +85,8 @@ export async function deleteBranch(
   console.log(`Deleting branch: ${branchName}`);
 
   const result = await handleAsyncOperation(
-    () => context.client.deleteBranch(branchName),
+    () =>
+      runMutation(context.client, DeleteBranchDocument, { name: branchName }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -102,7 +115,8 @@ export async function mergeBranch(
   console.log(`Merging branch: ${sourceBranch} into ${targetBranch}`);
 
   const result = await handleAsyncOperation(
-    () => context.client.mergeBranch(sourceBranch),
+    () =>
+      runMutation(context.client, MergeBranchDocument, { name: sourceBranch }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -113,8 +127,8 @@ export async function mergeBranch(
   if (result !== null) {
     console.log(`Merge result:`, result);
 
-    const mergeResult = result.result;
-    if (mergeResult.files.length === 0 && mergeResult.merges.length === 0) {
+    const { mergeBranch: outcome } = result;
+    if (outcome.merges.length === 0 && outcome.conflicts.length === 0) {
       context.toast.info("Already up to date");
     } else {
       context.toast.success(`Merged ${sourceBranch} into ${targetBranch}`);
@@ -189,22 +203,23 @@ export function showDeleteBranchDialog(
   console.log(`Opening delete confirmation for branch: ${branchName}`);
 
   context.dialog.show(
-    () => ConfirmationModal({
-      title: "Delete Branch",
-      message: `Are you sure you want to delete branch: ${branchName}?`,
-      variant: "danger",
-      confirmText: "Delete",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        await deleteBranch(branchName, context);
-        await context.refetchBranches();
-        // Reset selection index to the first branch after refetch
-        context.setBranchSelectedIndex(0);
-      },
-      onCancel: () => {
-        console.log("Branch deletion cancelled");
-      },
-    }),
+    () =>
+      ConfirmationModal({
+        title: "Delete Branch",
+        message: `Are you sure you want to delete branch: ${branchName}?`,
+        variant: "danger",
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          await deleteBranch(branchName, context);
+          await context.refetchBranches();
+          // Reset selection index to the first branch after refetch
+          context.setBranchSelectedIndex(0);
+        },
+        onCancel: () => {
+          console.log("Branch deletion cancelled");
+        },
+      }),
     () => console.log("Delete branch dialog closed"),
   );
 }
@@ -230,19 +245,20 @@ export function showMergeBranchDialog(
   );
 
   context.dialog.show(
-    () => ConfirmationModal({
-      title: "Merge Branch",
-      message: `Merge ${sourceBranch} into ${targetBranch}? This will merge the changes into your current branch.`,
-      variant: "warning",
-      confirmText: "Merge",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        await mergeBranch(sourceBranch, targetBranch, context);
-      },
-      onCancel: () => {
-        console.log("Branch merge cancelled");
-      },
-    }),
+    () =>
+      ConfirmationModal({
+        title: "Merge Branch",
+        message: `Merge ${sourceBranch} into ${targetBranch}? This will merge the changes into your current branch.`,
+        variant: "warning",
+        confirmText: "Merge",
+        cancelText: "Cancel",
+        onConfirm: async () => {
+          await mergeBranch(sourceBranch, targetBranch, context);
+        },
+        onCancel: () => {
+          console.log("Branch merge cancelled");
+        },
+      }),
     () => console.log("Merge branch dialog closed"),
   );
 }

@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
 import { getFullVersionString } from "./tui/utils/version.js";
 import { logger } from "./tui/utils/logger.js";
+import { bootstrapServer } from "./server-bootstrap.js";
+import { createClient, RepoInfoDocument } from "@opentui-git/client";
+import { runQuery } from "./tui/data/operations.js";
 
 const args = process.argv.slice(2);
 
@@ -21,19 +24,27 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("Options:");
   console.log("  -v, --version    Show version number");
   console.log("  -h, --help       Show this help message");
+  console.log();
+  console.log("Environment:");
+  console.log(
+    "  OPENTUI_GIT_SERVER_URL  Connect to an existing GraphQL server instead of spawning one.",
+  );
   process.exit(0);
 }
 
-const simpleGit = (await import("simple-git")).default;
-const git = simpleGit(process.cwd());
-let repoPath: string;
-try {
-  repoPath = (await git.revparse(["--show-toplevel"])).trim();
-  logger.debug("[index] Git repo root found:", repoPath);
-} catch (error) {
+const { url, dispose } = await bootstrapServer(process.cwd());
+logger.debug("[index] GraphQL endpoint:", url);
+
+const client = createClient({ endpoint: url });
+
+const { repoInfo } = await runQuery(client, RepoInfoDocument);
+if (!repoInfo.isRepo) {
   logger.warn("[index] Not in a git repository, using cwd:", process.cwd());
-  repoPath = process.cwd();
 }
 
 const { startTUI } = await import("./tui/index.js");
-await startTUI({ repoPath });
+try {
+  await startTUI({ client });
+} finally {
+  await dispose();
+}

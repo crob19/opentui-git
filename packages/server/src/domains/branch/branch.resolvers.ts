@@ -1,4 +1,3 @@
-import type { GitBranchInfo } from "@opentui-git/core/git/types";
 import type { Resolvers } from "../../resolvers-types.generated.js";
 
 export const branchResolvers: Resolvers = {
@@ -30,16 +29,5 @@ export const branchResolvers: Resolvers = {
         result: result.result ?? "",
       };
     },
-  },
-  Branches: {
-    current: (b: GitBranchInfo) => b.current,
-    all: (b: GitBranchInfo) => b.all,
-    branches: (b: GitBranchInfo) =>
-      Object.values(b.branches).map((br) => ({
-        name: br.name,
-        commit: br.commit,
-        label: br.label,
-        current: br.current,
-      })),
   },
 };

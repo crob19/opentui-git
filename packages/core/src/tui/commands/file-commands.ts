@@ -3,6 +3,14 @@ import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
 import { getFilesInFolder } from "../utils/file-tree.js";
 import type { FileTreeNode } from "../../git/types.js";
+import { runMutation } from "../data/operations.js";
+import {
+  CommitDocument,
+  StageAllDocument,
+  StageFileDocument,
+  UnstageAllDocument,
+  UnstageFileDocument,
+} from "@opentui-git/client";
 
 /**
  * Stage a specific file
@@ -14,9 +22,9 @@ export async function stageFile(
   context: FileCommandContext,
 ): Promise<void> {
   console.log(`Staging: ${filepath}`);
-  
+
   const result = await handleAsyncOperation(
-    () => context.client.stageFile(filepath),
+    () => runMutation(context.client, StageFileDocument, { path: filepath }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -40,9 +48,9 @@ export async function unstageFile(
   context: FileCommandContext,
 ): Promise<void> {
   console.log(`Unstaging: ${filepath}`);
-  
+
   const result = await handleAsyncOperation(
-    () => context.client.unstageFile(filepath),
+    () => runMutation(context.client, UnstageFileDocument, { path: filepath }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -62,9 +70,9 @@ export async function unstageFile(
  */
 export async function stageAll(context: FileCommandContext): Promise<void> {
   console.log("Staging all files");
-  
+
   const result = await handleAsyncOperation(
-    () => context.client.stageAll(),
+    () => runMutation(context.client, StageAllDocument),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -84,9 +92,9 @@ export async function stageAll(context: FileCommandContext): Promise<void> {
  */
 export async function unstageAll(context: FileCommandContext): Promise<void> {
   console.log("Unstaging all files");
-  
+
   const result = await handleAsyncOperation(
-    () => context.client.unstageAll(),
+    () => runMutation(context.client, UnstageAllDocument),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -110,9 +118,9 @@ export async function commit(
   context: FileCommandContext,
 ): Promise<void> {
   console.log(`Committing with message: ${message}`);
-  
+
   const result = await handleAsyncOperation(
-    () => context.client.commit(message),
+    () => runMutation(context.client, CommitDocument, { message }),
     {
       toast: context.toast,
       setErrorMessage: context.setErrorMessage,
@@ -143,7 +151,7 @@ export function showCommitDialog(
   }
 
   console.log(`Opening commit dialog for ${stagedCount} staged files`);
-  
+
   context.dialog.show(
     () => {
       const modal = InputModal({
@@ -174,21 +182,21 @@ export async function stageFolder(
   context: FileCommandContext,
 ): Promise<void> {
   const files = getFilesInFolder(folderNode);
-  
+
   if (files.length === 0) {
     context.toast.warning("No files in folder");
     return;
   }
 
   console.log(`Staging ${files.length} files in folder: ${folderNode.path}`);
-  
+
   // Stage each file with error handling
   let successCount = 0;
   let errorCount = 0;
-  
+
   for (const filepath of files) {
     try {
-      await context.client.stageFile(filepath);
+      await runMutation(context.client, StageFileDocument, { path: filepath });
       successCount++;
     } catch (error) {
       console.error(`Failed to stage ${filepath}:`, error);
@@ -197,11 +205,15 @@ export async function stageFolder(
   }
 
   if (errorCount > 0) {
-    context.toast.warning(`Staged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`);
+    context.toast.warning(
+      `Staged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`,
+    );
   } else {
-    context.toast.info(`Staged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`);
+    context.toast.info(
+      `Staged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`,
+    );
   }
-  
+
   await context.refetch();
 }
 
@@ -215,21 +227,23 @@ export async function unstageFolder(
   context: FileCommandContext,
 ): Promise<void> {
   const files = getFilesInFolder(folderNode);
-  
+
   if (files.length === 0) {
     context.toast.warning("No files in folder");
     return;
   }
 
   console.log(`Unstaging ${files.length} files in folder: ${folderNode.path}`);
-  
+
   // Unstage each file with error handling
   let successCount = 0;
   let errorCount = 0;
-  
+
   for (const filepath of files) {
     try {
-      await context.client.unstageFile(filepath);
+      await runMutation(context.client, UnstageFileDocument, {
+        path: filepath,
+      });
       successCount++;
     } catch (error) {
       console.error(`Failed to unstage ${filepath}:`, error);
@@ -238,10 +252,14 @@ export async function unstageFolder(
   }
 
   if (errorCount > 0) {
-    context.toast.warning(`Unstaged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`);
+    context.toast.warning(
+      `Unstaged ${successCount} file${successCount !== 1 ? "s" : ""}, ${errorCount} failed`,
+    );
   } else {
-    context.toast.info(`Unstaged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`);
+    context.toast.info(
+      `Unstaged ${successCount} file${successCount !== 1 ? "s" : ""} in ${folderNode.name}`,
+    );
   }
-  
+
   await context.refetch();
 }

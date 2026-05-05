@@ -1,7 +1,7 @@
 import { createSignal, createEffect } from "solid-js";
 import { useRenderer } from "@opentui/solid";
-import { createClient } from "./git-client.js";
-import { GitService } from "../git/service.js";
+import { type ApolloClient, DefaultBranchDocument } from "@opentui-git/client";
+import { runQuery } from "./data/operations.js";
 import { useDialog } from "./components/dialog.js";
 import { useToast } from "./components/toast.js";
 import { AppLayout } from "./components/app-layout.js";
@@ -22,29 +22,20 @@ import { registerShutdownHandler } from "./index.js";
  */
 export type BranchPanelTab = "branches" | "tags";
 
-function getRepoPath(): string {
-  return (
-    ((globalThis as Record<string, unknown>)
-      .__OPENTUI_GIT_REPO_PATH__ as string) || process.cwd()
-  );
-}
-
 /**
  * Main application component
  * Handles git operations, keyboard input, and UI state
  * Orchestrates all hooks and passes state to layout component
  */
-export function App() {
-  const git = new GitService(getRepoPath());
-  const client = createClient(git);
-  return <AppContent client={client} />;
+export function App(props: { client: ApolloClient<unknown> }) {
+  return <AppContent client={props.client} />;
 }
 
 /**
  * Application content component
  * Receives client as prop, calls useRenderer() directly
  */
-function AppContent(props: { client: ReturnType<typeof createClient> }) {
+function AppContent(props: { client: ApolloClient<unknown> }) {
   const { client } = props;
   const renderer = useRenderer();
   const dialog = useDialog();
@@ -70,10 +61,9 @@ function AppContent(props: { client: ReturnType<typeof createClient> }) {
   // Initialize compareBranch with the default branch (main or master)
   // This runs once on startup and is properly tracked
   createEffect(() => {
-    client
-      .getDefaultBranch()
-      .then((branch) => {
-        setCompareBranch(branch);
+    runQuery(client, DefaultBranchDocument)
+      .then(({ defaultBranch }) => {
+        setCompareBranch(defaultBranch);
         setIsCompareBranchLoading(false);
       })
       .catch((error) => {

@@ -1,5 +1,12 @@
 import { useKeyboard } from "@opentui/solid";
-import type { GitClient } from "../git-client.js";
+import {
+  type ApolloClient,
+  CurrentCommitHashDocument,
+  DiffDocument,
+  ReadFileDocument,
+  WriteFileDocument,
+} from "@opentui-git/client";
+import { runMutation, runQuery } from "../data/operations.js";
 import type { ToastContext } from "../components/toast.js";
 import type { DialogContext } from "../components/dialog.js";
 import type { PanelType } from "../commands/types.js";
@@ -25,7 +32,7 @@ import { HelpModal } from "../components/modals/help-modal.js";
  */
 export interface UseCommandHandlerOptions {
   /** SDK client for API operations */
-  client: GitClient;
+  client: ApolloClient<unknown>;
   /** Toast context for notifications */
   toast: ToastContext;
   /** Dialog context for modals */
@@ -186,12 +193,13 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     // Handle help modal with ?
     if (key === "?") {
       dialog.show(
-        () => HelpModal({
-          onClose: () => {
-            console.log("Help modal closed");
-          }
-        }),
-        () => console.log("Help dialog closed")
+        () =>
+          HelpModal({
+            onClose: () => {
+              console.log("Help modal closed");
+            },
+          }),
+        () => console.log("Help dialog closed"),
       );
       return;
     }
@@ -200,7 +208,11 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
     // Special case: Shift+P on tags tab pushes the selected tag
     if (key === "p" || key === "P") {
       // If in branches panel on tags tab with Shift, push the selected tag
-      if (shift && activePanel() === "branches" && branchPanelTab() === "tags") {
+      if (
+        shift &&
+        activePanel() === "branches" &&
+        branchPanelTab() === "tags"
+      ) {
         const selectedTag = gitTags.selectedTag();
         if (selectedTag) {
           await tagCommands.pushTag(selectedTag, {
@@ -309,7 +321,9 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
       }
     } catch (error) {
       console.error("Error handling key press:", error);
-      gitStatus.setErrorMessage(error instanceof Error ? error.message : "Unknown error");
+      gitStatus.setErrorMessage(
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   };
 
@@ -336,7 +350,7 @@ async function handleBranchPanelKeys(
     gitTags: UseGitTagsResult;
     branchPanelTab: Accessor<BranchPanelTab>;
     setBranchPanelTab: Setter<BranchPanelTab>;
-    client: GitClient;
+    client: ApolloClient<unknown>;
     toast: ToastContext;
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
@@ -345,12 +359,26 @@ async function handleBranchPanelKeys(
     refetchTags: () => Promise<unknown>;
   },
 ): Promise<void> {
-  const { branchList, currentBranch, gitBranches, gitTags, branchPanelTab, setBranchPanelTab } = context;
+  const {
+    branchList,
+    currentBranch,
+    gitBranches,
+    gitTags,
+    branchPanelTab,
+    setBranchPanelTab,
+  } = context;
 
   // Get the current list and selection based on active tab
-  const currentList = branchPanelTab() === "branches" ? branchList : gitTags.allTags();
-  const currentSelectedIndex = branchPanelTab() === "branches" ? gitBranches.selectedIndex : gitTags.selectedIndex;
-  const currentSetSelectedIndex = branchPanelTab() === "branches" ? gitBranches.setSelectedIndex : gitTags.setSelectedIndex;
+  const currentList =
+    branchPanelTab() === "branches" ? branchList : gitTags.allTags();
+  const currentSelectedIndex =
+    branchPanelTab() === "branches"
+      ? gitBranches.selectedIndex
+      : gitTags.selectedIndex;
+  const currentSetSelectedIndex =
+    branchPanelTab() === "branches"
+      ? gitBranches.setSelectedIndex
+      : gitTags.setSelectedIndex;
 
   switch (key) {
     // Tab navigation with [ and ]
@@ -359,7 +387,7 @@ async function handleBranchPanelKeys(
       gitBranches.setSelectedIndex(0);
       setBranchPanelTab("branches");
       break;
-    
+
     case "]":
       // Reset selection when switching to tags tab
       gitTags.setSelectedIndex(0);
@@ -377,10 +405,7 @@ async function handleBranchPanelKeys(
 
     case "k":
     case "up":
-      navCommands.navigateUp(
-        currentSelectedIndex,
-        currentSetSelectedIndex,
-      );
+      navCommands.navigateUp(currentSelectedIndex, currentSetSelectedIndex);
       break;
 
     // Checkout branch with space (only on branches tab)
@@ -421,7 +446,10 @@ async function handleBranchPanelKeys(
 
     // Create tag
     case "t": {
-      const commitHash = await context.client.getCurrentCommitHash();
+      const { currentCommitHash: commitHash } = await runQuery(
+        context.client,
+        CurrentCommitHashDocument,
+      );
       await tagCommands.showTagDialog(currentBranch, commitHash, context);
       break;
     }
@@ -473,7 +501,7 @@ async function handleDiffPanelKeys(
     setSelectedLine: Setter<number>;
     fileMtime: Accessor<Date | null>;
     setFileMtime: Setter<Date | null>;
-    client: GitClient;
+    client: ApolloClient<unknown>;
     gitStatus: UseGitStatusResult;
     toast: ToastContext;
     refetchDiff: () => void;
@@ -483,7 +511,7 @@ async function handleDiffPanelKeys(
   const saveCurrentEdit = () => {
     if (!context.isEditMode()) return;
 
-    const lines = context.fileContent().split('\n');
+    const lines = context.fileContent().split("\n");
     const lineIndex = context.selectedLine();
 
     // Bounds check
@@ -521,34 +549,44 @@ async function handleDiffPanelKeys(
       }
 
       // Get the original file content that was loaded
-      const lines = context.fileContent().split('\n');
+      const lines = context.fileContent().split("\n");
 
       // Validate and apply all edits
       for (const [lineNum, newContent] of editedLinesMap) {
         const lineIndex = lineNum - 1;
         // Bounds check
         if (lineIndex < 0 || lineIndex >= lines.length) {
-          context.toast.error(`Line ${lineNum} is out of bounds. File may have changed.`);
+          context.toast.error(
+            `Line ${lineNum} is out of bounds. File may have changed.`,
+          );
           return;
         }
         lines[lineIndex] = newContent;
       }
 
       // Write back to file with modification check
-      const result = await context.client.writeFile(
-        selectedFile.path,
-        lines.join('\n'),
-        context.fileMtime() ?? undefined,
+      const { writeFile } = await runMutation(
+        context.client,
+        WriteFileDocument,
+        {
+          path: selectedFile.path,
+          content: lines.join("\n"),
+          expectedMtime: context.fileMtime()?.toISOString(),
+        },
       );
 
-      if (!result.success) {
+      if (!writeFile.success) {
         context.toast.error("Failed to save file - conflict detected");
-        context.toast.info("File was modified externally. Exit edit mode and re-enter to see latest changes.");
+        context.toast.info(
+          "File was modified externally. Exit edit mode and re-enter to see latest changes.",
+        );
         return;
       }
 
       const count = editedLinesMap.size;
-      context.toast.success(`Saved ${count} line${count > 1 ? 's' : ''} to ${selectedFile.path}`);
+      context.toast.success(
+        `Saved ${count} line${count > 1 ? "s" : ""} to ${selectedFile.path}`,
+      );
 
       // Exit edit mode and clear all state
       context.setIsEditMode(false);
@@ -563,7 +601,9 @@ async function handleDiffPanelKeys(
       // Reset selected diff row to avoid pointing to an invalid or changed line
       context.setSelectedDiffRow(0);
     } catch (error) {
-      context.toast.error(`Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`);
+      context.toast.error(
+        `Failed to save: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
     return;
   }
@@ -606,9 +646,13 @@ async function handleDiffPanelKeys(
     // Show toast to indicate mode change
     const compareBranch = context.compareBranch();
     const modeLabel =
-      next === "unstaged" ? "Unstaged changes" :
-      next === "staged" ? "Staged changes" :
-      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
+      next === "unstaged"
+        ? "Unstaged changes"
+        : next === "staged"
+          ? "Staged changes"
+          : compareBranch
+            ? `Comparing against ${compareBranch}`
+            : "Comparing against default branch";
 
     context.toast.info(`Diff mode: ${modeLabel}`);
     return;
@@ -619,13 +663,21 @@ async function handleDiffPanelKeys(
     const selectedFile = context.gitStatus.selectedFile();
     const selectedPath = selectedFile?.path?.trim();
     if (!selectedPath) {
-      logger.warn("Attempted to enter edit mode without a valid selected file path");
+      logger.warn(
+        "Attempted to enter edit mode without a valid selected file path",
+      );
       return;
     }
 
     try {
       // Get the diff to find which line we're on
-      const diffContent = await context.client.getDiff(selectedPath);
+      const { diff: diffContent } = await runQuery(
+        context.client,
+        DiffDocument,
+        {
+          path: selectedPath,
+        },
+      );
       if (!diffContent) {
         context.toast.error("No diff available");
         return;
@@ -652,13 +704,19 @@ async function handleDiffPanelKeys(
       }
 
       // Load the full file content with metadata
-      const { content: fullContent, mtime } = await context.client.readFile(selectedPath);
-      const lines = fullContent.split('\n');
+      const {
+        readFile: { content: fullContent, mtime },
+      } = await runQuery(context.client, ReadFileDocument, {
+        path: selectedPath,
+      });
+      const lines = fullContent.split("\n");
 
       // Validate line number is within bounds
       const lineIndex = lineNum - 1;
       if (lineIndex < 0 || lineIndex >= lines.length) {
-        context.toast.error("Line number out of bounds. File may have changed.");
+        context.toast.error(
+          "Line number out of bounds. File may have changed.",
+        );
         return;
       }
 
@@ -670,7 +728,9 @@ async function handleDiffPanelKeys(
       // Enter edit mode
       context.setIsEditMode(true);
     } catch (error) {
-      context.toast.error(`Failed to enter edit mode: ${error instanceof Error ? error.message : "Unknown error"}`);
+      context.toast.error(
+        `Failed to enter edit mode: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
     return;
   }
@@ -678,7 +738,7 @@ async function handleDiffPanelKeys(
   // Helper function to navigate between lines in edit mode
   const navigateEditLine = (direction: 1 | -1) => {
     saveCurrentEdit();
-    const lines = context.fileContent().split('\n');
+    const lines = context.fileContent().split("\n");
     const currentIndex = context.selectedLine();
 
     // Clamp new index within bounds
@@ -710,7 +770,9 @@ async function handleDiffPanelKeys(
       context.setFileContent("");
       context.setFileMtime(null);
       if (editCount > 0) {
-        context.toast.info(`Discarded ${editCount} unsaved change${editCount > 1 ? 's' : ''}`);
+        context.toast.info(
+          `Discarded ${editCount} unsaved change${editCount > 1 ? "s" : ""}`,
+        );
       }
       return;
     }
@@ -769,7 +831,7 @@ async function handleFilePanelKeys(
     status: ReturnType<UseGitStatusResult["gitStatus"]>;
     currentBranch: string;
     gitStatus: UseGitStatusResult;
-    client: GitClient;
+    client: ApolloClient<unknown>;
     toast: ToastContext;
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
@@ -815,9 +877,13 @@ async function handleFilePanelKeys(
     // Show toast to indicate mode change
     const compareBranch = context.compareBranch();
     const modeLabel =
-      next === "unstaged" ? "Unstaged changes" :
-      next === "staged" ? "Staged changes" :
-      compareBranch ? `Comparing against ${compareBranch}` : "Comparing against default branch";
+      next === "unstaged"
+        ? "Unstaged changes"
+        : next === "staged"
+          ? "Staged changes"
+          : compareBranch
+            ? `Comparing against ${compareBranch}`
+            : "Comparing against default branch";
 
     context.toast.info(`Diff mode: ${modeLabel}`);
     return;
@@ -835,11 +901,17 @@ async function handleFilePanelKeys(
   // Allow 't' (create tag) even without files
   if (key === "t") {
     try {
-      const commitHash = await context.client.getCurrentCommitHash();
+      const { currentCommitHash: commitHash } = await runQuery(
+        context.client,
+        CurrentCommitHashDocument,
+      );
       await tagCommands.showTagDialog(currentBranch, commitHash, context);
     } catch (error) {
       // Handle case where there is no current commit (for example, empty repository)
-      console.error("Failed to get current commit hash for tag creation:", error);
+      console.error(
+        "Failed to get current commit hash for tag creation:",
+        error,
+      );
       context.setErrorMessage(
         "Cannot create a tag because the repository has no commits yet.",
       );
@@ -849,7 +921,7 @@ async function handleFilePanelKeys(
 
   // Get flat nodes for navigation
   const flatNodes = gitStatus.flatNodes();
-  
+
   // Other commands require nodes
   if (flatNodes.length === 0) return;
 
@@ -876,9 +948,9 @@ async function handleFilePanelKeys(
     case "return":
     case "enter": {
       const node = gitStatus.selectedNode();
-      if (node && node.type === 'folder') {
+      if (node && node.type === "folder") {
         gitStatus.toggleFolderExpand(node.path);
-      } else if (node && node.type === 'file') {
+      } else if (node && node.type === "file") {
         // Switch to diff panel when Enter is pressed on a file
         context.setActivePanel("diff");
       }
@@ -894,29 +966,33 @@ async function handleFilePanelKeys(
       // If in branch mode, we need to check if files have actual working directory changes
       const inBranchMode = context.diffMode() === "branch";
 
-      if (node.type === 'folder') {
+      if (node.type === "folder") {
         // Get all files in the folder recursively
         const filesInFolder = getFilesInFolder(node);
-        
+
         if (inBranchMode) {
           // In branch mode, check if any files have local changes using cached data
-          const hasUnstaged = status?.files.some((file) => {
-            return filesInFolder.includes(file.path) && 
-                   file.hasLocalChanges && 
-                   !file.staged;
-          }) || false;
+          const hasUnstaged =
+            status?.files.some((file) => {
+              return (
+                filesInFolder.includes(file.path) &&
+                file.hasLocalChanges &&
+                !file.staged
+              );
+            }) || false;
 
           if (!hasUnstaged) {
             context.toast.info("No unstaged changes in this folder");
             break;
           }
-          
+
           await fileCommands.stageFolder(node, context);
         } else {
           // Normal mode - use the current status
-          const hasUnstaged = status?.files.some((file) => {
-            return filesInFolder.includes(file.path) && !file.staged;
-          }) || false;
+          const hasUnstaged =
+            status?.files.some((file) => {
+              return filesInFolder.includes(file.path) && !file.staged;
+            }) || false;
 
           if (hasUnstaged) {
             await fileCommands.stageFolder(node, context);
@@ -924,7 +1000,7 @@ async function handleFilePanelKeys(
             await fileCommands.unstageFolder(node, context);
           }
         }
-      } else if (node.type === 'file' && node.fileStatus) {
+      } else if (node.type === "file" && node.fileStatus) {
         // Stage/unstage individual file
         if (inBranchMode) {
           // In branch mode, check if file has actual unstaged changes using cached data
@@ -932,7 +1008,7 @@ async function handleFilePanelKeys(
             context.toast.info("No unstaged changes for this file");
             break;
           }
-          
+
           await fileCommands.stageFile(node.fileStatus.path, context);
         } else {
           // Normal mode

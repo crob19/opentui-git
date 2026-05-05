@@ -11,9 +11,9 @@ const config: CodegenConfig = {
         avoidOptionals: { field: true },
       },
     },
-  },
-  hooks: {
-    afterOneFileWrite: ["bun run scripts/ensure-trailing-newline.ts"],
+    "src/graphql/apollo-helpers.ts": {
+      plugins: ["typescript-apollo-client-helpers"],
+    },
   },
 };
 
