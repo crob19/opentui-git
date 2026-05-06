@@ -13,37 +13,43 @@ layer (same generated documents as the TUI).
 
 ## Develop
 
-In one terminal, run the GraphQL server:
-
 ```sh
-bun run dev:server
+bun run dev:desktop
 ```
 
-In another, from the repo root:
+That's it — the Electron main process spawns the GraphQL server itself
+(`bun run packages/server/src/index.ts` with `PORT=0`), parses the
+`{type:"ready",url}` line, and forwards the URL into the renderer via
+preload (`window.opentui.endpoint`). The server is killed on app quit.
+
+To point the desktop client at a server you're already running (e.g. one
+started in another terminal for log visibility), set `OPENTUI_GIT_ENDPOINT`
+— auto-spawn is skipped:
 
 ```sh
-npm --workspace @opentui-git/desktop run dev
-# or: cd packages/desktop && npm run dev
+OPENTUI_GIT_ENDPOINT=http://127.0.0.1:4000/ bun run dev:desktop
 ```
 
-The renderer points at `http://127.0.0.1:4000/` by default. Override with
-`VITE_GRAPHQL_ENDPOINT` if you start the server on a different port.
+To target a repo other than the desktop package's cwd, pass `--cwd` after
+the Electron args (electron-vite forwards them to the main process).
 
 ## Build
 
 ```sh
-npm --workspace @opentui-git/desktop run build
+bun run build:desktop
 ```
 
-Outputs to `out/` (main, preload, renderer). Packaging (electron-builder /
-DMG / etc.) is not wired up yet — add when needed.
+Outputs to `out/{main,preload,renderer}`.
+
+## Packaged builds
+
+`app.isPackaged === true` disables auto-spawn and requires
+`OPENTUI_GIT_ENDPOINT`. To make packaged builds self-contained we'd need to
+either bundle the Bun runtime alongside Electron or compile the server with
+`bun build --compile` and ship that binary. Not wired up yet.
 
 ## Not yet wired
 
-- Auto-spawn of the GraphQL server from the Electron main process. For now,
-  start the server manually. When we add auto-spawn, it goes in
-  `src/main/index.ts` using `child_process.spawn` and the `{type:"ready",url}`
-  line the server emits on stdout.
-- Subscriptions / live updates (status currently polls every 2s).
-- IPC bridge in `src/preload/index.ts` — add when the renderer needs
-  privileged operations.
+- electron-builder / DMG packaging.
+- Subscriptions — status currently polls every 2s.
+- Mutations beyond `commit` (defined in the schema, not yet surfaced in UI).

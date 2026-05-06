@@ -5,8 +5,13 @@ import { createClient } from "@opentui-git/client";
 
 import { App } from "./App.js";
 
+// Endpoint comes from the Electron main process (which spawns the GraphQL
+// server on a free port and forwards the URL through preload). Vite env and
+// a hard-coded default are fallbacks for non-Electron contexts.
 const endpoint =
-  import.meta.env.VITE_GRAPHQL_ENDPOINT ?? "http://127.0.0.1:4000/";
+  window.opentui?.endpoint ??
+  import.meta.env.VITE_GRAPHQL_ENDPOINT ??
+  "http://127.0.0.1:4000/";
 
 const client = createClient({ endpoint, fetch: window.fetch.bind(window) });
 

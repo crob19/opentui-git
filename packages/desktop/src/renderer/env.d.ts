@@ -7,3 +7,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface OpentuiBridge {
+  readonly endpoint: string | null;
+}
+
+interface Window {
+  readonly opentui?: OpentuiBridge;
+}
