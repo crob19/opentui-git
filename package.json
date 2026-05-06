@@ -6,16 +6,19 @@
   "workspaces": [
     "packages/client",
     "packages/core",
+    "packages/desktop",
     "packages/server"
   ],
   "scripts": {
     "dev": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "dev:tui": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "dev:server": "bun run --cwd packages/server dev",
+    "dev:desktop": "npm --workspace @opentui-git/desktop run dev",
     "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
     "build": "bun run --cwd packages/core build",
     "build:binary": "bun run --cwd packages/core build:binary",
-    "typecheck": "bun run --cwd packages/client typecheck && bun run --cwd packages/core typecheck && bun run --cwd packages/server typecheck",
+    "build:desktop": "npm --workspace @opentui-git/desktop run build",
+    "typecheck": "bun run --cwd packages/client typecheck && bun run --cwd packages/core typecheck && bun run --cwd packages/server typecheck && npm --workspace @opentui-git/desktop run typecheck",
     "generate": "bun run --cwd packages/server generate && bun run --cwd packages/client generate",
     "generate:server": "bun run --cwd packages/server generate",
     "generate:client": "bun run --cwd packages/client generate",
