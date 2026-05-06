@@ -267,7 +267,96 @@ export class GitService {
    */
   async getDiff(filepath: string, staged: boolean = false): Promise<string> {
     const options = staged ? ["--cached", filepath] : [filepath];
-    return await this.git.diff(options);
+    const diff = await this.git.diff(options);
+
+    // For untracked files, `git diff` returns nothing because the file isn't
+    // known to git yet. Detect that case and synthesize a unified diff against
+    // /dev/null so the viewer can show the new file's contents.
+    if (!diff && !staged && (await this.isUntracked(filepath))) {
+      return await this.buildUntrackedDiff(filepath);
+    }
+
+    return diff;
+  }
+
+  /**
+   * Check if a file is untracked (exists on disk but not known to git)
+   * @private
+   */
+  private async isUntracked(filepath: string): Promise<boolean> {
+    try {
+      const result = await this.git.raw([
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "--",
+        filepath,
+      ]);
+      return result.trim().length > 0;
+    } catch (error) {
+      logger.error(
+        `Failed to check untracked status for "${filepath}":`,
+        error instanceof Error ? error.message : error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Synthesize a unified diff for an untracked file by reading it from disk
+   * and treating it as fully added against /dev/null.
+   * @private
+   */
+  private async buildUntrackedDiff(filepath: string): Promise<string> {
+    const absolute = path.join(this.repoPath, filepath);
+    const header =
+      `diff --git a/${filepath} b/${filepath}\n` +
+      `new file mode 100644\n` +
+      `--- /dev/null\n` +
+      `+++ b/${filepath}\n`;
+
+    let buffer: Buffer;
+    try {
+      buffer = await fs.readFile(absolute);
+    } catch (error) {
+      logger.error(
+        `Failed to read untracked file "${filepath}":`,
+        error instanceof Error ? error.message : error,
+      );
+      return "";
+    }
+
+    // Match git: a NUL byte in the first 8KB classifies the file as binary.
+    const sniff = buffer.subarray(0, Math.min(buffer.length, 8192));
+    if (sniff.includes(0)) {
+      return header + `Binary files /dev/null and b/${filepath} differ\n`;
+    }
+
+    // Cap rendered content so an accidentally-untracked huge file doesn't
+    // blow up memory or the viewer.
+    const MAX_BYTES = 1024 * 1024;
+    const truncated = buffer.length > MAX_BYTES;
+    const content = (
+      truncated ? buffer.subarray(0, MAX_BYTES) : buffer
+    ).toString("utf8");
+
+    if (content.length === 0) {
+      return header + `@@ -0,0 +0,0 @@\n`;
+    }
+
+    const lines = content.split("\n");
+    // If the file ends with a newline, split() yields a trailing empty entry —
+    // drop it so we don't emit a phantom "+" line.
+    const hasTrailingNewline = !truncated && content.endsWith("\n");
+    if (hasTrailingNewline) lines.pop();
+
+    const body = lines.map((line) => `+${line}`).join("\n");
+    const trailer = truncated
+      ? `\n+\n+[... file truncated, showing first ${MAX_BYTES} bytes of ${buffer.length} ...]\n`
+      : hasTrailingNewline
+        ? "\n"
+        : "\n\\ No newline at end of file\n";
+    return header + `@@ -0,0 +1,${lines.length} @@\n` + body + trailer;
   }
 
   /**
