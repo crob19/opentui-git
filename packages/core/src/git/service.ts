@@ -293,7 +293,11 @@ export class GitService {
         filepath,
       ]);
       return result.trim().length > 0;
-    } catch {
+    } catch (error) {
+      logger.error(
+        `Failed to check untracked status for "${filepath}":`,
+        error instanceof Error ? error.message : error,
+      );
       return false;
     }
   }
@@ -305,9 +309,15 @@ export class GitService {
    */
   private async buildUntrackedDiff(filepath: string): Promise<string> {
     const absolute = path.join(this.repoPath, filepath);
-    let content: string;
+    const header =
+      `diff --git a/${filepath} b/${filepath}\n` +
+      `new file mode 100644\n` +
+      `--- /dev/null\n` +
+      `+++ b/${filepath}\n`;
+
+    let buffer: Buffer;
     try {
-      content = await fs.readFile(absolute, "utf8");
+      buffer = await fs.readFile(absolute);
     } catch (error) {
       logger.error(
         `Failed to read untracked file "${filepath}":`,
@@ -316,26 +326,36 @@ export class GitService {
       return "";
     }
 
-    const lines = content.length === 0 ? [] : content.split("\n");
-    // If the file ends with a newline, split() yields a trailing empty entry —
-    // drop it so we don't emit a phantom "+" line.
-    const hasTrailingNewline = content.endsWith("\n");
-    if (hasTrailingNewline) lines.pop();
+    // Match git: a NUL byte in the first 8KB classifies the file as binary.
+    const sniff = buffer.subarray(0, Math.min(buffer.length, 8192));
+    if (sniff.includes(0)) {
+      return header + `Binary files /dev/null and b/${filepath} differ\n`;
+    }
 
-    const header =
-      `diff --git a/${filepath} b/${filepath}\n` +
-      `new file mode 100644\n` +
-      `--- /dev/null\n` +
-      `+++ b/${filepath}\n`;
+    // Cap rendered content so an accidentally-untracked huge file doesn't
+    // blow up memory or the viewer.
+    const MAX_BYTES = 1024 * 1024;
+    const truncated = buffer.length > MAX_BYTES;
+    const content = (
+      truncated ? buffer.subarray(0, MAX_BYTES) : buffer
+    ).toString("utf8");
 
-    if (lines.length === 0) {
+    if (content.length === 0) {
       return header + `@@ -0,0 +0,0 @@\n`;
     }
 
+    const lines = content.split("\n");
+    // If the file ends with a newline, split() yields a trailing empty entry —
+    // drop it so we don't emit a phantom "+" line.
+    const hasTrailingNewline = !truncated && content.endsWith("\n");
+    if (hasTrailingNewline) lines.pop();
+
     const body = lines.map((line) => `+${line}`).join("\n");
-    const trailer = hasTrailingNewline
-      ? "\n"
-      : "\n\\ No newline at end of file\n";
+    const trailer = truncated
+      ? `\n+\n+[... file truncated, showing first ${MAX_BYTES} bytes of ${buffer.length} ...]\n`
+      : hasTrailingNewline
+        ? "\n"
+        : "\n\\ No newline at end of file\n";
     return header + `@@ -0,0 +1,${lines.length} @@\n` + body + trailer;
   }
 
