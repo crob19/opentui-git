@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 import { getFullVersionString } from "./tui/utils/version.js";
 import { logger } from "./tui/utils/logger.js";
 import { bootstrapServer } from "./server-bootstrap.js";

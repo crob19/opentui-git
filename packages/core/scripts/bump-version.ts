@@ -1,96 +1,60 @@
-#!/usr/bin/env bun
-
+#!/usr/bin/env node
 /**
- * Version bumping script for releases
+ * Version bumping script for releases.
  *
  * Usage:
- *   bun run scripts/bump-version.ts --major  # 0.1.0 → 1.0.0
- *   bun run scripts/bump-version.ts --minor  # 0.1.0 → 0.2.0
- *   bun run scripts/bump-version.ts --patch  # 0.1.0 → 0.1.1
+ *   pnpm release:patch  # 0.1.0 → 0.1.1
+ *   pnpm release:minor  # 0.1.0 → 0.2.0
+ *   pnpm release:major  # 0.1.0 → 1.0.0
  *
- * Features:
- * - Validates git working directory is clean
- * - Requires main branch for releases
- * - Updates package.json
- * - Creates conventional commit
- * - Creates and pushes git tag
- * - Triggers GitHub Actions for release
+ * Bumps packages/core/package.json (the published package), commits, tags,
+ * and pushes. The release.yml workflow takes over from the tag push and
+ * publishes to npm.
  */
 
-import { writeFile } from "fs/promises";
-import path from "path";
-import { $ } from "bun";
+import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT_DIR = path.resolve(import.meta.dir, "..");
-const PACKAGE_JSON = path.join(ROOT_DIR, "package.json");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PKG_DIR = path.resolve(__dirname, "..");
+const PACKAGE_JSON = path.join(PKG_DIR, "package.json");
 
 type BumpType = "major" | "minor" | "patch";
 
-// Parse command line arguments
 const args = process.argv.slice(2);
 let bumpType: BumpType | null = null;
-
 if (args.includes("--major")) bumpType = "major";
 else if (args.includes("--minor")) bumpType = "minor";
 else if (args.includes("--patch")) bumpType = "patch";
 
 if (!bumpType) {
-  console.error("❌ Error: Missing version bump type");
+  console.error("Error: missing version bump type");
   console.error(
-    "Usage: bun run scripts/bump-version.ts --major|--minor|--patch",
+    "Usage: tsx packages/core/scripts/bump-version.ts --major|--minor|--patch",
   );
   process.exit(1);
 }
 
-// Read and validate package.json
-let pkg: any;
+let pkg: Record<string, unknown>;
 try {
-  pkg = await Bun.file(PACKAGE_JSON).json();
+  pkg = JSON.parse(readFileSync(PACKAGE_JSON, "utf8"));
 } catch (err) {
-  console.error(
-    "❌ Error: Failed to read or parse package.json at:",
-    PACKAGE_JSON,
-  );
-  console.error("Details:", err);
-  process.exit(1);
-}
-
-if (!pkg || typeof pkg !== "object") {
-  console.error(
-    "❌ Error: package.json is invalid. Expected an object at the top level.",
-  );
+  console.error("Error: failed to read or parse", PACKAGE_JSON);
+  console.error(err);
   process.exit(1);
 }
 
 const currentVersion = String(pkg.version || "");
-
-// Validate version format (must be MAJOR.MINOR.PATCH)
 if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
-  console.error(`❌ Error: Invalid version in package.json: "${pkg.version}"`);
-  console.error("Expected format: MAJOR.MINOR.PATCH (e.g., 1.2.3)");
+  console.error(`Error: invalid version in package.json: "${currentVersion}"`);
   process.exit(1);
 }
-
 const [major, minor, patch] = currentVersion.split(".").map(Number);
 
-// Validate numeric components
-if (
-  !Number.isInteger(major) ||
-  major < 0 ||
-  !Number.isInteger(minor) ||
-  minor < 0 ||
-  !Number.isInteger(patch) ||
-  patch < 0
-) {
-  console.error(
-    `❌ Error: Invalid numeric components in version "${currentVersion}"`,
-  );
-  process.exit(1);
-}
-
-// Calculate new version based on bump type
-function calculateNewVersion(type: BumpType): string {
-  switch (type) {
+function calc(t: BumpType): string {
+  switch (t) {
     case "major":
       return `${major + 1}.0.0`;
     case "minor":
@@ -99,145 +63,56 @@ function calculateNewVersion(type: BumpType): string {
       return `${major}.${minor}.${patch + 1}`;
   }
 }
+const newVersion = calc(bumpType);
 
-const newVersion = calculateNewVersion(bumpType);
+console.log(`\nRelease ${currentVersion} → ${newVersion} (${bumpType})\n`);
 
-console.log(`\n🚀 Release Process Starting...\n`);
-console.log(`Version bump: ${currentVersion} → ${newVersion} (${bumpType})`);
-
-// Pre-flight checks
-async function checkGitStatus() {
-  console.log("\n📋 Running pre-flight checks...");
-
-  try {
-    const status = await $`git status --porcelain`.text();
-    if (status.trim()) {
-      console.error("\n❌ Error: Working directory is not clean");
-      console.error("Please commit or stash your changes before releasing:");
-      console.error(status);
-      process.exit(1);
-    }
-    console.log("   ✓ Working directory is clean");
-  } catch (err) {
-    console.error("❌ Error checking git status:", err);
-    process.exit(1);
-  }
+function git(...gitArgs: string[]): string {
+  return execFileSync("git", gitArgs, { encoding: "utf8" }).trim();
 }
 
-async function checkBranch() {
-  try {
-    const branch = (await $`git branch --show-current`.text()).trim();
-    if (branch !== "main") {
-      console.error(
-        `\n❌ Error: You must be on 'main' branch to create a release`,
-      );
-      console.error(`   Current branch: '${branch}'`);
-      console.error(`\n   Switch to main branch:`);
-      console.error(`   git checkout main`);
-      console.error(`   git pull origin main`);
-      process.exit(1);
-    }
-    console.log("   ✓ On main branch");
-  } catch (err) {
-    console.error("❌ Error checking branch:", err);
-    process.exit(1);
-  }
+console.log("Pre-flight checks:");
+
+const status = git("status", "--porcelain");
+if (status) {
+  console.error("\nError: working directory is not clean");
+  console.error(status);
+  process.exit(1);
 }
+console.log("  ✓ Working directory clean");
 
-async function checkRemoteUpToDate() {
-  try {
-    // Fetch latest from remote
-    await $`git fetch origin`.quiet();
-
-    const localCommit = (await $`git rev-parse HEAD`.text()).trim();
-    const remoteCommit = (await $`git rev-parse origin/main`.text()).trim();
-
-    if (localCommit !== remoteCommit) {
-      console.error(
-        "\n❌ Error: Your local main branch is not up to date with origin/main",
-      );
-      console.error("   Please pull the latest changes before releasing:");
-      console.error("   git pull origin main");
-      process.exit(1);
-    }
-    console.log("   ✓ Up to date with remote");
-  } catch (err) {
-    console.error("❌ Error checking remote status:", err);
-    console.error("   Could not verify remote is up to date");
-    process.exit(1);
-  }
+const branch = git("branch", "--show-current");
+if (branch !== "main") {
+  console.error(`\nError: must be on 'main' branch (currently '${branch}')`);
+  process.exit(1);
 }
+console.log("  ✓ On main branch");
 
-// Update package.json
-async function updatePackageJson() {
-  console.log("\n📝 Updating package.json...");
-  try {
-    pkg.version = newVersion;
-    await writeFile(PACKAGE_JSON, JSON.stringify(pkg, null, 2) + "\n");
-    console.log(`   ✓ Updated package.json to ${newVersion}`);
-  } catch (err) {
-    console.error("❌ Error updating package.json:", err);
-    process.exit(1);
-  }
+git("fetch", "origin");
+const local = git("rev-parse", "HEAD");
+const remote = git("rev-parse", "origin/main");
+if (local !== remote) {
+  console.error("\nError: local main is not up to date with origin/main");
+  process.exit(1);
 }
+console.log("  ✓ Up to date with remote");
 
-// Commit, tag, and push
-async function commitAndTag() {
-  console.log("\n📦 Creating release commit and tag...");
+console.log("\nUpdating package.json:");
+pkg.version = newVersion;
+writeFileSync(PACKAGE_JSON, JSON.stringify(pkg, null, 2) + "\n");
+console.log(`  ✓ Wrote ${newVersion}`);
 
-  try {
-    // Stage package.json (use absolute path — script may be run from any cwd)
-    await $`git add ${PACKAGE_JSON}`;
-    console.log(`   ✓ Staged package.json`);
+console.log("\nCommit & tag:");
+git("add", PACKAGE_JSON);
+git("commit", "-m", `chore: release v${newVersion}`);
+git("tag", "-a", `v${newVersion}`, "-m", `chore: release v${newVersion}`);
+console.log(`  ✓ Tagged v${newVersion}`);
 
-    // Commit with conventional commit format
-    await $`git commit -m ${`chore: release v${newVersion}`}`;
-    console.log(`   ✓ Created commit: "chore: release v${newVersion}"`);
+console.log("\nPushing:");
+git("push", "origin", "main");
+git("push", "origin", `v${newVersion}`);
+console.log(`  ✓ Pushed main and v${newVersion}`);
 
-    // Create annotated tag
-    await $`git tag -a ${`v${newVersion}`} -m ${`chore: release v${newVersion}`}`;
-    console.log(`   ✓ Created tag v${newVersion}`);
-  } catch (err) {
-    console.error("❌ Error creating commit/tag:", err);
-    process.exit(1);
-  }
-}
-
-async function pushToRemote() {
-  console.log("\n🚢 Pushing to remote...");
-
-  try {
-    const branch = (await $`git branch --show-current`.text()).trim();
-
-    // Push branch
-    await $`git push origin ${branch}`;
-    console.log(`   ✓ Pushed ${branch} branch`);
-
-    // Push tag
-    await $`git push origin ${`v${newVersion}`}`;
-    console.log(`   ✓ Pushed tag v${newVersion}`);
-  } catch (err) {
-    console.error("❌ Error pushing to remote:", err);
-    console.error("\nYou may need to push manually:");
-    console.error(`  git push origin main`);
-    console.error(`  git push origin v${newVersion}`);
-    process.exit(1);
-  }
-}
-
-async function main() {
-  try {
-    await checkGitStatus();
-    await checkBranch();
-    await checkRemoteUpToDate();
-    await updatePackageJson();
-    await commitAndTag();
-    await pushToRemote();
-    console.log("\n✨ Release v" + newVersion + " complete!\n");
-  } catch (err) {
-    console.error("\n❌ Release failed:", err);
-    process.exit(1);
-  }
-}
-
-main();
+console.log(
+  `\nRelease v${newVersion} pushed. The release workflow will publish to npm.\n`,
+);
