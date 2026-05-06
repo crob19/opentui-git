@@ -1,7 +1,7 @@
 {
-  "name": "@opentui-git/core",
-  "version": "0.1.9",
-  "description": "Core package: CLI and TUI for opentui-git",
+  "name": "opentui-git",
+  "version": "0.1.7",
+  "description": "A lazygit-style terminal UI git client built with OpenTUI and SolidJS. Runs under the Bun runtime (https://bun.sh).",
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -14,14 +14,21 @@
     "./utils/syntax-highlighting": "./src/tui/utils/syntax-highlighting.ts"
   },
   "bin": {
-    "opentui-git": "./src/index.ts"
+    "opentui-git": "./bin/opentui-git.mjs"
   },
+  "files": [
+    "bin",
+    "src",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "bun run --conditions=browser src/index.ts",
     "start": "bun run --conditions=browser src/index.ts",
-    "build": "bun run scripts/build.ts",
-    "build:binary": "bun run scripts/build-binaries.ts",
-    "typecheck": "tsc --noEmit"
+    "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "tsx scripts/build.ts"
   },
   "keywords": [
     "git",
@@ -29,23 +36,45 @@
     "terminal",
     "opentui",
     "solidjs",
-    "bun",
-    "lazygit"
+    "lazygit",
+    "bun"
   ],
   "author": "opentui-git",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crob19/opentui-git.git"
+  },
+  "homepage": "https://github.com/crob19/opentui-git#readme",
+  "bugs": {
+    "url": "https://github.com/crob19/opentui-git/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@opentui-git/client": "workspace:*",
+    "@apollo/client": "^3.11.10",
+    "@apollo/server": "^4.11.2",
+    "@graphql-tools/load-files": "^7.0.1",
+    "@graphql-tools/merge": "^9.0.8",
+    "@graphql-tools/schema": "^10.0.7",
+    "@graphql-typed-document-node/core": "^3.2.0",
     "@opentui/core": "^0.1.67",
     "@opentui/solid": "^0.1.67",
-    "@types/diff": "^7.0.2",
     "diff": "^8.0.2",
+    "graphql": "^16.9.0",
+    "graphql-tag": "^2.12.6",
     "shiki": "^3.20.0",
     "simple-git": "^3.30.0",
-    "solid-js": "1.9.10"
+    "solid-js": "1.9.10",
+    "which": "^5.0.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@opentui-git/client": "workspace:*",
+    "@types/diff": "^7.0.2",
+    "@types/node": "^22.10.0",
+    "@types/which": "^3.0.4",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   }
 }
