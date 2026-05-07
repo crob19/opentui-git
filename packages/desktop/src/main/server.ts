@@ -86,6 +86,18 @@ export function spawnGraphQLServer(opts: SpawnOptions): Promise<SpawnedServer> {
       );
     });
 
-    child.on("error", (err) => finishErr(err));
+    child.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT") {
+        finishErr(
+          new Error(
+            "`bun` not found on PATH — the GraphQL server requires Bun. " +
+              "Install it from https://bun.sh or set OPENTUI_GIT_ENDPOINT to " +
+              "point at a server you've started yourself.",
+          ),
+        );
+        return;
+      }
+      finishErr(err);
+    });
   });
 }

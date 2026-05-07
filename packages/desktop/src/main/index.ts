@@ -29,7 +29,8 @@ async function resolveEndpoint(): Promise<string> {
     );
   }
 
-  // Dev: packages/desktop/out/main/index.js → repo root → packages/server.
+  // Dev: app path is packages/desktop, so the sibling server package is one
+  // level up. Tied to the monorepo layout — revisit if packages/ moves.
   const serverPackageDir = resolvePath(app.getAppPath(), "..", "server");
   const { url, child } = await spawnGraphQLServer({
     serverPackageDir,
@@ -106,7 +107,12 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  if (serverChild && !serverChild.killed) {
-    serverChild.kill("SIGTERM");
-  }
+  const child = serverChild;
+  if (!child || child.killed) return;
+  child.kill("SIGTERM");
+  // Escalate to SIGKILL if the server hasn't exited in time, so we don't
+  // leave a reparented zombie when Electron tears down.
+  setTimeout(() => {
+    if (!child.killed && child.exitCode === null) child.kill("SIGKILL");
+  }, 2_000).unref();
 });

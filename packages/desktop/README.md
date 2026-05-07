@@ -14,7 +14,7 @@ layer (same generated documents as the TUI).
 ## Develop
 
 ```sh
-bun run dev:desktop
+pnpm run dev:desktop
 ```
 
 That's it — the Electron main process spawns the GraphQL server itself
@@ -27,7 +27,7 @@ started in another terminal for log visibility), set `OPENTUI_GIT_ENDPOINT`
 — auto-spawn is skipped:
 
 ```sh
-OPENTUI_GIT_ENDPOINT=http://127.0.0.1:4000/ bun run dev:desktop
+OPENTUI_GIT_ENDPOINT=http://127.0.0.1:4000/ pnpm run dev:desktop
 ```
 
 To target a repo other than the desktop package's cwd, pass `--cwd` after
@@ -36,7 +36,7 @@ the Electron args (electron-vite forwards them to the main process).
 ## Build
 
 ```sh
-bun run build:desktop
+pnpm run build:desktop
 ```
 
 Outputs to `out/{main,preload,renderer}`.
