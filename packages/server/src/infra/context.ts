@@ -1,4 +1,4 @@
-import { GitService } from "@opentui-git/core/git";
+import { GitService } from "opentui-git/git";
 
 export interface Context {
   git: GitService;

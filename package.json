@@ -1,25 +1,25 @@
 {
-  "name": "opentui-git",
+  "name": "opentui-git-monorepo",
   "version": "0.1.7",
   "private": true,
-  "description": "A lazygit-style terminal UI git client built with OpenTUI, SolidJS, and Bun",
-  "workspaces": [
-    "packages/client",
-    "packages/core",
-    "packages/server"
-  ],
+  "description": "Monorepo root for opentui-git: TUI, GraphQL server, shared client, and Electron desktop app.",
+  "packageManager": "pnpm@10.33.3",
   "scripts": {
-    "dev": "bun run --cwd packages/core --conditions=browser src/index.ts",
-    "dev:tui": "bun run --cwd packages/core --conditions=browser src/index.ts",
-    "dev:server": "bun run --cwd packages/server dev",
-    "start": "bun run --cwd packages/core --conditions=browser src/index.ts",
-    "build": "bun run --cwd packages/core build",
-    "build:binary": "bun run --cwd packages/core build:binary",
-    "typecheck": "bun run --cwd packages/client typecheck && bun run --cwd packages/core typecheck && bun run --cwd packages/server typecheck",
-    "generate": "bun run --cwd packages/server generate && bun run --cwd packages/client generate",
-    "generate:server": "bun run --cwd packages/server generate",
-    "generate:client": "bun run --cwd packages/client generate",
-    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules bun.lock"
+    "dev": "pnpm --filter opentui-git run dev",
+    "dev:tui": "pnpm --filter opentui-git run dev",
+    "dev:server": "pnpm --filter @opentui-git/server run dev",
+    "dev:desktop": "pnpm --filter @opentui-git/desktop run dev",
+    "start": "pnpm --filter opentui-git run start",
+    "build": "pnpm --filter opentui-git run build",
+    "build:desktop": "pnpm --filter @opentui-git/desktop run build",
+    "typecheck": "pnpm -r run typecheck",
+    "generate": "pnpm --filter @opentui-git/server run generate && pnpm --filter @opentui-git/client run generate",
+    "generate:server": "pnpm --filter @opentui-git/server run generate",
+    "generate:client": "pnpm --filter @opentui-git/client run generate",
+    "release:patch": "tsx packages/core/scripts/bump-version.ts --patch",
+    "release:minor": "tsx packages/core/scripts/bump-version.ts --minor",
+    "release:major": "tsx packages/core/scripts/bump-version.ts --major",
+    "clean": "rm -rf packages/*/node_modules packages/*/dist packages/*/out node_modules pnpm-lock.yaml"
   },
   "keywords": [
     "git",
@@ -27,16 +27,22 @@
     "terminal",
     "opentui",
     "solidjs",
-    "bun",
     "lazygit"
   ],
   "author": "opentui-git",
   "license": "MIT",
-  "resolutions": {
-    "solid-js": "1.9.10"
+  "pnpm": {
+    "overrides": {
+      "solid-js": "1.9.10"
+    },
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "@apollo/protobufjs"
+    ]
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   }
 }

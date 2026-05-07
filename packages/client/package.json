@@ -1,7 +1,7 @@
 {
   "name": "@opentui-git/client",
   "version": "0.1.0",
-  "description": "Framework-agnostic GraphQL client for the opentui-git server. Consumed by the TUI today; designed for an Electron/web client to share the same data layer.",
+  "description": "Framework-agnostic GraphQL client for the opentui-git server. Consumed by the TUI and the Electron desktop app via the same generated documents.",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
@@ -24,7 +24,6 @@
     "@graphql-codegen/typescript": "^4.1.1",
     "@graphql-codegen/typescript-apollo-client-helpers": "^3.0.0",
     "@graphql-codegen/typescript-operations": "^4.4.0",
-    "@types/bun": "latest",
     "typescript": "^5.9.3"
   }
 }

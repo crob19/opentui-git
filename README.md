@@ -1,230 +1,126 @@
 # opentui-git
 
-A lazygit-style terminal UI git client built with Bun, SolidJS, and OpenTUI.
+A lazygit-style terminal UI git client built with [OpenTUI](https://github.com/sst/opentui), SolidJS, and Bun.
 
 ## Tech Stack
 
-- **[Bun](https://bun.sh)** - Fast JavaScript runtime
-- **[SolidJS](https://www.solidjs.com/)** - Reactive UI framework
-- **[OpenTUI](https://github.com/sst/opentui)** - Terminal UI library
-- **[simple-git](https://github.com/steveukx/git-js)** - Git command wrapper
+- **[OpenTUI](https://github.com/sst/opentui)** — Terminal UI library (renders via Bun FFI to a native Zig core)
+- **[SolidJS](https://www.solidjs.com/)** — Reactive UI framework
+- **[Bun](https://bun.sh)** — JavaScript runtime (required at runtime, see below)
+- **[simple-git](https://github.com/steveukx/git-js)** — Git command wrapper
 
 ## Installation
 
-### For Users
+### Prerequisites
 
-#### Homebrew (macOS) - Recommended
-
-```bash
-brew tap crob19/tap
-brew install opentui-git
-```
-
-**Upgrade:**
-```bash
-brew update
-brew upgrade opentui-git
-```
-
-#### Direct Download
-
-Check the [releases page](https://github.com/crob19/opentui-git/releases/latest) for the latest version number, then download:
-
-**Intel Mac:**
-```bash
-# Replace VERSION with the latest version (e.g., 0.1.1)
-curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-x64.tar.gz | tar xz
-sudo mv opentui-git-darwin-x64 /usr/local/bin/opentui-git
-```
-
-**Apple Silicon (M1/M2/M3/M4):**
-```bash
-# Replace VERSION with the latest version (e.g., 0.1.1)
-curl -L https://github.com/crob19/opentui-git/releases/latest/download/opentui-git-vVERSION-darwin-arm64.tar.gz | tar xz
-sudo mv opentui-git-darwin-arm64 /usr/local/bin/opentui-git
-```
-
-### For Development
-
-#### Prerequisites
-
-- [Bun](https://bun.sh) v1.3.5 or later
-- Git installed on your system
-
-#### Install Dependencies
+`opentui-git` runs under the [Bun](https://bun.sh) runtime — OpenTUI's native renderer is loaded via `bun:ffi`, which has no Node equivalent. Install Bun first:
 
 ```bash
-bun install
+curl -fsSL https://bun.sh/install | bash
 ```
+
+### Install via npm / pnpm
+
+```bash
+npm install -g opentui-git
+# or
+pnpm add -g opentui-git
+```
+
+Or run on demand without installing globally:
+
+```bash
+npx opentui-git
+# or
+pnpm dlx opentui-git
+```
+
+If Bun isn't on your PATH, the launcher will print a clear error pointing you at the install command above.
 
 ## Usage
 
-Run in any git repository:
+Run inside any git repository:
 
 ```bash
 opentui-git
 ```
 
-### Development Mode
+## Development
 
-Navigate to a git repository and run:
+### Prerequisites
 
-```bash
-bun run dev
-```
+- [Bun](https://bun.sh) v1.3.5 or later (runtime for the TUI/server)
+- [Node](https://nodejs.org) v20+ with [Corepack](https://nodejs.org/api/corepack.html) enabled (for `pnpm`)
+- Git
 
-Or run from any directory:
+The repo uses **pnpm** as its package manager (pinned via `packageManager` in the root `package.json`); Corepack will activate the right version automatically.
 
-```bash
-cd /path/to/your/git/repo
-bun run /path/to/opentui-git/src/index.tsx
-```
-
-### Build
+### Install
 
 ```bash
-bun run build
+pnpm install
 ```
 
-### Viewing Logs
+### Run
 
-OpenTUI includes a built-in console overlay for viewing logs:
+```bash
+pnpm dev:tui      # TUI in current cwd (use --cwd to point elsewhere)
+pnpm dev:server   # Standalone GraphQL server (auto-started by the TUI; useful for log visibility)
+pnpm dev:desktop  # Electron desktop client
+```
 
-- **Toggle Console**: Press `Ctrl+\` to open/close the console overlay
-- **Scroll Logs**: Use arrow keys when console is focused
-- **Resize Console**: Press `+` or `-` to adjust console size
-- All `console.log()`, `console.error()`, and `console.warn()` calls appear in the overlay
+### Typecheck
 
-The console is useful for debugging git operations and viewing error messages without disrupting the TUI.
+```bash
+pnpm typecheck
+```
 
-## Keyboard Shortcuts
+### Releasing
 
-| Key | Action |
-|-----|--------|
-| `↑` or `k` | Move selection up |
-| `↓` or `j` | Move selection down |
-| `Space` | Stage/unstage selected file |
-| `a` | Stage all files |
-| `u` | Unstage all files |
-| `r` | Refresh status |
-| `q` | Quit |
-| `Ctrl+C` | Force quit |
+```bash
+pnpm release:patch   # 0.1.0 → 0.1.1
+pnpm release:minor   # 0.1.0 → 0.2.0
+pnpm release:major   # 0.1.0 → 1.0.0
+```
 
-## File Status Colors
-
-- 🟢 **Green** - Added/staged files
-- 🟡 **Yellow** - Modified files
-- 🔴 **Red** - Deleted files
-- ⚪ **Gray** - Untracked files
-- 🔵 **Blue** - Renamed/copied files
-- 🟣 **Magenta** - Conflicted files
+The `release:*` scripts bump `packages/core/package.json`, commit, tag, and push. The `Release` GitHub Actions workflow takes over from the tag push and publishes to npm.
 
 ## Project Structure
 
 ```
 opentui-git/
-├── src/
-│   ├── index.tsx              # Entry point
-│   ├── app.tsx                # Main application component
-│   ├── git-service.ts         # Git operations wrapper
-│   ├── types.ts               # TypeScript types
-│   └── components/
-│       ├── header.tsx         # Branch/status header
-│       ├── file-list.tsx      # File list with colors
-│       └── footer.tsx         # Keyboard shortcuts help
-├── package.json
-├── bunfig.toml                # Bun configuration
-├── tsconfig.json              # TypeScript configuration
-└── README.md
+├── packages/
+│   ├── core/        Published as the `opentui-git` npm package — TUI source
+│   │                + Node bin launcher that re-execs under Bun.
+│   ├── server/      GraphQL backend (private workspace package, vendored
+│   │                into core/ at publish time).
+│   ├── client/      Shared Apollo client + generated GraphQL documents.
+│   └── desktop/     Electron + React desktop client.
+└── bunfig.toml      Registers @opentui/solid's JSX preload for the Bun runtime.
 ```
 
-## Phase 1 Features (Current)
+## Why Bun is required
 
-✅ Display git status with colored file list  
-✅ Keyboard navigation (j/k or arrow keys)  
-✅ Stage/unstage individual files (space)  
-✅ Stage all files (a)  
-✅ Unstage all files (u)  
-✅ Current branch display  
-✅ File count and sync status  
-✅ Quit functionality (q)  
-✅ Error handling for non-git directories  
+OpenTUI's native renderer is loaded with `import { dlopen } from "bun:ffi"`. There's no Node-compatible export, so the TUI process must run under Bun. The npm package ships a small Node-runnable bin (`bin/opentui-git.mjs`) that locates `bun` on PATH and re-execs the TS entry point — this is what makes `npx opentui-git` work even though the TUI itself is Bun-only. The GraphQL server and desktop client run on whichever runtime they're invoked from (Bun for the TUI's child server, Node for Electron).
 
-## Phase 2 Features (Planned)
+## Logs
 
-See [TODO.md](./TODO.md) for upcoming features including:
-- Commit dialog
-- Branch switching
-- Diff viewer
-- Pull/push operations
-- Visual git graph (like VS Code Git Graph)
-- And more!
+OpenTUI includes a built-in console overlay:
 
-## Development
+- `Ctrl+\` — toggle the overlay
+- arrow keys — scroll
+- `+` / `-` — resize
 
-### Releasing New Versions
-
-The project uses a Makefile for standardized releases:
-
-```bash
-# Patch release (0.1.0 → 0.1.1) - Bug fixes
-make release-patch
-
-# Minor release (0.1.0 → 0.2.0) - New features
-make release-minor
-
-# Major release (0.1.0 → 1.0.0) - Breaking changes
-make release-major
-```
-
-The release script will:
-1. ✅ Verify working directory is clean
-2. ✅ Confirm you're on the main branch
-3. ✅ Check remote is up to date
-4. ✅ Bump version in `package.json`
-5. ✅ Create a conventional commit (`chore: release vX.Y.Z`)
-6. ✅ Create and push a git tag
-7. ✅ Trigger GitHub Actions to build and publish
-
-**After release:**
-- GitHub Actions builds binaries for both architectures
-- Creates a GitHub Release with downloadable tarballs
-- Update the Homebrew formula with new SHA256 checksums (see script output)
-
-### TypeScript Configuration
-
-The project uses SolidJS with OpenTUI, requiring specific TypeScript settings:
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "preserve",
-    "jsxImportSource": "@opentui/solid"
-  }
-}
-```
-
-### Bun Configuration
-
-The `bunfig.toml` includes the SolidJS preload script:
-
-```toml
-preload = ["@opentui/solid/preload"]
-```
+All `console.{log,error,warn}` output is redirected there.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+Contributions are welcome — issues and PRs both fine.
 
 ## License
 
-MIT License - see [LICENSE](./LICENSE) file for details.
+MIT — see [LICENSE](./LICENSE).
 
 ## Credits
 
-Inspired by [lazygit](https://github.com/jesseduffield/lazygit) - A simple terminal UI for git commands.
-
-Built with:
-- [OpenTUI](https://github.com/sst/opentui) by SST
-- [SolidJS](https://www.solidjs.com/)
-- [simple-git](https://github.com/steveukx/git-js)
+Inspired by [lazygit](https://github.com/jesseduffield/lazygit). Built on [OpenTUI](https://github.com/sst/opentui), [SolidJS](https://www.solidjs.com/), and [simple-git](https://github.com/steveukx/git-js).

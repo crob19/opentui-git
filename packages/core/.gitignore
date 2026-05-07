@@ -1,0 +1,7 @@
+dist/
+node_modules/
+*.tsbuildinfo
+
+# Vendored at build time from the repo root for npm publish.
+README.md
+LICENSE

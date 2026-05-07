@@ -1,127 +1,67 @@
 # Release Process
 
-This document describes how to create a new release of opentui-git.
-
-## Quick Start
+## TL;DR
 
 ```bash
-# For bug fixes (0.1.0 → 0.1.1)
-make release-patch
+# Bug fixes  (0.1.0 → 0.1.1)
+pnpm release:patch
 
-# For new features (0.1.0 → 0.2.0)
-make release-minor
+# New features  (0.1.0 → 0.2.0)
+pnpm release:minor
 
-# For breaking changes (0.1.0 → 1.0.0)
-make release-major
+# Breaking changes  (0.1.0 → 1.0.0)
+pnpm release:major
 ```
 
-## What Happens
+The script bumps `packages/core/package.json`, commits, tags, and pushes. From the tag push, GitHub Actions runs `.github/workflows/release.yml` which publishes to npm and drafts a GitHub Release.
 
-1. **Pre-flight checks:**
-   - Verifies git working directory is clean
-   - **Requires** you to be on `main` branch (hard requirement)
-   - Checks if local main branch is up to date with remote
+## Prerequisites
 
-2. **Version bump:**
-   - Updates `version` field in `package.json`
-   - Commits with message: `chore: release vX.Y.Z`
+- A clean working directory on `main`, up to date with `origin/main`.
+- The `NPM_TOKEN` repository secret set to a token with publish rights for `opentui-git`.
 
-3. **Git tag:**
-   - Creates annotated tag `vX.Y.Z`
-   - Pushes both commit and tag to origin
+## What the bump script does
 
-4. **GitHub Actions:**
-   - Automatically triggered by the tag push
-   - Builds binaries for macOS (ARM64 and x64)
-   - Creates a GitHub Release
-   - Attaches tarballs to the release
+1. Verifies working directory is clean.
+2. Verifies you're on `main` and up to date with `origin/main`.
+3. Bumps `version` in `packages/core/package.json`.
+4. Creates a `chore: release vX.Y.Z` commit.
+5. Creates an annotated `vX.Y.Z` tag.
+6. Pushes both to `origin`.
 
-5. **Post-release:**
-   - Script outputs commands to calculate SHA256 checksums
-   - Use these to update the Homebrew formula
+## What GitHub Actions does
 
-## Updating Homebrew Formula
+On any `v*` tag push, `.github/workflows/release.yml`:
 
-After the GitHub Release is published:
+1. Sets up Node 22 + pnpm via Corepack.
+2. Installs deps with a frozen lockfile.
+3. Runs `pnpm -r typecheck`.
+4. Publishes `packages/core` to npm (with provenance).
+5. Drafts a GitHub Release with auto-generated notes.
 
-1. **Calculate SHA256 checksums:**
-   ```bash
-   curl -sL https://github.com/crob19/opentui-git/releases/download/vX.Y.Z/opentui-git-vX.Y.Z-darwin-arm64.tar.gz | shasum -a 256
-   curl -sL https://github.com/crob19/opentui-git/releases/download/vX.Y.Z/opentui-git-vX.Y.Z-darwin-x64.tar.gz | shasum -a 256
-   ```
+## Notes on distribution
 
-2. **Update `homebrew-tap/Formula/opentui-git.rb`:**
-   - Update `version "X.Y.Z"`
-   - Update both `url` lines with new version
-   - Update both `sha256` values with checksums from step 1
-   - Commit and push to `homebrew-tap` repository
+The published `opentui-git` npm package contains:
 
-3. **Users can upgrade:**
-   ```bash
-   brew update
-   brew upgrade opentui-git
-   ```
+- `bin/opentui-git.mjs` — Node launcher that re-execs the TUI under Bun.
+- `src/` — TUI TypeScript source (Bun runs TS directly; no bundle step).
+- `dist/server-src/` — vendored copy of the GraphQL server source.
 
-## Manual Process (if needed)
+End users **need Bun installed** at runtime (the launcher prints install instructions and exits 127 if it isn't on PATH). The npm package itself is Node-installable; `bun:ffi` is only loaded once the TUI process actually starts.
 
-If you need to release without using the Makefile:
+## Manual recovery
+
+Delete a bad tag locally and remotely:
 
 ```bash
-# 1. Update version in package.json manually
-vim package.json
-
-# 2. Commit
-git add package.json
-git commit -m "chore: release vX.Y.Z"
-
-# 3. Tag
-git tag vX.Y.Z
-
-# 4. Push
-git push origin main
-git push origin vX.Y.Z
-```
-
-## Troubleshooting
-
-### "Working directory is not clean"
-Commit or stash your changes before releasing:
-```bash
-git status
-git add .
-git commit -m "Your changes"
-```
-
-### "Not on main branch"
-Switch to main before releasing:
-```bash
-git checkout main
-git pull origin main
-```
-
-**Note:** Releases can only be created from the `main` branch. This is enforced to ensure consistent release workflow.
-
-### Release failed to push
-Push manually:
-```bash
-git push origin main
-git push origin vX.Y.Z
-```
-
-### Need to delete a tag
-If you made a mistake:
-```bash
-# Delete local tag
 git tag -d vX.Y.Z
-
-# Delete remote tag
 git push origin :refs/tags/vX.Y.Z
 ```
 
-## Semantic Versioning Guide
+If the npm publish step failed but the tag and commit went out, fix the underlying issue and re-run the release workflow from the Actions tab against the existing tag.
 
-- **Patch (0.0.X)** - Bug fixes, documentation updates
-- **Minor (0.X.0)** - New features, non-breaking changes
-- **Major (X.0.0)** - Breaking changes, major refactors
+## Semver
 
-For more info: https://semver.org/
+- **Patch** — Bug fixes, docs, dependency bumps without API changes.
+- **Minor** — New features, non-breaking changes.
+- **Major** — Breaking changes.

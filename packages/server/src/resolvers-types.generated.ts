@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { GitStatusSummary, GitFileStatus, GitBranchInfo, GitCommitInfo } from '@opentui-git/core/git/types';
+import { GitStatusSummary, GitFileStatus, GitBranchInfo, GitCommitInfo } from 'opentui-git/git/types';
 import { Context } from './infra/context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
