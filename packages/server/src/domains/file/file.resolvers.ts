@@ -25,6 +25,14 @@ export const fileResolvers: Resolvers = {
       await git.unstageFile(path);
       return { success: true };
     },
+    stageFiles: async (_p, { paths }, { git }) => {
+      await git.stageFiles(paths);
+      return { success: true };
+    },
+    unstageFiles: async (_p, { paths }, { git }) => {
+      await git.unstageFiles(paths);
+      return { success: true };
+    },
     stageAll: async (_p, _a, { git }) => {
       await git.stageAll();
       return { success: true };

@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
-  StageFileDocument,
-  UnstageFileDocument,
+  StageFilesDocument,
+  UnstageFilesDocument,
   StageAllDocument,
   UnstageAllDocument,
   StatusDocument,
@@ -45,10 +45,10 @@ export function FileTree({ files }: Props) {
     skip: mode !== "branch" || !compareBranch,
   });
 
-  const [stageFile] = useMutation(StageFileDocument, {
+  const [stageFiles] = useMutation(StageFilesDocument, {
     refetchQueries: REFETCH,
   });
-  const [unstageFile] = useMutation(UnstageFileDocument, {
+  const [unstageFiles] = useMutation(UnstageFilesDocument, {
     refetchQueries: REFETCH,
   });
   const [stageAll] = useMutation(StageAllDocument, { refetchQueries: REFETCH });
@@ -76,20 +76,18 @@ export function FileTree({ files }: Props) {
     });
 
   const stagePaths = async (paths: string[]) => {
+    if (paths.length === 0) return;
     try {
-      await Promise.all(
-        paths.map((p) => stageFile({ variables: { path: p } })),
-      );
+      await stageFiles({ variables: { paths } });
     } catch (err) {
       toast.error(`Stage failed: ${(err as Error).message}`);
     }
   };
 
   const unstagePaths = async (paths: string[]) => {
+    if (paths.length === 0) return;
     try {
-      await Promise.all(
-        paths.map((p) => unstageFile({ variables: { path: p } })),
-      );
+      await unstageFiles({ variables: { paths } });
     } catch (err) {
       toast.error(`Unstage failed: ${(err as Error).message}`);
     }

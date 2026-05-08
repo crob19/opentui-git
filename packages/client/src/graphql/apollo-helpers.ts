@@ -58,7 +58,7 @@ export type MergeOutcomeFieldPolicy = {
 	result?: FieldPolicy<any> | FieldReadFunction<any>,
 	success?: FieldPolicy<any> | FieldReadFunction<any>
 };
-export type MutationKeySpecifier = ('checkoutBranch' | 'commit' | 'createBranch' | 'createTag' | 'deleteBranch' | 'mergeBranch' | 'pull' | 'push' | 'pushTag' | 'stageAll' | 'stageFile' | 'unstageAll' | 'unstageFile' | 'writeFile' | MutationKeySpecifier)[];
+export type MutationKeySpecifier = ('checkoutBranch' | 'commit' | 'createBranch' | 'createTag' | 'deleteBranch' | 'mergeBranch' | 'pull' | 'push' | 'pushTag' | 'stageAll' | 'stageFile' | 'stageFiles' | 'unstageAll' | 'unstageFile' | 'unstageFiles' | 'writeFile' | MutationKeySpecifier)[];
 export type MutationFieldPolicy = {
 	checkoutBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	commit?: FieldPolicy<any> | FieldReadFunction<any>,
@@ -71,8 +71,10 @@ export type MutationFieldPolicy = {
 	pushTag?: FieldPolicy<any> | FieldReadFunction<any>,
 	stageAll?: FieldPolicy<any> | FieldReadFunction<any>,
 	stageFile?: FieldPolicy<any> | FieldReadFunction<any>,
+	stageFiles?: FieldPolicy<any> | FieldReadFunction<any>,
 	unstageAll?: FieldPolicy<any> | FieldReadFunction<any>,
 	unstageFile?: FieldPolicy<any> | FieldReadFunction<any>,
+	unstageFiles?: FieldPolicy<any> | FieldReadFunction<any>,
 	writeFile?: FieldPolicy<any> | FieldReadFunction<any>
 };
 export type QueryKeySpecifier = ('branches' | 'commits' | 'currentCommitHash' | 'defaultBranch' | 'diff' | 'filesChangedAgainstBranch' | 'readFile' | 'repoInfo' | 'status' | 'tags' | QueryKeySpecifier)[];
