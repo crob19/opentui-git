@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <div className="dark min-h-screen p-6 bg-background text-foreground">
+      <div className="min-h-screen p-6 bg-background text-foreground">
         <h1 className="text-lg text-destructive font-semibold mb-3">
           Something went wrong
         </h1>

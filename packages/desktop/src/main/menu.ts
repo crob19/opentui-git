@@ -69,7 +69,7 @@ export function buildAppMenu(): Menu {
         {
           label: "View on GitHub",
           click: () =>
-            shell.openExternal("https://github.com/anthropics/opentui-git"),
+            shell.openExternal("https://github.com/crob19/opentui-git"),
         },
       ],
     },

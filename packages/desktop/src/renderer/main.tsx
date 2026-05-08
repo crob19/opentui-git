@@ -19,6 +19,8 @@ const endpoint =
 
 const client = createClient({ endpoint, fetch: window.fetch.bind(window) });
 
+document.documentElement.classList.add("dark");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
