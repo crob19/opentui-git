@@ -1,5 +1,8 @@
 import { Menu, app, shell } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
+import pkg from "../../package.json" with { type: "json" };
+
+const REPO_URL = (pkg.repository?.url ?? "").replace(/\.git$/, "");
 
 export function buildAppMenu(): Menu {
   const isMac = process.platform === "darwin";
@@ -68,8 +71,8 @@ export function buildAppMenu(): Menu {
       submenu: [
         {
           label: "View on GitHub",
-          click: () =>
-            shell.openExternal("https://github.com/crob19/opentui-git"),
+          visible: REPO_URL.length > 0,
+          click: () => shell.openExternal(REPO_URL),
         },
       ],
     },

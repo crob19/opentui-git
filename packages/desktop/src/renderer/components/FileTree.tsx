@@ -101,7 +101,13 @@ export function FileTree({ files }: Props) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="px-2 pt-2 pb-1 border-b border-border">
-        <Tabs value={mode} onValueChange={(v) => setMode(v as FileTreeMode)}>
+        <Tabs
+          value={mode}
+          onValueChange={(v) => {
+            setMode(v as FileTreeMode);
+            setSelected(null);
+          }}
+        >
           <TabsList className="w-full grid grid-cols-3 h-7">
             <TabsTrigger value="unstaged" className="text-[11px]">
               Unstaged
@@ -214,11 +220,11 @@ function Tree(props: TreeProps) {
     <div className="py-1">
       {flat.map((node) => (
         <Row
-          key={`${props.mode}:${node.path}`}
+          key={node.path}
           node={node}
           isCollapsed={node.type === "folder" && props.collapsed.has(node.path)}
-          isSelected={props.selected === `${props.mode}:${node.path}`}
-          onSelect={() => props.onSelect(`${props.mode}:${node.path}`)}
+          isSelected={props.selected === node.path}
+          onSelect={() => props.onSelect(node.path)}
           onToggle={() => props.onToggleFolder(node.path)}
           onStage={() => {
             const paths =
@@ -284,13 +290,21 @@ function Row({
       ? "var(--color-git-staged)"
       : (node.color ?? undefined);
 
+  const activate = () => {
+    if (isFolder) onToggle();
+    else onSelect();
+  };
+
   const inner = (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => {
-        if (isFolder) onToggle();
-        else onSelect();
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
       }}
       className={cn(
         "flex items-center gap-1.5 px-2 py-0.5 text-[13px] cursor-pointer select-none font-mono",

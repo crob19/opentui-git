@@ -27,7 +27,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <ApolloProvider client={client}>
         <TooltipProvider>
           <App />
-          <Toaster theme="dark" richColors closeButton />
+          <Toaster richColors closeButton />
         </TooltipProvider>
       </ApolloProvider>
     </ErrorBoundary>

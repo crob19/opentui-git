@@ -34,6 +34,9 @@
   --git-untracked: oklch(0.62 0 0);
   --git-unmerged: oklch(0.65 0.22 320);
   --git-staged: oklch(0.7 0.18 145);
+  --git-branch: oklch(0.7 0.14 240);
+  --git-clean: oklch(0.7 0.18 145);
+  --git-dirty: oklch(0.78 0.16 80);
 }
 
 .dark {
@@ -91,6 +94,9 @@
   --color-git-untracked: var(--git-untracked);
   --color-git-unmerged: var(--git-unmerged);
   --color-git-staged: var(--git-staged);
+  --color-git-branch: var(--git-branch);
+  --color-git-clean: var(--git-clean);
+  --color-git-dirty: var(--git-dirty);
 
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

@@ -30,7 +30,7 @@ export function StatusBar({
         {repoLabel}
       </span>
       <span className="text-muted-foreground/50">·</span>
-      <span className="flex items-center gap-1 text-blue-400">
+      <span className="flex items-center gap-1 text-git-branch">
         <GitBranch className="size-3" />
         {branch ?? "(detached)"}
       </span>
@@ -41,7 +41,7 @@ export function StatusBar({
       <span
         className={cn(
           "font-medium",
-          isClean ? "text-green-500" : "text-amber-400",
+          isClean ? "text-git-clean" : "text-git-dirty",
         )}
       >
         {isClean ? "clean" : `${dirtyCount} changed`}
