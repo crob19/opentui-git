@@ -16,14 +16,14 @@ import {
   parseDiffLines,
   type DiffRow,
   type DiffLine,
-} from "../utils/diff-parser.js";
+} from "../../shared/diff-parser.js";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
-import { getLanguageFromPath } from "../utils/language-detection.js";
+import { getLanguageFromPath } from "../../shared/language-detection.js";
 import {
   getHighlighter,
   highlightCode,
   type HighlightedToken,
-} from "../utils/syntax-highlighting.js";
+} from "../../shared/syntax-highlighting.js";
 
 // Chrome above/below the diff list (header height=3 + footer height=3).
 // Subtracted from terminal height to size the virtual scroll window so the

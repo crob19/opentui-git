@@ -25,7 +25,7 @@ import {
   flattenTree,
   toggleFolder,
   preserveExpansionState,
-} from "../utils/file-tree.js";
+} from "../../shared/file-tree.js";
 import { runQuery } from "../data/operations.js";
 
 /**

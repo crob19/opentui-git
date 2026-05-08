@@ -21,10 +21,10 @@ import * as branchCommands from "../commands/branch-commands.js";
 import * as remoteCommands from "../commands/remote-commands.js";
 import * as navCommands from "../commands/navigation-commands.js";
 import * as tagCommands from "../commands/tag-commands.js";
-import { getFilesInFolder } from "../utils/file-tree.js";
+import { getFilesInFolder } from "../../shared/file-tree.js";
 import { logger } from "../utils/logger.js";
 import { executeShutdown } from "../index.js";
-import { parseSideBySideDiff, parseDiffLines } from "../utils/diff-parser.js";
+import { parseSideBySideDiff, parseDiffLines } from "../../shared/diff-parser.js";
 import { HelpModal } from "../components/modals/help-modal.js";
 
 /**

@@ -21,17 +21,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import {
-  buildTree,
-  getFilesIn,
-  type FileEntry,
-  type TreeNode,
-} from "@/lib/file-tree";
+import { buildFileTree, getFilesInFolder } from "opentui-git/shared/file-tree";
+import type { GitFileStatus, FileTreeNode } from "opentui-git/git/types";
 
 export type FileTreeMode = "unstaged" | "staged" | "branch";
 
 type Props = {
-  files: FileEntry[];
+  files: GitFileStatus[];
 };
 
 const REFETCH = [{ query: StatusDocument }];
@@ -63,13 +59,13 @@ export function FileTree({ files }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
 
-  const visibleFiles = useMemo<FileEntry[]>(() => {
+  const visibleFiles = useMemo<GitFileStatus[]>(() => {
     if (mode === "unstaged") return files.filter((f) => !f.staged);
     if (mode === "staged") return files.filter((f) => f.staged);
     return branchFilesQuery.data?.filesChangedAgainstBranch ?? [];
   }, [mode, files, branchFilesQuery.data]);
 
-  const tree = useMemo(() => buildTree(visibleFiles), [visibleFiles]);
+  const tree = useMemo(() => buildFileTree(visibleFiles), [visibleFiles]);
 
   const toggle = (path: string) =>
     setCollapsed((prev) => {
@@ -200,7 +196,7 @@ function emptyMessage(mode: FileTreeMode, branch: string | null): string {
 }
 
 type TreeProps = {
-  nodes: TreeNode[];
+  nodes: FileTreeNode[];
   mode: FileTreeMode;
   collapsed: Set<string>;
   onToggleFolder: (path: string) => void;
@@ -228,16 +224,16 @@ function Tree(props: TreeProps) {
           onToggle={() => props.onToggleFolder(node.path)}
           onStage={() => {
             const paths =
-              node.type === "file"
-                ? [node.file.path]
-                : getFilesIn(node).map((f) => f.path);
+              node.type === "file" && node.fileStatus
+                ? [node.fileStatus.path]
+                : getFilesInFolder(node);
             props.onStage(paths);
           }}
           onUnstage={() => {
             const paths =
-              node.type === "file"
-                ? [node.file.path]
-                : getFilesIn(node).map((f) => f.path);
+              node.type === "file" && node.fileStatus
+                ? [node.fileStatus.path]
+                : getFilesInFolder(node);
             props.onUnstage(paths);
           }}
           mode={props.mode}
@@ -247,12 +243,17 @@ function Tree(props: TreeProps) {
   );
 }
 
-function flatten(nodes: TreeNode[], collapsed: Set<string>): TreeNode[] {
-  const out: TreeNode[] = [];
-  const walk = (ns: TreeNode[]) => {
+function flatten(
+  nodes: FileTreeNode[],
+  collapsed: Set<string>,
+): FileTreeNode[] {
+  const out: FileTreeNode[] = [];
+  const walk = (ns: FileTreeNode[]) => {
     for (const n of ns) {
       out.push(n);
-      if (n.type === "folder" && !collapsed.has(n.path)) walk(n.children);
+      if (n.type === "folder" && !collapsed.has(n.path) && n.children) {
+        walk(n.children);
+      }
     }
   };
   walk(nodes);
@@ -269,7 +270,7 @@ function Row({
   onUnstage,
   mode,
 }: {
-  node: TreeNode;
+  node: FileTreeNode;
   isCollapsed: boolean;
   isSelected: boolean;
   onSelect: () => void;

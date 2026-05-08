@@ -11,12 +11,12 @@ import {
 import type { Highlighter } from "shiki";
 import type { TextareaRenderable } from "@opentui/core";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
-import { getLanguageFromPath } from "../utils/language-detection.js";
+import { getLanguageFromPath } from "../../shared/language-detection.js";
 import {
   getHighlighter,
   highlightCode,
   type HighlightedToken,
-} from "../utils/syntax-highlighting.js";
+} from "../../shared/syntax-highlighting.js";
 
 // Maximum number of lines to show at once (virtual scrolling)
 const MAX_VISIBLE_LINES = 30;

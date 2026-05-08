@@ -9,13 +9,13 @@ import {
 import type { Highlighter } from "shiki";
 import { useTerminalDimensions } from "@opentui/solid";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
-import { getLanguageFromPath } from "../utils/language-detection.js";
-import { parseDiffLines, type DiffLine } from "../utils/diff-parser.js";
+import { getLanguageFromPath } from "../../shared/language-detection.js";
+import { parseDiffLines, type DiffLine } from "../../shared/diff-parser.js";
 import {
   getHighlighter,
   highlightCode,
   type HighlightedToken,
-} from "../utils/syntax-highlighting.js";
+} from "../../shared/syntax-highlighting.js";
 
 /**
  * DiffViewer component - Displays the diff for a selected file with syntax highlighting

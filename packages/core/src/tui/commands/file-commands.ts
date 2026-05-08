@@ -1,7 +1,7 @@
 import type { FileCommandContext } from "./types.js";
 import { handleAsyncOperation } from "../utils/error-handler.js";
 import { InputModal } from "../components/modals/input-modal.js";
-import { getFilesInFolder } from "../utils/file-tree.js";
+import { getFilesInFolder } from "../../shared/file-tree.js";
 import type { FileTreeNode } from "../../git/types.js";
 import { runMutation } from "../data/operations.js";
 import {
