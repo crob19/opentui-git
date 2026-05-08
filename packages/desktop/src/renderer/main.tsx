@@ -4,6 +4,7 @@ import { ApolloProvider } from "@apollo/client/react/index.js";
 import { createClient } from "@opentui-git/client";
 
 import { App } from "./App.js";
+import { ToastProvider } from "./components/Toast.js";
 
 // Endpoint comes from the Electron main process (which spawns the GraphQL
 // server on a free port and forwards the URL through preload). Vite env and
@@ -18,7 +19,9 @@ const client = createClient({ endpoint, fetch: window.fetch.bind(window) });
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ApolloProvider client={client}>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </ApolloProvider>
   </React.StrictMode>,
 );
