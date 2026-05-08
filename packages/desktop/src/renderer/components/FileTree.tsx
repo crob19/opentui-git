@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client/react/index.js";
+import { useMutation, useQuery } from "@apollo/client/react/index.js";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import {
   StageAllDocument,
   UnstageAllDocument,
   StatusDocument,
+  DefaultBranchDocument,
+  FilesChangedAgainstBranchDocument,
 } from "@opentui-git/client";
 import {
   ContextMenu,
@@ -17,7 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   buildTree,
@@ -26,6 +28,8 @@ import {
   type TreeNode,
 } from "@/lib/file-tree";
 
+export type FileTreeMode = "unstaged" | "staged" | "branch";
+
 type Props = {
   files: FileEntry[];
 };
@@ -33,6 +37,18 @@ type Props = {
 const REFETCH = [{ query: StatusDocument }];
 
 export function FileTree({ files }: Props) {
+  const [mode, setMode] = useState<FileTreeMode>("unstaged");
+
+  const defaultBranchQuery = useQuery(DefaultBranchDocument, {
+    skip: mode !== "branch",
+  });
+  const compareBranch = defaultBranchQuery.data?.defaultBranch ?? null;
+
+  const branchFilesQuery = useQuery(FilesChangedAgainstBranchDocument, {
+    variables: { branch: compareBranch ?? "" },
+    skip: mode !== "branch" || !compareBranch,
+  });
+
   const [stageFile] = useMutation(StageFileDocument, {
     refetchQueries: REFETCH,
   });
@@ -47,11 +63,13 @@ export function FileTree({ files }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
 
-  const staged = useMemo(() => files.filter((f) => f.staged), [files]);
-  const unstaged = useMemo(() => files.filter((f) => !f.staged), [files]);
+  const visibleFiles = useMemo<FileEntry[]>(() => {
+    if (mode === "unstaged") return files.filter((f) => !f.staged);
+    if (mode === "staged") return files.filter((f) => f.staged);
+    return branchFilesQuery.data?.filesChangedAgainstBranch ?? [];
+  }, [mode, files, branchFilesQuery.data]);
 
-  const stagedTree = useMemo(() => buildTree(staged), [staged]);
-  const unstagedTree = useMemo(() => buildTree(unstaged), [unstaged]);
+  const tree = useMemo(() => buildTree(visibleFiles), [visibleFiles]);
 
   const toggle = (path: string) =>
     setCollapsed((prev) => {
@@ -81,80 +99,87 @@ export function FileTree({ files }: Props) {
     }
   };
 
+  const isLoading =
+    mode === "branch" &&
+    (defaultBranchQuery.loading ||
+      (branchFilesQuery.loading && !branchFilesQuery.data));
+
   return (
     <div className="flex flex-col h-full min-h-0">
-      <SectionHeader
-        title="Staged"
-        count={staged.length}
-        action={
-          staged.length > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-[11px]"
-              onClick={async () => {
-                try {
-                  await unstageAll();
-                  toast.success("Unstaged all changes");
-                } catch (err) {
-                  toast.error(`Unstage all failed: ${(err as Error).message}`);
-                }
-              }}
-            >
-              Unstage all
-            </Button>
-          ) : null
-        }
-      />
-      <ScrollArea className="flex-1 min-h-[80px]">
-        {stagedTree.length === 0 ? (
-          <Empty text="Nothing staged yet" />
-        ) : (
-          <Tree
-            nodes={stagedTree}
-            section="staged"
-            collapsed={collapsed}
-            onToggleFolder={toggle}
-            selected={selected}
-            onSelect={setSelected}
-            onStage={stagePaths}
-            onUnstage={unstagePaths}
-          />
+      <div className="px-2 pt-2 pb-1 border-b border-border">
+        <Tabs value={mode} onValueChange={(v) => setMode(v as FileTreeMode)}>
+          <TabsList className="w-full grid grid-cols-3 h-7">
+            <TabsTrigger value="unstaged" className="text-[11px]">
+              Unstaged
+            </TabsTrigger>
+            <TabsTrigger value="staged" className="text-[11px]">
+              Staged
+            </TabsTrigger>
+            <TabsTrigger value="branch" className="text-[11px]">
+              vs {compareBranch ?? "main"}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <div className="flex items-center justify-between px-3 py-1.5 bg-muted/30 border-b border-border">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          {mode === "unstaged" && "Changes"}
+          {mode === "staged" && "Staged"}
+          {mode === "branch" && `vs ${compareBranch ?? "main"}`}
+          <span className="ml-1.5 text-muted-foreground/60 font-normal">
+            ({visibleFiles.length})
+          </span>
+        </span>
+        {mode === "unstaged" && visibleFiles.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px]"
+            onClick={async () => {
+              try {
+                await stageAll();
+                toast.success("Staged all changes");
+              } catch (err) {
+                toast.error(`Stage all failed: ${(err as Error).message}`);
+              }
+            }}
+          >
+            Stage all
+          </Button>
         )}
-      </ScrollArea>
+        {mode === "staged" && visibleFiles.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px]"
+            onClick={async () => {
+              try {
+                await unstageAll();
+                toast.success("Unstaged all changes");
+              } catch (err) {
+                toast.error(`Unstage all failed: ${(err as Error).message}`);
+              }
+            }}
+          >
+            Unstage all
+          </Button>
+        )}
+      </div>
 
-      <Separator />
-
-      <SectionHeader
-        title="Changes"
-        count={unstaged.length}
-        action={
-          unstaged.length > 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-[11px]"
-              onClick={async () => {
-                try {
-                  await stageAll();
-                  toast.success("Staged all changes");
-                } catch (err) {
-                  toast.error(`Stage all failed: ${(err as Error).message}`);
-                }
-              }}
-            >
-              Stage all
-            </Button>
-          ) : null
-        }
-      />
-      <ScrollArea className="flex-1 min-h-[120px]">
-        {unstagedTree.length === 0 ? (
-          <Empty text="No unstaged changes" />
+      <ScrollArea className="flex-1 min-h-0">
+        {isLoading ? (
+          <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+            Loading…
+          </div>
+        ) : visibleFiles.length === 0 ? (
+          <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+            {emptyMessage(mode, compareBranch)}
+          </div>
         ) : (
           <Tree
-            nodes={unstagedTree}
-            section="unstaged"
+            nodes={tree}
+            mode={mode}
             collapsed={collapsed}
             onToggleFolder={toggle}
             selected={selected}
@@ -168,37 +193,15 @@ export function FileTree({ files }: Props) {
   );
 }
 
-function SectionHeader({
-  title,
-  count,
-  action,
-}: {
-  title: string;
-  count: number;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b border-border">
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-        {title}{" "}
-        <span className="text-muted-foreground/60 font-normal">({count})</span>
-      </span>
-      {action}
-    </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
-      {text}
-    </div>
-  );
+function emptyMessage(mode: FileTreeMode, branch: string | null): string {
+  if (mode === "unstaged") return "No unstaged changes";
+  if (mode === "staged") return "Nothing staged yet";
+  return `No changes vs ${branch ?? "main"}`;
 }
 
 type TreeProps = {
   nodes: TreeNode[];
-  section: "staged" | "unstaged";
+  mode: FileTreeMode;
   collapsed: Set<string>;
   onToggleFolder: (path: string) => void;
   selected: string | null;
@@ -217,12 +220,11 @@ function Tree(props: TreeProps) {
     <div className="py-1">
       {flat.map((node) => (
         <Row
-          key={`${props.section}:${node.path}`}
+          key={`${props.mode}:${node.path}`}
           node={node}
-          rowId={`${props.section}:${node.path}`}
           isCollapsed={node.type === "folder" && props.collapsed.has(node.path)}
-          isSelected={props.selected === `${props.section}:${node.path}`}
-          onSelect={() => props.onSelect(`${props.section}:${node.path}`)}
+          isSelected={props.selected === `${props.mode}:${node.path}`}
+          onSelect={() => props.onSelect(`${props.mode}:${node.path}`)}
           onToggle={() => props.onToggleFolder(node.path)}
           onStage={() => {
             const paths =
@@ -238,7 +240,7 @@ function Tree(props: TreeProps) {
                 : getFilesIn(node).map((f) => f.path);
             props.onUnstage(paths);
           }}
-          section={props.section}
+          mode={props.mode}
         />
       ))}
     </div>
@@ -265,24 +267,21 @@ function Row({
   onToggle,
   onStage,
   onUnstage,
-  section,
+  mode,
 }: {
   node: TreeNode;
-  rowId: string;
   isCollapsed: boolean;
   isSelected: boolean;
   onSelect: () => void;
   onToggle: () => void;
   onStage: () => void;
   onUnstage: () => void;
-  section: "staged" | "unstaged";
+  mode: FileTreeMode;
 }) {
   const isFolder = node.type === "folder";
   const indent = node.depth * 12;
-  const isStaged = section === "staged";
-
   const color =
-    node.type === "file" && isStaged
+    node.type === "file" && mode === "staged"
       ? "var(--color-git-staged)"
       : (node.color ?? undefined);
 
@@ -311,22 +310,9 @@ function Row({
         <span className="w-3 shrink-0" />
       )}
 
-      {!isFolder && (
-        <span
-          className="w-5 shrink-0 text-[11px] font-semibold"
-          style={{ color: color ?? "var(--color-muted-foreground)" }}
-        >
-          {node.file.statusText}
-        </span>
-      )}
-
       <span
         className="truncate flex-1"
-        style={{
-          color: isFolder
-            ? (color ?? "var(--color-foreground)")
-            : (color ?? "var(--color-foreground)"),
-        }}
+        style={{ color: color ?? "var(--color-foreground)" }}
       >
         {node.name}
         {isFolder && "/"}
@@ -334,11 +320,14 @@ function Row({
     </div>
   );
 
+  // No staging actions in branch-compare mode.
+  if (mode === "branch") return inner;
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{inner}</ContextMenuTrigger>
       <ContextMenuContent>
-        {isStaged ? (
+        {mode === "staged" ? (
           <ContextMenuItem onSelect={onUnstage}>
             Unstage{isFolder ? " folder" : ""}
           </ContextMenuItem>
