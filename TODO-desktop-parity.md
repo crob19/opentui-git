@@ -30,16 +30,16 @@ First usable version of the desktop app.
 
 - [x] Three-region layout: sidebar (branches/tags), main (files + diff), bottom status bar
 - [x] Status bar: repo name, current branch, ahead/behind, dirty count
-- [ ] Electron menubar: File, Edit, Repo, View
-- [ ] Wire global keyboard handler (Cmd+Enter wired in commit panel; Cmd+S, Esc TBD)
+- [x] Electron menubar: App / File / Edit / View / Window / Help
+- [x] Wire global keyboard handler (Cmd+Enter for commit; Esc closes modals; Cmd+S TBD with editor)
 
 ### File list & staging
 
 - [x] File list component with status icons + colors
-- [ ] Selection (single + multi with Shift/Cmd-click)
-- [x] Stage/unstage via row button (checkbox-style click TBD)
-- [ ] Stage/unstage via right-click context menu
-- [ ] Drag-to-stage (drag from "Changes" to "Staged" section)
+- [x] Selection (single + multi with Shift/Cmd-click)
+- [x] Stage/unstage via row button
+- [x] Stage/unstage via right-click context menu
+- [x] Drag-to-stage (drag from "Changes" to "Staged" section)
 - [x] "Stage all" / "Unstage all" toolbar buttons
 - [x] Live refresh after staging ops (Apollo refetchQueries on Status)
 
@@ -55,9 +55,9 @@ First usable version of the desktop app.
 ### Primitives
 
 - [x] Toast component + provider (info / success / error)
-- [ ] Modal/Dialog primitive (Radix or in-house)
-- [ ] Confirm dialog
-- [ ] Error boundary at app root
+- [x] Modal/Dialog primitive (in-house, promise-based `useModal().open` / `confirm`)
+- [x] Confirm dialog (with destructive variant)
+- [x] Error boundary at app root
 
 ## Phase 2 — Branches, tags, remote
 

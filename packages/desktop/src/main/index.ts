@@ -1,9 +1,10 @@
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, Menu, dialog, shell } from "electron";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import type { ChildProcess } from "node:child_process";
 
 import { spawnGraphQLServer } from "./server.js";
+import { buildAppMenu } from "./menu.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -55,7 +56,6 @@ function createWindow(endpoint: string): void {
     width: 1280,
     height: 800,
     show: false,
-    autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),
       sandbox: false,
@@ -95,6 +95,7 @@ app.whenReady().then(async () => {
     return;
   }
 
+  Menu.setApplicationMenu(buildAppMenu());
   createWindow(endpoint);
 
   app.on("activate", () => {
