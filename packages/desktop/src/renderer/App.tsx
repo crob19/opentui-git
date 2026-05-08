@@ -1,74 +1,58 @@
 import { useQuery } from "@apollo/client/react/index.js";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
+import { StatusBar } from "./components/StatusBar.js";
+import { FileTree } from "./components/FileTree.js";
+import { CommitPanel } from "./components/CommitPanel.js";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function App() {
   const repo = useQuery(RepoInfoDocument);
   const status = useQuery(StatusDocument, { pollInterval: 2000 });
 
-  return (
-    <main style={styles.main}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>opentui-git</h1>
-        {repo.data?.repoInfo && (
-          <span style={styles.repoPath}>
-            {repo.data.repoInfo.isRepo
-              ? repo.data.repoInfo.repoRoot
-              : "not a git repo"}
-          </span>
-        )}
-      </header>
+  const files = status.data?.status?.files ?? [];
+  const staged = files.filter((f) => f.staged);
 
-      <section>
-        <h2 style={styles.sectionHeader}>Status</h2>
-        {status.loading && !status.data && <p>Loading…</p>}
+  return (
+    <div className="dark h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] bg-background text-foreground">
+      <aside className="col-start-1 row-start-1 border-r border-border bg-card/40 flex flex-col min-h-0 overflow-hidden">
+        <FileTree files={files} />
+      </aside>
+
+      <main className="col-start-2 row-start-1 flex flex-col min-h-0 overflow-hidden">
+        {status.loading && !status.data && (
+          <div className="p-6 text-muted-foreground">Loading…</div>
+        )}
         {status.error && (
-          <pre style={styles.error}>{String(status.error.message)}</pre>
+          <ScrollArea className="flex-1">
+            <pre className="p-4 text-destructive whitespace-pre-wrap font-mono text-sm">
+              {String(status.error.message)}
+            </pre>
+          </ScrollArea>
         )}
         {status.data?.status && (
           <>
-            <p style={styles.branchLine}>
-              <strong>{status.data.status.current ?? "(detached)"}</strong>
-              {"  "}↑{status.data.status.ahead} ↓{status.data.status.behind}
-              {status.data.status.isClean ? "  (clean)" : ""}
-            </p>
-            <ul style={styles.fileList}>
-              {status.data.status.files.map((f) => (
-                <li key={f.path} style={{ color: f.color ?? undefined }}>
-                  <code>{f.statusText}</code> {f.path}
-                </li>
-              ))}
-            </ul>
+            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
+              Diff viewer — Phase 3
+            </div>
+            <CommitPanel
+              stagedCount={staged.length}
+              stagedPaths={staged.map((f) => f.path)}
+            />
           </>
         )}
-      </section>
-    </main>
+      </main>
+
+      <div className="col-span-2 row-start-2">
+        <StatusBar
+          repoRoot={repo.data?.repoInfo?.repoRoot}
+          isRepo={repo.data?.repoInfo?.isRepo}
+          branch={status.data?.status?.current}
+          ahead={status.data?.status?.ahead ?? 0}
+          behind={status.data?.status?.behind ?? 0}
+          isClean={status.data?.status?.isClean ?? true}
+          dirtyCount={files.length}
+        />
+      </div>
+    </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  main: {
-    fontFamily:
-      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-    padding: "1.5rem",
-    color: "#e6e6e6",
-    background: "#1a1a1a",
-    minHeight: "100vh",
-  },
-  header: {
-    display: "flex",
-    alignItems: "baseline",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-  },
-  title: { fontSize: "1.25rem", margin: 0 },
-  repoPath: { color: "#888", fontSize: "0.85rem" },
-  sectionHeader: {
-    fontSize: "0.85rem",
-    textTransform: "uppercase",
-    color: "#888",
-    margin: "0 0 0.5rem",
-  },
-  branchLine: { margin: "0 0 0.75rem" },
-  fileList: { listStyle: "none", padding: 0, margin: 0, lineHeight: 1.6 },
-  error: { color: "#ff6b6b" },
-};
