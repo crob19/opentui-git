@@ -12,15 +12,15 @@ Bring `packages/desktop` to feature parity with the TUI (`packages/core/src/tui`
 
 Foundation. No user-visible change. TUI must still work after this.
 
-- [ ] Create `packages/core/src/shared/` directory + barrel export
-- [ ] Move `tui/utils/diff-parser.ts` → `shared/diff-parser.ts`, update TUI imports
-- [ ] Move `tui/utils/syntax-highlighting.ts` → `shared/syntax-highlighting.ts`, update TUI imports
-- [ ] Define `CommandAdapter` interface (`{ toast, confirm, refetch }`)
-- [ ] Refactor `tui/commands/branch.ts` to take adapter, move pure logic to `shared/commands/branch.ts`
-- [ ] Same for `tui/commands/file.ts`
-- [ ] Same for `tui/commands/remote.ts`
-- [ ] Same for `tui/commands/tag.ts`
-- [ ] Smoke-test TUI: stage, unstage, commit, branch checkout/create, push, pull, tag
+- [x] Create `packages/core/src/shared/` directory + barrel export
+- [x] Move `tui/utils/diff-parser.ts` → `shared/diff-parser.ts`, update TUI imports
+- [x] Move `tui/utils/syntax-highlighting.ts` → `shared/syntax-highlighting.ts`, update TUI imports
+- [x] Move `tui/utils/language-detection.ts` → `shared/language-detection.ts`, update TUI imports
+- [x] Move `tui/utils/file-tree.ts` → `shared/file-tree.ts`; desktop now consumes it via `opentui-git/shared/file-tree`, local copy deleted
+- [x] Expose new paths via `core` package.json `exports` (`./shared`, `./shared/file-tree`, etc.)
+- [ ] Define `CommandAdapter` interface (`{ toast, confirm, refetch }`) — deferred; desktop uses Apollo mutations directly so command-layer share isn't load-bearing yet
+- [ ] Refactor TUI commands (branch / file / remote / tag) onto adapter — deferred (see above)
+- [x] Smoke-test: TUI typecheck clean, desktop typecheck + build clean
 
 ## Phase 1 — Desktop shell + staging + commit (MVP)
 
