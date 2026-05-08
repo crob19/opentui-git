@@ -11,6 +11,7 @@ export function DiffViewer() {
     skip: mode !== "branch",
   });
   const compareBranch = branchQuery.data?.defaultBranch ?? null;
+  const branchPending = mode === "branch" && !compareBranch;
 
   const diffOptions = useMemo(() => {
     if (mode === "branch")
@@ -19,10 +20,7 @@ export function DiffViewer() {
   }, [mode, compareBranch]);
 
   const diffQuery = useQuery(DiffDocument, {
-    variables:
-      selected && diffOptions
-        ? { path: selected, options: diffOptions }
-        : { path: "", options: null },
+    variables: { path: selected ?? "", options: diffOptions },
     skip: !selected || !diffOptions,
   });
 
@@ -34,7 +32,7 @@ export function DiffViewer() {
     );
   }
 
-  if (diffQuery.loading && !diffQuery.data) {
+  if (branchPending || (diffQuery.loading && !diffQuery.data)) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60">
         Loading diff…
