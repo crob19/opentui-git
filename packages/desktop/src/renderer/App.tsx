@@ -3,6 +3,7 @@ import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { FileTree } from "./components/FileTree.js";
 import { CommitPanel } from "./components/CommitPanel.js";
+import { DiffViewer } from "./components/DiffViewer.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function App() {
@@ -31,9 +32,7 @@ export function App() {
         )}
         {status.data?.status && (
           <>
-            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
-              Diff viewer — Phase 3
-            </div>
+            <DiffViewer />
             <CommitPanel
               stagedCount={staged.length}
               stagedPaths={staged.map((f) => f.path)}

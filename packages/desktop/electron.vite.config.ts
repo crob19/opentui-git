@@ -28,6 +28,9 @@ export default defineConfig({
         "@": resolve(__dirname, "src/renderer"),
       },
     },
+    worker: {
+      format: "es",
+    },
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, "src/renderer/index.html") },

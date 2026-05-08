@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
 import { useMemo, useState } from "react";
+import { useSelection, type FileTreeMode } from "../state/selection.js";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -24,8 +25,6 @@ import { cn } from "@/lib/utils";
 import { buildFileTree, getFilesInFolder } from "opentui-git/shared/file-tree";
 import type { GitFileStatus, FileTreeNode } from "opentui-git/git/types";
 
-export type FileTreeMode = "unstaged" | "staged" | "branch";
-
 type Props = {
   files: GitFileStatus[];
 };
@@ -33,7 +32,7 @@ type Props = {
 const REFETCH = [{ query: StatusDocument }];
 
 export function FileTree({ files }: Props) {
-  const [mode, setMode] = useState<FileTreeMode>("unstaged");
+  const { mode, setMode, selected, setSelected } = useSelection();
 
   const defaultBranchQuery = useQuery(DefaultBranchDocument, {
     skip: mode !== "branch",
@@ -57,7 +56,6 @@ export function FileTree({ files }: Props) {
   });
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<string | null>(null);
 
   const visibleFiles = useMemo<GitFileStatus[]>(() => {
     if (mode === "unstaged") return files.filter((f) => !f.staged);
@@ -101,13 +99,7 @@ export function FileTree({ files }: Props) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="px-2 pt-2 pb-1 border-b border-border">
-        <Tabs
-          value={mode}
-          onValueChange={(v) => {
-            setMode(v as FileTreeMode);
-            setSelected(null);
-          }}
-        >
+        <Tabs value={mode} onValueChange={(v) => setMode(v as FileTreeMode)}>
           <TabsList className="w-full grid grid-cols-3 h-7">
             <TabsTrigger value="unstaged" className="text-[11px]">
               Unstaged

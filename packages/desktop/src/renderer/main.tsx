@@ -4,8 +4,11 @@ import "./globals.css";
 import { ApolloProvider } from "@apollo/client/react/index.js";
 import { createClient } from "@opentui-git/client";
 
+import { WorkerPoolContextProvider } from "@pierre/diffs/react";
 import { App } from "./App.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { SelectionProvider } from "./state/selection.js";
+import { diffWorkerFactory } from "./lib/diff-worker.js";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -26,7 +29,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <ApolloProvider client={client}>
         <TooltipProvider>
-          <App />
+          <WorkerPoolContextProvider
+            poolOptions={{ workerFactory: diffWorkerFactory }}
+            highlighterOptions={{ theme: "github-dark" }}
+          >
+            <SelectionProvider>
+              <App />
+            </SelectionProvider>
+          </WorkerPoolContextProvider>
           <Toaster richColors closeButton />
         </TooltipProvider>
       </ApolloProvider>
