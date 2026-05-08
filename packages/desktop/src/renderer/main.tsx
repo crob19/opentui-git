@@ -1,12 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./globals.css";
 import { ApolloProvider } from "@apollo/client/react/index.js";
 import { createClient } from "@opentui-git/client";
 
 import { App } from "./App.js";
-import { ToastProvider } from "./components/Toast.js";
-import { ModalProvider } from "./components/Modal.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Endpoint comes from the Electron main process (which spawns the GraphQL
 // server on a free port and forwards the URL through preload). Vite env and
@@ -22,11 +23,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <ApolloProvider client={client}>
-        <ToastProvider>
-          <ModalProvider>
-            <App />
-          </ModalProvider>
-        </ToastProvider>
+        <TooltipProvider>
+          <App />
+          <Toaster theme="dark" richColors closeButton />
+        </TooltipProvider>
       </ApolloProvider>
     </ErrorBoundary>
   </React.StrictMode>,

@@ -1,8 +1,9 @@
 import { useQuery } from "@apollo/client/react/index.js";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
-import { FileList } from "./components/FileList.js";
+import { FileTree } from "./components/FileTree.js";
 import { CommitPanel } from "./components/CommitPanel.js";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function App() {
   const repo = useQuery(RepoInfoDocument);
@@ -12,29 +13,26 @@ export function App() {
   const staged = files.filter((f) => f.staged);
 
   return (
-    <div style={styles.shell}>
-      <aside style={styles.sidebar}>
-        <div style={styles.sidebarSection}>
-          <div style={styles.sidebarHeader}>Branches</div>
-          <div style={styles.placeholder}>Phase 2</div>
-        </div>
-        <div style={styles.sidebarSection}>
-          <div style={styles.sidebarHeader}>Tags</div>
-          <div style={styles.placeholder}>Phase 2</div>
-        </div>
+    <div className="dark h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] bg-background text-foreground">
+      <aside className="col-start-1 row-start-1 border-r border-border bg-card/40 flex flex-col min-h-0 overflow-hidden">
+        <FileTree files={files} />
       </aside>
 
-      <main style={styles.main}>
+      <main className="col-start-2 row-start-1 flex flex-col min-h-0 overflow-hidden">
         {status.loading && !status.data && (
-          <div style={styles.center}>Loading…</div>
+          <div className="p-6 text-muted-foreground">Loading…</div>
         )}
         {status.error && (
-          <pre style={styles.error}>{String(status.error.message)}</pre>
+          <ScrollArea className="flex-1">
+            <pre className="p-4 text-destructive whitespace-pre-wrap font-mono text-sm">
+              {String(status.error.message)}
+            </pre>
+          </ScrollArea>
         )}
         {status.data?.status && (
           <>
-            <div style={styles.fileArea}>
-              <FileList files={files} />
+            <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
+              Diff viewer — Phase 3
             </div>
             <CommitPanel
               stagedCount={staged.length}
@@ -44,7 +42,7 @@ export function App() {
         )}
       </main>
 
-      <div style={styles.statusBarSlot}>
+      <div className="col-span-2 row-start-2">
         <StatusBar
           repoRoot={repo.data?.repoInfo?.repoRoot}
           isRepo={repo.data?.repoInfo?.isRepo}
@@ -58,59 +56,3 @@ export function App() {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  shell: {
-    display: "grid",
-    gridTemplateColumns: "220px 1fr",
-    gridTemplateRows: "1fr auto",
-    gridTemplateAreas: `
-      "sidebar main"
-      "statusbar statusbar"
-    `,
-    height: "100vh",
-    width: "100vw",
-    background: "#1a1a1a",
-    color: "#e6e6e6",
-    fontFamily:
-      "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  },
-  sidebar: {
-    gridArea: "sidebar",
-    background: "#141414",
-    borderRight: "1px solid #2a2a2a",
-    display: "flex",
-    flexDirection: "column",
-    overflowY: "auto",
-  },
-  sidebarSection: { padding: "8px 0" },
-  sidebarHeader: {
-    padding: "6px 12px",
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: "#888",
-  },
-  placeholder: {
-    padding: "4px 12px",
-    fontSize: 11,
-    color: "#555",
-    fontStyle: "italic",
-  },
-  main: {
-    gridArea: "main",
-    display: "flex",
-    flexDirection: "column",
-    minHeight: 0,
-    overflow: "hidden",
-  },
-  fileArea: { flex: 1, overflowY: "auto", minHeight: 0 },
-  center: { padding: 24, color: "#888" },
-  error: {
-    padding: 16,
-    color: "#ff6b6b",
-    whiteSpace: "pre-wrap",
-    fontFamily: "ui-monospace, monospace",
-  },
-  statusBarSlot: { gridArea: "statusbar" },
-};

@@ -9,7 +9,11 @@
     "jsx": "react-jsx",
     "composite": true,
     "noEmit": true,
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/*"]
+    }
   },
   "include": ["src/renderer/**/*", "src/preload/**/*.d.ts"]
 }

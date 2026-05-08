@@ -1,7 +1,10 @@
 import { useMutation } from "@apollo/client/react/index.js";
 import { useState } from "react";
+import { toast } from "sonner";
 import { CommitDocument, StatusDocument } from "@opentui-git/client";
-import { useToast } from "./Toast.js";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Props = {
   stagedCount: number;
@@ -9,7 +12,6 @@ type Props = {
 };
 
 export function CommitPanel({ stagedCount, stagedPaths }: Props) {
-  const toast = useToast();
   const [message, setMessage] = useState("");
   const [commit, { loading }] = useMutation(CommitDocument, {
     refetchQueries: [{ query: StatusDocument }],
@@ -23,7 +25,9 @@ export function CommitPanel({ stagedCount, stagedPaths }: Props) {
     try {
       const res = await commit({ variables: { message: trimmed } });
       if (res.data?.commit?.success) {
-        toast.success(`Committed ${stagedCount} file(s)`);
+        toast.success(
+          `Committed ${stagedCount} file${stagedCount === 1 ? "" : "s"}`,
+        );
         setMessage("");
       } else {
         toast.error("Commit failed");
@@ -41,122 +45,50 @@ export function CommitPanel({ stagedCount, stagedPaths }: Props) {
   };
 
   return (
-    <div style={styles.wrap}>
-      <div style={styles.header}>
-        <span style={styles.title}>Commit</span>
-        <span style={styles.count}>
+    <div className="flex flex-col gap-2 p-3 border-t border-border bg-card/50">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          Commit
+        </span>
+        <span className="text-[11px] text-muted-foreground/70">
           {stagedCount} file{stagedCount === 1 ? "" : "s"} staged
         </span>
       </div>
 
       {stagedCount > 0 && (
-        <ul style={styles.preview}>
-          {stagedPaths.slice(0, 5).map((p) => (
-            <li key={p} style={styles.previewItem}>
-              {p}
-            </li>
-          ))}
-          {stagedPaths.length > 5 && (
-            <li style={styles.previewMore}>
-              …and {stagedPaths.length - 5} more
-            </li>
-          )}
-        </ul>
+        <ScrollArea className="max-h-24 rounded border border-border bg-background/50 px-2 py-1">
+          <ul className="text-xs text-muted-foreground font-mono">
+            {stagedPaths.slice(0, 8).map((p) => (
+              <li key={p} className="py-0.5 truncate">
+                {p}
+              </li>
+            ))}
+            {stagedPaths.length > 8 && (
+              <li className="py-0.5 text-muted-foreground/60 italic">
+                …and {stagedPaths.length - 8} more
+              </li>
+            )}
+          </ul>
+        </ScrollArea>
       )}
 
-      <textarea
-        style={styles.textarea}
+      <Textarea
         placeholder="Commit message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={onKeyDown}
         rows={3}
+        className="font-mono text-[13px] resize-none"
       />
 
-      <div style={styles.actions}>
-        <span style={styles.hint}>{canCommit ? "⌘+Enter to commit" : ""}</span>
-        <button
-          style={{
-            ...styles.commitBtn,
-            ...(canCommit ? {} : styles.commitBtnDisabled),
-          }}
-          onClick={submit}
-          disabled={!canCommit}
-        >
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-muted-foreground/70">
+          {canCommit ? "⌘+Enter to commit" : ""}
+        </span>
+        <Button onClick={submit} disabled={!canCommit} size="sm">
           {loading ? "Committing…" : "Commit"}
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrap: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-    padding: 12,
-    borderTop: "1px solid #2a2a2a",
-    background: "#161616",
-  },
-  header: {
-    display: "flex",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-  },
-  title: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    color: "#888",
-  },
-  count: { fontSize: 11, color: "#666" },
-  preview: {
-    listStyle: "none",
-    margin: 0,
-    padding: "4px 8px",
-    background: "#1c1c1c",
-    border: "1px solid #2a2a2a",
-    borderRadius: 4,
-    maxHeight: 88,
-    overflowY: "auto",
-    fontSize: 12,
-    color: "#bbb",
-  },
-  previewItem: { padding: "2px 0", fontFamily: "ui-monospace, monospace" },
-  previewMore: { padding: "2px 0", color: "#666", fontStyle: "italic" },
-  textarea: {
-    background: "#0e0e0e",
-    color: "#e6e6e6",
-    border: "1px solid #2a2a2a",
-    borderRadius: 4,
-    padding: 8,
-    fontFamily:
-      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-    fontSize: 13,
-    resize: "vertical",
-    minHeight: 60,
-    outline: "none",
-  },
-  actions: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  hint: { fontSize: 11, color: "#666" },
-  commitBtn: {
-    background: "#2d6cdf",
-    color: "#fff",
-    border: "none",
-    padding: "6px 14px",
-    borderRadius: 4,
-    fontSize: 13,
-    cursor: "pointer",
-    fontWeight: 500,
-  },
-  commitBtnDisabled: {
-    background: "#2a2a2a",
-    color: "#666",
-    cursor: "not-allowed",
-  },
-};

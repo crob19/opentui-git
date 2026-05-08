@@ -1,3 +1,6 @@
+import { GitBranch } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 type Props = {
   repoRoot: string | null | undefined;
   isRepo: boolean | undefined;
@@ -22,41 +25,27 @@ export function StatusBar({
     : "not a git repo";
 
   return (
-    <footer style={styles.bar}>
-      <span style={styles.repo} title={repoRoot ?? ""}>
+    <footer className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border-t border-border text-xs text-muted-foreground font-mono">
+      <span className="text-foreground font-semibold" title={repoRoot ?? ""}>
         {repoLabel}
       </span>
-      <span style={styles.sep}>·</span>
-      <span style={styles.branch}>{branch ?? "(detached)"}</span>
-      <span style={styles.counts}>
+      <span className="text-muted-foreground/50">·</span>
+      <span className="flex items-center gap-1 text-blue-400">
+        <GitBranch className="size-3" />
+        {branch ?? "(detached)"}
+      </span>
+      <span className="text-muted-foreground/70">
         ↑{ahead} ↓{behind}
       </span>
-      <span style={styles.spacer} />
-      <span style={isClean ? styles.clean : styles.dirty}>
+      <span className="flex-1" />
+      <span
+        className={cn(
+          "font-medium",
+          isClean ? "text-green-500" : "text-amber-400",
+        )}
+      >
         {isClean ? "clean" : `${dirtyCount} changed`}
       </span>
     </footer>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  bar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "6px 12px",
-    background: "#111",
-    borderTop: "1px solid #2a2a2a",
-    fontSize: 12,
-    color: "#bbb",
-    fontFamily:
-      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-  },
-  repo: { color: "#e6e6e6", fontWeight: 600 },
-  sep: { color: "#555" },
-  branch: { color: "#7fb3ff" },
-  counts: { color: "#888" },
-  spacer: { flex: 1 },
-  clean: { color: "#5fc26b" },
-  dirty: { color: "#e0a64a" },
-};
