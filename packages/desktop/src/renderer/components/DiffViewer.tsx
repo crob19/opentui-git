@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import { DiffDocument, DefaultBranchDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function DiffViewer() {
   const { mode, selected } = useSelection();
@@ -45,11 +44,11 @@ export function DiffViewer() {
 
   if (diffQuery.error) {
     return (
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-auto">
         <pre className="p-4 text-destructive whitespace-pre-wrap font-mono text-sm">
           {diffQuery.error.message}
         </pre>
-      </ScrollArea>
+      </div>
     );
   }
 
@@ -64,8 +63,8 @@ export function DiffViewer() {
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <div className="flex-1 min-h-0 overflow-auto">
       <PatchDiff patch={patch} />
-    </ScrollArea>
+    </div>
   );
 }
