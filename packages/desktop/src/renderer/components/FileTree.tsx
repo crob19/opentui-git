@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
 import { useMemo, useState } from "react";
+import { useSelection, type FileTreeMode } from "../state/selection.js";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
-  StageFileDocument,
-  UnstageFileDocument,
+  StageFilesDocument,
+  UnstageFilesDocument,
   StageAllDocument,
   UnstageAllDocument,
   StatusDocument,
@@ -24,8 +25,6 @@ import { cn } from "@/lib/utils";
 import { buildFileTree, getFilesInFolder } from "opentui-git/shared/file-tree";
 import type { GitFileStatus, FileTreeNode } from "opentui-git/git/types";
 
-export type FileTreeMode = "unstaged" | "staged" | "branch";
-
 type Props = {
   files: GitFileStatus[];
 };
@@ -33,7 +32,7 @@ type Props = {
 const REFETCH = [{ query: StatusDocument }];
 
 export function FileTree({ files }: Props) {
-  const [mode, setMode] = useState<FileTreeMode>("unstaged");
+  const { mode, setMode, selected, setSelected } = useSelection();
 
   const defaultBranchQuery = useQuery(DefaultBranchDocument, {
     skip: mode !== "branch",
@@ -45,10 +44,10 @@ export function FileTree({ files }: Props) {
     skip: mode !== "branch" || !compareBranch,
   });
 
-  const [stageFile] = useMutation(StageFileDocument, {
+  const [stageFiles] = useMutation(StageFilesDocument, {
     refetchQueries: REFETCH,
   });
-  const [unstageFile] = useMutation(UnstageFileDocument, {
+  const [unstageFiles] = useMutation(UnstageFilesDocument, {
     refetchQueries: REFETCH,
   });
   const [stageAll] = useMutation(StageAllDocument, { refetchQueries: REFETCH });
@@ -57,7 +56,6 @@ export function FileTree({ files }: Props) {
   });
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<string | null>(null);
 
   const visibleFiles = useMemo<GitFileStatus[]>(() => {
     if (mode === "unstaged") return files.filter((f) => !f.staged);
@@ -76,20 +74,18 @@ export function FileTree({ files }: Props) {
     });
 
   const stagePaths = async (paths: string[]) => {
+    if (paths.length === 0) return;
     try {
-      await Promise.all(
-        paths.map((p) => stageFile({ variables: { path: p } })),
-      );
+      await stageFiles({ variables: { paths } });
     } catch (err) {
       toast.error(`Stage failed: ${(err as Error).message}`);
     }
   };
 
   const unstagePaths = async (paths: string[]) => {
+    if (paths.length === 0) return;
     try {
-      await Promise.all(
-        paths.map((p) => unstageFile({ variables: { path: p } })),
-      );
+      await unstageFiles({ variables: { paths } });
     } catch (err) {
       toast.error(`Unstage failed: ${(err as Error).message}`);
     }
@@ -216,11 +212,11 @@ function Tree(props: TreeProps) {
     <div className="py-1">
       {flat.map((node) => (
         <Row
-          key={`${props.mode}:${node.path}`}
+          key={node.path}
           node={node}
           isCollapsed={node.type === "folder" && props.collapsed.has(node.path)}
-          isSelected={props.selected === `${props.mode}:${node.path}`}
-          onSelect={() => props.onSelect(`${props.mode}:${node.path}`)}
+          isSelected={props.selected === node.path}
+          onSelect={() => props.onSelect(node.path)}
           onToggle={() => props.onToggleFolder(node.path)}
           onStage={() => {
             const paths =
@@ -286,13 +282,21 @@ function Row({
       ? "var(--color-git-staged)"
       : (node.color ?? undefined);
 
+  const activate = () => {
+    if (isFolder) onToggle();
+    else onSelect();
+  };
+
   const inner = (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => {
-        if (isFolder) onToggle();
-        else onSelect();
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activate();
+        }
       }}
       className={cn(
         "flex items-center gap-1.5 px-2 py-0.5 text-[13px] cursor-pointer select-none font-mono",

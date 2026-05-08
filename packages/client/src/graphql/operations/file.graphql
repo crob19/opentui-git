@@ -25,6 +25,18 @@ mutation UnstageFile($path: String!) {
   }
 }
 
+mutation StageFiles($paths: [String!]!) {
+  stageFiles(paths: $paths) {
+    success
+  }
+}
+
+mutation UnstageFiles($paths: [String!]!) {
+  unstageFiles(paths: $paths) {
+    success
+  }
+}
+
 mutation StageAll {
   stageAll {
     success

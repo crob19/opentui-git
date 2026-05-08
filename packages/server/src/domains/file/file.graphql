@@ -21,6 +21,8 @@ extend type Mutation {
   writeFile(path: String!, content: String!, expectedMtime: String): FileWriteResult!
   stageFile(path: String!): StageResult!
   unstageFile(path: String!): StageResult!
+  stageFiles(paths: [String!]!): StageResult!
+  unstageFiles(paths: [String!]!): StageResult!
   stageAll: StageResult!
   unstageAll: StageResult!
 }

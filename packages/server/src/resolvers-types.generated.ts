@@ -104,8 +104,10 @@ export type Mutation = {
   pushTag: TagResult;
   stageAll: StageResult;
   stageFile: StageResult;
+  stageFiles: StageResult;
   unstageAll: StageResult;
   unstageFile: StageResult;
+  unstageFiles: StageResult;
   writeFile: FileWriteResult;
 };
 
@@ -152,8 +154,18 @@ export type MutationStageFileArgs = {
 };
 
 
+export type MutationStageFilesArgs = {
+  paths: Array<Scalars['String']['input']>;
+};
+
+
 export type MutationUnstageFileArgs = {
   path: Scalars['String']['input'];
+};
+
+
+export type MutationUnstageFilesArgs = {
+  paths: Array<Scalars['String']['input']>;
 };
 
 
@@ -427,8 +439,10 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   pushTag?: Resolver<ResolversTypes['TagResult'], ParentType, ContextType, RequireFields<MutationPushTagArgs, 'name'>>;
   stageAll?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType>;
   stageFile?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationStageFileArgs, 'path'>>;
+  stageFiles?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationStageFilesArgs, 'paths'>>;
   unstageAll?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType>;
   unstageFile?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationUnstageFileArgs, 'path'>>;
+  unstageFiles?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationUnstageFilesArgs, 'paths'>>;
   writeFile?: Resolver<ResolversTypes['FileWriteResult'], ParentType, ContextType, RequireFields<MutationWriteFileArgs, 'content' | 'path'>>;
 }>;
 

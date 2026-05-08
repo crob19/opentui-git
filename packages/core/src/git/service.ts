@@ -200,6 +200,22 @@ export class GitService {
   }
 
   /**
+   * Stage multiple files in a single git invocation.
+   */
+  async stageFiles(filepaths: string[]): Promise<void> {
+    if (filepaths.length === 0) return;
+    await this.git.add(filepaths);
+  }
+
+  /**
+   * Unstage multiple files in a single git invocation.
+   */
+  async unstageFiles(filepaths: string[]): Promise<void> {
+    if (filepaths.length === 0) return;
+    await this.git.reset(["HEAD", "--", ...filepaths]);
+  }
+
+  /**
    * Stage all changes
    */
   async stageAll(): Promise<void> {
