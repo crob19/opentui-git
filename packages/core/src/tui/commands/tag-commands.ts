@@ -115,7 +115,9 @@ export async function showTagDialog(
   // Fetch existing tags for validation
   let existingTags: string[] = [];
   try {
-    existingTags = (await runQuery(context.client, TagsDocument)).tags;
+    existingTags = (await runQuery(context.client, TagsDocument)).tags.map(
+      (t) => t.name,
+    );
   } catch (error) {
     console.error("Failed to fetch existing tags:", error);
     // Continue with empty array - validation will still work for other rules
