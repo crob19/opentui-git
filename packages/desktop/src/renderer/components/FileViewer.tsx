@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSelection } from "../state/selection.js";
 import { highlight } from "../lib/highlighter.js";
 
-const MAX_BYTES = 1024 * 1024; // 1MB
+const MAX_CHARS = 1024 * 1024;
 
 export function FileViewer() {
   const { selected } = useSelection();
@@ -16,7 +16,7 @@ export function FileViewer() {
   });
 
   const content = data?.readFile?.content ?? "";
-  const tooLarge = content.length > MAX_BYTES;
+  const tooLarge = content.length > MAX_CHARS;
   const binary = !tooLarge && containsBinary(content);
   const renderable = !!selected && !!data && !tooLarge && !binary;
 
@@ -70,7 +70,7 @@ export function FileViewer() {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
         File is too large to preview (
-        {(content.length / 1024 / 1024).toFixed(1)} MB)
+        {(content.length / 1024 / 1024).toFixed(1)}M chars)
       </div>
     );
   }
