@@ -43,7 +43,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Custom key bindings
 - [ ] Resizable panels
 - [ ] Search/filter files
-- [ ] Show more git status info (ahead/behind details)
 
 ## Low Priority
 
@@ -52,7 +51,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Cherry-pick commits
 - [ ] Reset (soft/mixed/hard)
 - [ ] Revert commits
-- [ ] Tag management
 - [ ] Submodule support
 
 ### Configuration
@@ -74,7 +72,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Command palette
 - [ ] Undo last git operation
 - [ ] Copy file path to clipboard
-- [ ] Status bar with more info
 - [ ] Loading spinners
 - [ ] Better error messages with suggestions
 
