@@ -1,4 +1,7 @@
-import { useMutation } from "@apollo/client/react/index.js";
+import {
+  useApolloClient,
+  useMutation,
+} from "@apollo/client/react/index.js";
 import { useState } from "react";
 import {
   BranchesDocument,
@@ -15,25 +18,30 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 
 const REFETCH = [
-  { query: StatusDocument },
-  { query: BranchesDocument },
-  { query: TagsDocument },
+  StatusDocument,
+  BranchesDocument,
+  TagsDocument,
 ];
 
 export function RemoteToolbar() {
+  const client = useApolloClient();
   const [isForcePushOpen, setIsForcePushOpen] = useState(false);
-  const [pull, pullState] = useMutation(PullDocument, {
-    refetchQueries: REFETCH,
-  });
-  const [push, pushState] = useMutation(PushDocument, {
-    refetchQueries: REFETCH,
-  });
-  const [forcePush, forcePushState] = useMutation(ForcePushDocument, {
-    refetchQueries: REFETCH,
-  });
-  const [fetch, fetchState] = useMutation(FetchDocument, {
-    refetchQueries: REFETCH,
-  });
+  const [pull, pullState] = useMutation(PullDocument);
+  const [push, pushState] = useMutation(PushDocument);
+  const [forcePush, forcePushState] = useMutation(ForcePushDocument);
+  const [fetch, fetchState] = useMutation(FetchDocument);
+
+  const invalidateRepoState = async () => {
+    await client.refetchQueries({
+      include: REFETCH,
+      updateCache(cache) {
+        cache.evict({ fieldName: "status" });
+        cache.evict({ fieldName: "branches" });
+        cache.evict({ fieldName: "tags" });
+      },
+    });
+    client.cache.gc();
+  };
 
   const run = async (
     label: string,
@@ -42,6 +50,7 @@ export function RemoteToolbar() {
   ) => {
     try {
       await action();
+      await invalidateRepoState();
       toast.success(success);
     } catch (err) {
       toast.error(`${label} failed: ${(err as Error).message}`);
