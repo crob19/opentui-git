@@ -566,12 +566,7 @@ export class GitService {
    * Automatically sets upstream for new branches
    * @returns Promise<void>
    */
-  async push(force: boolean = false): Promise<void> {
-    if (force) {
-      await this.git.push(["--force-with-lease"]);
-      return;
-    }
-
+  async push(): Promise<void> {
     try {
       await this.git.push();
     } catch (error) {
@@ -589,6 +584,14 @@ export class GitService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Force push to remote using Git's lease guard.
+   * @returns Promise<void>
+   */
+  async forcePush(): Promise<void> {
+    await this.git.push(["--force-with-lease"]);
   }
 
   /**

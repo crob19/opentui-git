@@ -4,8 +4,14 @@ mutation Pull {
   }
 }
 
-mutation Push($force: Boolean) {
-  push(force: $force) {
+mutation Push {
+  push {
+    success
+  }
+}
+
+mutation ForcePush {
+  forcePush {
     success
   }
 }

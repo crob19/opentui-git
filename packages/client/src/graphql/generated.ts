@@ -98,6 +98,7 @@ export type Mutation = {
   createTag: TagResult;
   deleteBranch: BranchResult;
   fetch: RemoteResult;
+  forcePush: RemoteResult;
   mergeBranch: MergeOutcome;
   pull: RemoteResult;
   push: RemoteResult;
@@ -142,11 +143,6 @@ export type MutationDeleteBranchArgs = {
 
 export type MutationMergeBranchArgs = {
   name: Scalars['String']['input'];
-};
-
-
-export type MutationPushArgs = {
-  force?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 
@@ -378,12 +374,15 @@ export type PullMutationVariables = Exact<{ [key: string]: never; }>;
 
 export type PullMutation = { __typename?: 'Mutation', pull: { __typename?: 'RemoteResult', success: boolean } };
 
-export type PushMutationVariables = Exact<{
-  force?: InputMaybe<Scalars['Boolean']['input']>;
-}>;
+export type PushMutationVariables = Exact<{ [key: string]: never; }>;
 
 
 export type PushMutation = { __typename?: 'Mutation', push: { __typename?: 'RemoteResult', success: boolean } };
+
+export type ForcePushMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ForcePushMutation = { __typename?: 'Mutation', forcePush: { __typename?: 'RemoteResult', success: boolean } };
 
 export type FetchMutationVariables = Exact<{ [key: string]: never; }>;
 
@@ -458,7 +457,8 @@ export const UnstageFilesDocument = {"kind":"Document","definitions":[{"kind":"O
 export const StageAllDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"StageAll"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"stageAll"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<StageAllMutation, StageAllMutationVariables>;
 export const UnstageAllDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UnstageAll"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"unstageAll"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<UnstageAllMutation, UnstageAllMutationVariables>;
 export const PullDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Pull"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pull"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<PullMutation, PullMutationVariables>;
-export const PushDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Push"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"force"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"push"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"force"},"value":{"kind":"Variable","name":{"kind":"Name","value":"force"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<PushMutation, PushMutationVariables>;
+export const PushDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Push"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"push"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<PushMutation, PushMutationVariables>;
+export const ForcePushDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ForcePush"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"forcePush"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<ForcePushMutation, ForcePushMutationVariables>;
 export const FetchDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Fetch"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"fetch"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"success"}}]}}]}}]} as unknown as DocumentNode<FetchMutation, FetchMutationVariables>;
 export const RepoInfoDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"RepoInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"repoInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"isRepo"}},{"kind":"Field","name":{"kind":"Name","value":"repoRoot"}}]}}]}}]} as unknown as DocumentNode<RepoInfoQuery, RepoInfoQueryVariables>;
 export const StatusDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"current"}},{"kind":"Field","name":{"kind":"Name","value":"ahead"}},{"kind":"Field","name":{"kind":"Name","value":"behind"}},{"kind":"Field","name":{"kind":"Name","value":"isClean"}},{"kind":"Field","name":{"kind":"Name","value":"files"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"FileStatusFields"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"FileStatusFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"FileStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"path"}},{"kind":"Field","name":{"kind":"Name","value":"workingDir"}},{"kind":"Field","name":{"kind":"Name","value":"index"}},{"kind":"Field","name":{"kind":"Name","value":"staged"}},{"kind":"Field","name":{"kind":"Name","value":"statusText"}},{"kind":"Field","name":{"kind":"Name","value":"color"}},{"kind":"Field","name":{"kind":"Name","value":"hasLocalChanges"}}]}}]} as unknown as DocumentNode<StatusQuery, StatusQueryVariables>;

@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   BranchesDocument,
   FetchDocument,
+  ForcePushDocument,
   PullDocument,
   PushDocument,
   StatusDocument,
@@ -25,6 +26,9 @@ export function RemoteToolbar() {
     refetchQueries: REFETCH,
   });
   const [push, pushState] = useMutation(PushDocument, {
+    refetchQueries: REFETCH,
+  });
+  const [forcePush, forcePushState] = useMutation(ForcePushDocument, {
     refetchQueries: REFETCH,
   });
   const [fetch, fetchState] = useMutation(FetchDocument, {
@@ -60,9 +64,7 @@ export function RemoteToolbar() {
           variant="ghost"
           size="sm"
           disabled={pushState.loading}
-          onClick={() =>
-            run("Push", () => push({ variables: { force: false } }), "Pushed to remote")
-          }
+          onClick={() => run("Push", () => push(), "Pushed to remote")}
         >
           <Upload />
           {pushState.loading ? "Pushing..." : "Push"}
@@ -79,7 +81,7 @@ export function RemoteToolbar() {
         <Button
           variant="ghost"
           size="sm"
-          disabled={pushState.loading}
+          disabled={forcePushState.loading}
           onClick={() => setIsForcePushOpen(true)}
         >
           <AlertTriangle />
@@ -92,12 +94,12 @@ export function RemoteToolbar() {
         description="Force push with lease to the current upstream branch?"
         confirmLabel="Force push"
         variant="destructive"
-        loading={pushState.loading}
+        loading={forcePushState.loading}
         onOpenChange={setIsForcePushOpen}
         onConfirm={async () => {
           await run(
             "Force push",
-            () => push({ variables: { force: true } }),
+            () => forcePush(),
             "Force pushed with lease",
           );
           setIsForcePushOpen(false);

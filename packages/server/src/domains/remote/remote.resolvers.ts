@@ -6,8 +6,12 @@ export const remoteResolvers: Resolvers = {
       await git.pull();
       return { success: true };
     },
-    push: async (_p, { force }, { git }) => {
-      await git.push(force ?? false);
+    push: async (_p, _a, { git }) => {
+      await git.push();
+      return { success: true };
+    },
+    forcePush: async (_p, _a, { git }) => {
+      await git.forcePush();
       return { success: true };
     },
     fetch: async (_p, _a, { git }) => {
