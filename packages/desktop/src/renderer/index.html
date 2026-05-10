@@ -7,7 +7,7 @@
          loopback port. Restricted to localhost-only origins. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      content="default-src 'self'; connect-src 'self' data: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'"
     />
   </head>
   <body>

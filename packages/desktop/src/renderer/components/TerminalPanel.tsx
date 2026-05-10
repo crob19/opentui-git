@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Terminal, FitAddon, init as initGhostty } from "ghostty-web";
+import { Terminal, FitAddon, Ghostty } from "ghostty-web";
 
 let sessionCounter = 0;
 
@@ -20,10 +20,11 @@ export function TerminalPanel({ visible }: { visible: boolean }) {
     let resizeObs: ResizeObserver | null = null;
 
     (async () => {
-      await initGhostty();
+      const ghostty = await Ghostty.load();
       if (disposed) return;
 
       term = new Terminal({
+        ghostty,
         fontFamily:
           'ui-monospace, SFMono-Regular, Menlo, "Cascadia Code", monospace',
         fontSize: 13,
