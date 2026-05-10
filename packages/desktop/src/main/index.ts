@@ -5,6 +5,7 @@ import type { ChildProcess } from "node:child_process";
 
 import { spawnGraphQLServer } from "./server.js";
 import { buildAppMenu } from "./menu.js";
+import { registerPtyIpc, killAllPtys } from "./pty.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +53,7 @@ async function resolveEndpoint(): Promise<string> {
 }
 
 function createWindow(endpoint: string): void {
+  const cwd = repoCwdFromArgs();
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -61,7 +63,10 @@ function createWindow(endpoint: string): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      additionalArguments: [`--opentui-endpoint=${endpoint}`],
+      additionalArguments: [
+        `--opentui-endpoint=${endpoint}`,
+        `--opentui-cwd=${cwd}`,
+      ],
     },
   });
 
@@ -96,6 +101,7 @@ app.whenReady().then(async () => {
   }
 
   Menu.setApplicationMenu(buildAppMenu());
+  registerPtyIpc();
   createWindow(endpoint);
 
   app.on("activate", () => {
@@ -108,6 +114,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  killAllPtys();
   const child = serverChild;
   if (!child || child.killed) return;
   child.kill("SIGTERM");

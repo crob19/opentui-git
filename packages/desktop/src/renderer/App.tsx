@@ -1,14 +1,17 @@
 import { useQuery } from "@apollo/client/react/index.js";
+import { useState } from "react";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { DiffViewer } from "./components/DiffViewer.js";
 import { RemoteToolbar } from "./components/RemoteToolbar.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
+import { TerminalPanel } from "./components/TerminalPanel.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function App() {
   const repo = useQuery(RepoInfoDocument);
   const status = useQuery(StatusDocument, { pollInterval: 2000 });
+  const [terminalOpen, setTerminalOpen] = useState(false);
 
   const files = status.data?.status?.files ?? [];
   const staged = files.filter((f) => f.staged);
@@ -24,22 +27,24 @@ export function App() {
       </aside>
 
       <main className="col-start-2 row-start-1 flex flex-col min-h-0 overflow-hidden">
-        <RemoteToolbar />
-        {status.loading && !status.data && (
-          <div className="p-6 text-muted-foreground">Loading…</div>
-        )}
-        {status.error && (
-          <ScrollArea className="flex-1">
-            <pre className="p-4 text-destructive whitespace-pre-wrap font-mono text-sm">
-              {String(status.error.message)}
-            </pre>
-          </ScrollArea>
-        )}
-        {status.data?.status && (
-          <>
-            <DiffViewer />
-          </>
-        )}
+        <RemoteToolbar
+          terminalOpen={terminalOpen}
+          onToggleTerminal={() => setTerminalOpen((v) => !v)}
+        />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {status.loading && !status.data && (
+            <div className="p-6 text-muted-foreground">Loading…</div>
+          )}
+          {status.error && (
+            <ScrollArea className="flex-1">
+              <pre className="p-4 text-destructive whitespace-pre-wrap font-mono text-sm">
+                {String(status.error.message)}
+              </pre>
+            </ScrollArea>
+          )}
+          {status.data?.status && <DiffViewer />}
+        </div>
+        <TerminalPanel visible={terminalOpen} />
       </main>
 
       <div className="col-span-2 row-start-2">
