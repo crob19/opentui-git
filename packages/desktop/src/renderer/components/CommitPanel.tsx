@@ -52,23 +52,6 @@ export function CommitPanel({ stagedCount, stagedPaths }: Props) {
         </span>
       </div>
 
-      {stagedCount > 0 && (
-        <ScrollArea className="max-h-24 rounded border border-border bg-background/50 px-2 py-1">
-          <ul className="text-xs text-muted-foreground font-mono">
-            {stagedPaths.slice(0, 8).map((p) => (
-              <li key={p} className="py-0.5 truncate">
-                {p}
-              </li>
-            ))}
-            {stagedPaths.length > 8 && (
-              <li className="py-0.5 text-muted-foreground/60 italic">
-                …and {stagedPaths.length - 8} more
-              </li>
-            )}
-          </ul>
-        </ScrollArea>
-      )}
-
       <Textarea
         placeholder="Commit message"
         value={message}
