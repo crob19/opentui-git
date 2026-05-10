@@ -9,6 +9,7 @@ import { App } from "./App.js";
 import { ErrorBoundary } from "./components/ErrorBoundary.js";
 import { SelectionProvider } from "./state/selection.js";
 import { diffWorkerFactory } from "./lib/diff-worker.js";
+import { ACTIVE_THEME } from "./lib/theme.js";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -31,7 +32,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <TooltipProvider>
           <WorkerPoolContextProvider
             poolOptions={{ workerFactory: diffWorkerFactory }}
-            highlighterOptions={{ theme: "github-dark" }}
+            highlighterOptions={{ theme: ACTIVE_THEME.diff }}
           >
             <SelectionProvider>
               <App />

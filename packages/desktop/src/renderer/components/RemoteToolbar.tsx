@@ -64,7 +64,16 @@ export function RemoteToolbar({
 
   return (
     <>
-      <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-card/40 px-2">
+      <div
+        className="flex h-10 shrink-0 items-center gap-1 hairline-b px-2"
+        style={
+          {
+            background: "var(--toolbar)",
+            backdropFilter: "blur(20px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+          } as React.CSSProperties
+        }
+      >
         <Button
           variant="ghost"
           size="sm"

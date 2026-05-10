@@ -125,8 +125,13 @@ export function TerminalPanel({ visible }: { visible: boolean }) {
   // guard handles that.
   return (
     <div
-      className="border-t border-border bg-[#0b0b0e] h-72"
-      style={{ display: visible ? "block" : "none" }}
+      className="hairline-t h-72"
+      style={{
+        display: visible ? "block" : "none",
+        background: "var(--code)",
+        backdropFilter: "blur(24px) saturate(1.4)",
+        WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+      }}
     >
       <div ref={containerRef} className="h-full w-full p-2" />
     </div>

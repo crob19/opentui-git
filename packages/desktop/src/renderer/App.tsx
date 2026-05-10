@@ -17,8 +17,28 @@ export function App() {
   const staged = files.filter((f) => f.staged);
 
   return (
-    <div className="h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] bg-background text-foreground">
-      <aside className="col-start-1 row-start-1 border-r border-border bg-card/40 flex flex-col min-h-0 overflow-hidden">
+    <div
+      className="h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] text-foreground"
+      style={
+        {
+          background: "var(--window)",
+          backdropFilter:
+            "blur(var(--window-blur)) saturate(var(--window-saturate))",
+          WebkitBackdropFilter:
+            "blur(var(--window-blur)) saturate(var(--window-saturate))",
+        } as React.CSSProperties
+      }
+    >
+      <aside
+        className="col-start-1 row-start-1 hairline-r flex flex-col min-h-0 overflow-hidden"
+        style={
+          {
+            background: "var(--sidebar)",
+            backdropFilter: "blur(20px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
+          } as React.CSSProperties
+        }
+      >
         <RepositorySidebar
           files={files}
           stagedCount={staged.length}
@@ -31,7 +51,10 @@ export function App() {
           terminalOpen={terminalOpen}
           onToggleTerminal={() => setTerminalOpen((v) => !v)}
         />
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
+          style={{ background: "var(--code)" }}
+        >
           {status.loading && !status.data && (
             <div className="p-6 text-muted-foreground">Loading…</div>
           )}
