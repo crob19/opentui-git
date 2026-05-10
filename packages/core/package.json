@@ -6,7 +6,6 @@
   "main": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./git": "./src/git/index.ts",
     "./git/types": "./src/git/types.ts",
     "./shared": "./src/shared/index.ts",
     "./shared/file-tree": "./src/shared/file-tree.ts",

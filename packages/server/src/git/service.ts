@@ -10,9 +10,9 @@ import type {
   GitStatusSummary,
   GitBranchInfo,
   GitCommitInfo,
-} from "./types.js";
-import { STATUS_COLORS, GitStatus } from "./types.js";
-import { logger } from "../tui/utils/logger.js";
+} from "opentui-git/git/types";
+import { STATUS_COLORS, GitStatus } from "opentui-git/git/types";
+import { logger } from "../infra/logger.js";
 import { promises as fs } from "fs";
 import path from "path";
 
