@@ -27,13 +27,7 @@ export function StatusBar({
   return (
     <footer
       className="flex items-center gap-2 px-3 py-1.5 hairline-t text-xs text-muted-foreground font-mono"
-      style={
-        {
-          background: "var(--titlebar)",
-          backdropFilter: "blur(20px) saturate(1.4)",
-          WebkitBackdropFilter: "blur(20px) saturate(1.4)",
-        } as React.CSSProperties
-      }
+      style={{ background: "var(--titlebar)" }}
     >
       <span className="text-foreground font-semibold" title={repoRoot ?? ""}>
         {repoLabel}

@@ -57,13 +57,6 @@ function createWindow(endpoint: string): void {
     width: 1280,
     height: 800,
     show: false,
-    backgroundColor: "#00000000",
-    ...(process.platform === "darwin"
-      ? {
-          vibrancy: "under-window" as const,
-          visualEffectState: "active" as const,
-        }
-      : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),
       sandbox: false,

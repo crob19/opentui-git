@@ -19,25 +19,11 @@ export function App() {
   return (
     <div
       className="h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] text-foreground"
-      style={
-        {
-          background: "var(--window)",
-          backdropFilter:
-            "blur(var(--window-blur)) saturate(var(--window-saturate))",
-          WebkitBackdropFilter:
-            "blur(var(--window-blur)) saturate(var(--window-saturate))",
-        } as React.CSSProperties
-      }
+      style={{ background: "var(--window)" }}
     >
       <aside
         className="col-start-1 row-start-1 hairline-r flex flex-col min-h-0 overflow-hidden"
-        style={
-          {
-            background: "var(--sidebar)",
-            backdropFilter: "blur(20px) saturate(1.4)",
-            WebkitBackdropFilter: "blur(20px) saturate(1.4)",
-          } as React.CSSProperties
-        }
+        style={{ background: "var(--sidebar)" }}
       >
         <RepositorySidebar
           files={files}
