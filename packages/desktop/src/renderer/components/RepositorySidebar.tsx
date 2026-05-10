@@ -8,13 +8,16 @@ import {
 import { FileTree } from "./FileTree.js";
 import { BranchList } from "./BranchList.js";
 import { TagList } from "./TagList.js";
+import { CommitPanel } from "./CommitPanel.js";
 import type { GitFileStatus } from "opentui-git/git/types";
 
 type Props = {
   files: GitFileStatus[];
+  stagedCount: number;
+  stagedPaths: string[];
 };
 
-export function RepositorySidebar({ files }: Props) {
+export function RepositorySidebar({ files, stagedCount, stagedPaths }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
@@ -25,6 +28,9 @@ export function RepositorySidebar({ files }: Props) {
       </SidebarSection>
       <SidebarSection title="Tags" defaultOpen={false} className="min-h-[120px]">
         <TagList />
+      </SidebarSection>
+      <SidebarSection title="Commit" defaultOpen className="min-h-[220px]">
+        <CommitPanel stagedCount={stagedCount} stagedPaths={stagedPaths} />
       </SidebarSection>
     </div>
   );
