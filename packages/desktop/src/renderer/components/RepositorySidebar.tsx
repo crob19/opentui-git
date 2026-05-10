@@ -6,6 +6,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { FileTree } from "./FileTree.js";
+import { RepoTree } from "./RepoTree.js";
 import { BranchList } from "./BranchList.js";
 import { TagList } from "./TagList.js";
 import { CommitPanel } from "./CommitPanel.js";
@@ -25,6 +26,9 @@ export function RepositorySidebar({ files, stagedCount }: Props) {
     <div className="flex h-full min-h-0 flex-col">
       <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
         <FileTree files={files} />
+      </SidebarSection>
+      <SidebarSection title="Files" defaultOpen className="flex-[2_1_260px]">
+        <RepoTree />
       </SidebarSection>
       <SidebarSection
         title="Branches"
@@ -72,7 +76,7 @@ function SidebarSection({
     <Collapsible
       open={open}
       onOpenChange={handleOpenChange}
-      className={`flex min-h-0 flex-col border-b border-border ${open ? className ?? "flex-1" : "shrink-0"}`}
+      className={`flex min-h-0 flex-col border-b border-border ${open ? (className ?? "flex-1") : "shrink-0"}`}
     >
       <CollapsibleTrigger className="flex h-8 shrink-0 items-center gap-1.5 px-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground hover:bg-accent/40">
         {open ? (
