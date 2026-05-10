@@ -5,8 +5,11 @@ import {
   type Setter,
   type Resource,
 } from "solid-js";
-import { type ApolloClient, BranchesDocument } from "@opentui-git/client";
-import type { GitBranchInfo } from "../../git/types.js";
+import {
+  type ApolloClient,
+  BranchesDocument,
+  type Branches as GitBranchInfo,
+} from "@opentui-git/client";
 import { logger } from "../utils/logger.js";
 import { runQuery } from "../data/operations.js";
 

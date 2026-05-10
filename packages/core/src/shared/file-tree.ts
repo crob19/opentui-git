@@ -1,5 +1,6 @@
-import type { GitFileStatus, FileTreeNode } from "../git/types.js";
-import { STATUS_COLORS } from "../git/types.js";
+import type { FileTreeNode } from "../git/types.js";
+import type { FileStatus as GitFileStatus } from "@opentui-git/client";
+import { STATUS_COLORS } from "./status-colors.js";
 
 /**
  * Priority order for status colors (higher index = higher priority)

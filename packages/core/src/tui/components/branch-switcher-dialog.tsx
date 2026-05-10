@@ -1,7 +1,7 @@
 import { createSignal, For, Show } from "solid-js";
 import { useKeyboard } from "@opentui/solid";
 import { useDialog } from "./dialog.js";
-import type { GitBranchInfo } from "../../git/types.js";
+import type { Branches as GitBranchInfo } from "@opentui-git/client";
 
 /**
  * BranchSwitcherDialog - Modal dialog for switching branches
@@ -58,9 +58,7 @@ export function BranchSwitcherDialog(props: BranchSwitcherDialogProps) {
 
   return (
     <box flexDirection="column" gap={1}>
-      <text fg="#00AAFF">
-        Switch Branch
-      </text>
+      <text fg="#00AAFF">Switch Branch</text>
 
       <box flexDirection="column" gap={0} maxHeight={15} overflow="hidden">
         <For each={branchList()}>
@@ -77,10 +75,18 @@ export function BranchSwitcherDialog(props: BranchSwitcherDialogProps) {
                 paddingLeft={1}
                 paddingRight={1}
               >
-                <text fg={isCurrent ? "#44FF44" : isSelected() ? "#FFFFFF" : "#AAAAAA"}>
+                <text
+                  fg={
+                    isCurrent ? "#44FF44" : isSelected() ? "#FFFFFF" : "#AAAAAA"
+                  }
+                >
                   {isCurrent ? "* " : "  "}
                 </text>
-                <text fg={isCurrent ? "#44FF44" : isSelected() ? "#FFFFFF" : "#AAAAAA"}>
+                <text
+                  fg={
+                    isCurrent ? "#44FF44" : isSelected() ? "#FFFFFF" : "#AAAAAA"
+                  }
+                >
                   {branch}
                 </text>
                 <Show when={isCurrent}>

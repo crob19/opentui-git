@@ -18,7 +18,6 @@
     "@graphql-tools/schema": "^10.0.7",
     "graphql": "^16.9.0",
     "graphql-tag": "^2.12.6",
-    "opentui-git": "workspace:*",
     "simple-git": "^3.30.0"
   },
   "devDependencies": {
