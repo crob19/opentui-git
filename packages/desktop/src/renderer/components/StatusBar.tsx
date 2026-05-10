@@ -1,6 +1,7 @@
 import { GitBranch, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RemoteActions } from "./RemoteActions.js";
+import { ThemePicker } from "./ThemePicker.js";
 
 type Props = {
   repoRoot: string | null | undefined;
@@ -60,6 +61,8 @@ export function StatusBar({
       <RemoteActions ahead={ahead} behind={behind} />
 
       <span className="flex-1" />
+
+      <ThemePicker />
 
       <button
         type="button"
