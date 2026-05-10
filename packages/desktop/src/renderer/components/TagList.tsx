@@ -25,10 +25,18 @@ const REFETCH = [
   { query: StatusDocument },
 ];
 
-export function TagList() {
-  const { data, loading, error } = useQuery(TagsDocument, {
-    pollInterval: 10000,
-  });
+type Props = {
+  refreshSignal?: number;
+};
+
+export function TagList({ refreshSignal = 0 }: Props) {
+  const { data, loading, error, refetch } = useQuery(TagsDocument);
+
+  useEffect(() => {
+    if (refreshSignal === 0) return;
+    void refetch();
+  }, [refreshSignal, refetch]);
+
   const tags = [...(data?.tags ?? [])].sort((a, b) => a.localeCompare(b));
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 

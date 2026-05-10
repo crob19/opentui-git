@@ -38,11 +38,19 @@ type Branch = BranchesQuery["branches"]["branches"][number];
 
 const REFETCH = [{ query: BranchesDocument }, { query: StatusDocument }];
 
-export function BranchList() {
+type Props = {
+  refreshSignal?: number;
+};
+
+export function BranchList({ refreshSignal = 0 }: Props) {
   const { resetSelection } = useSelection();
-  const { data, loading, error } = useQuery(BranchesDocument, {
-    pollInterval: 5000,
-  });
+  const { data, loading, error, refetch } = useQuery(BranchesDocument);
+
+  useEffect(() => {
+    if (refreshSignal === 0) return;
+    void refetch();
+  }, [refreshSignal, refetch]);
+
   const branches = useMemo(
     () =>
       [...(data?.branches.branches ?? [])].sort((a, b) => {

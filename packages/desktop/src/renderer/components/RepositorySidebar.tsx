@@ -18,16 +18,29 @@ type Props = {
 };
 
 export function RepositorySidebar({ files, stagedCount, stagedPaths }: Props) {
+  const [branchRefreshSignal, setBranchRefreshSignal] = useState(0);
+  const [tagRefreshSignal, setTagRefreshSignal] = useState(0);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
         <FileTree files={files} />
       </SidebarSection>
-      <SidebarSection title="Branches" defaultOpen className="min-h-[180px]">
-        <BranchList />
+      <SidebarSection
+        title="Branches"
+        defaultOpen
+        className="min-h-[180px]"
+        onOpen={() => setBranchRefreshSignal((value) => value + 1)}
+      >
+        <BranchList refreshSignal={branchRefreshSignal} />
       </SidebarSection>
-      <SidebarSection title="Tags" defaultOpen={false} className="min-h-[120px]">
-        <TagList />
+      <SidebarSection
+        title="Tags"
+        defaultOpen={false}
+        className="min-h-[120px]"
+        onOpen={() => setTagRefreshSignal((value) => value + 1)}
+      >
+        <TagList refreshSignal={tagRefreshSignal} />
       </SidebarSection>
       <SidebarSection title="Commit" defaultOpen className="min-h-[220px]">
         <CommitPanel stagedCount={stagedCount} stagedPaths={stagedPaths} />
@@ -40,19 +53,25 @@ function SidebarSection({
   title,
   defaultOpen,
   className,
+  onOpen,
   children,
 }: {
   title: string;
   defaultOpen?: boolean;
   className?: string;
+  onOpen?: () => void;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) onOpen?.();
+  };
 
   return (
     <Collapsible
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       className={`flex min-h-0 flex-col border-b border-border ${open ? className ?? "flex-1" : "shrink-0"}`}
     >
       <CollapsibleTrigger className="flex h-8 shrink-0 items-center gap-1.5 px-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground hover:bg-accent/40">
