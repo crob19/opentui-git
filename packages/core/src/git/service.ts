@@ -564,7 +564,7 @@ export class GitService {
    * @returns Promise<void>
    */
   async fetch(): Promise<void> {
-    await this.git.fetch();
+    await this.git.fetch(["--prune"]);
   }
 
   /**
