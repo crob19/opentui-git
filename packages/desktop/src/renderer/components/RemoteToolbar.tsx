@@ -1,7 +1,4 @@
-import {
-  useApolloClient,
-  useMutation,
-} from "@apollo/client/react/index.js";
+import { useApolloClient, useMutation } from "@apollo/client/react/index.js";
 import { useState } from "react";
 import {
   BranchesDocument,
@@ -12,18 +9,26 @@ import {
   StatusDocument,
   TagsDocument,
 } from "@opentui-git/client";
-import { AlertTriangle, Download, RefreshCw, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  Download,
+  RefreshCw,
+  Terminal as TerminalIcon,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 
-const REFETCH = [
-  StatusDocument,
-  BranchesDocument,
-  TagsDocument,
-];
+const REFETCH = [StatusDocument, BranchesDocument, TagsDocument];
 
-export function RemoteToolbar() {
+export function RemoteToolbar({
+  terminalOpen,
+  onToggleTerminal,
+}: {
+  terminalOpen: boolean;
+  onToggleTerminal: () => void;
+}) {
   const client = useApolloClient();
   const [isForcePushOpen, setIsForcePushOpen] = useState(false);
   const [pull, pullState] = useMutation(PullDocument);
@@ -96,6 +101,15 @@ export function RemoteToolbar() {
           <AlertTriangle />
           Force push
         </Button>
+        <div className="ml-auto" />
+        <Button
+          variant={terminalOpen ? "secondary" : "ghost"}
+          size="sm"
+          onClick={onToggleTerminal}
+        >
+          <TerminalIcon />
+          Terminal
+        </Button>
       </div>
       <ConfirmDialog
         open={isForcePushOpen}
@@ -106,11 +120,7 @@ export function RemoteToolbar() {
         loading={forcePushState.loading}
         onOpenChange={setIsForcePushOpen}
         onConfirm={async () => {
-          await run(
-            "Force push",
-            () => forcePush(),
-            "Force pushed with lease",
-          );
+          await run("Force push", () => forcePush(), "Force pushed with lease");
           setIsForcePushOpen(false);
         }}
       />

@@ -5,6 +5,7 @@ import type { ChildProcess } from "node:child_process";
 
 import { spawnGraphQLServer } from "./server.js";
 import { buildAppMenu } from "./menu.js";
+import { registerPtyIpc, killAllPtys } from "./pty.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -96,6 +97,7 @@ app.whenReady().then(async () => {
   }
 
   Menu.setApplicationMenu(buildAppMenu());
+  registerPtyIpc(repoCwdFromArgs());
   createWindow(endpoint);
 
   app.on("activate", () => {
@@ -108,6 +110,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  killAllPtys();
   const child = serverChild;
   if (!child || child.killed) return;
   child.kill("SIGTERM");
