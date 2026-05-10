@@ -45,7 +45,7 @@ First usable version of the desktop app.
 
 ### Commit
 
-- [x] Commit panel below file list: message textarea + Commit button
+- [x] Commit panel in sidebar footer: message textarea + Commit button
 - [x] Show staged-files preview in commit panel
 - [x] Cmd+Enter to commit
 - [x] Validate non-empty message; disable button when invalid
@@ -61,22 +61,22 @@ First usable version of the desktop app.
 
 ## Phase 2 — Branches, tags, remote
 
-- [ ] Branch list in sidebar with current marker, ahead/behind
-- [ ] Double-click branch → checkout
-- [ ] Branch context menu: checkout, create from, rename, delete, merge into current
-- [ ] "New branch" button in sidebar
-- [ ] Tags section in sidebar
-- [ ] Create tag dialog
-- [ ] Push tag action
-- [ ] Toolbar: Pull, Push, Fetch buttons (with spinner state)
-- [ ] Confirm dialog for delete branch / force push
+- [x] Branch list in sidebar with current marker, ahead/behind
+- [x] Double-click branch → checkout
+- [x] Branch context menu: checkout, create from, rename, delete, merge into current
+- [x] "New branch" button in sidebar
+- [x] Tags section in sidebar
+- [x] Create tag dialog
+- [x] Push tag action
+- [x] Toolbar: Pull, Push, Fetch buttons (with spinner state)
+- [x] Confirm dialog for delete branch / force push
 
 ## Phase 3 — Diff viewer + edit mode
 
-- [ ] Diff pane in main area (right of file list, or full-width when file selected)
-- [ ] Reuse `shared/diff-parser` + `shared/syntax-highlighting`
+- [x] Diff pane in main area
+- [ ] Reuse `shared/diff-parser` + `shared/syntax-highlighting` or standardize on `@pierre/diffs`
 - [ ] Unified ↔ side-by-side toggle (segmented control)
-- [ ] Mode picker dropdown: Working tree / Staged / Branch compare
+- [x] Mode picker: Unstaged / Staged / Branch compare
 - [ ] Per-hunk stage/unstage buttons (desktop-native upgrade vs TUI)
 - [ ] Per-line stage/unstage
 - [ ] Inline editor (Monaco or CodeMirror — decide bundle-size tradeoff)
@@ -86,7 +86,8 @@ First usable version of the desktop app.
 
 - [ ] Help/shortcuts overlay (Cmd+/)
 - [ ] Virtualized file + branch lists
-- [ ] Folder tree expand/collapse (persisted)
+- [x] Folder tree expand/collapse
+- [ ] Persist folder tree expand/collapse state
 - [ ] Recent-repos picker on launch
 - [ ] Settings window (theme, default remote, editor binary)
 - [ ] Native notifications for long ops (push/pull complete)
@@ -104,5 +105,5 @@ First usable version of the desktop app.
 ## Open decisions
 
 - **Editor:** Monaco vs CodeMirror — Monaco bundles ~5MB, CodeMirror ~1MB. Decide before Phase 3.
-- **Live updates:** keep 2s polling or move to GraphQL subscriptions / fs.watch. Polling will feel sluggish for staging — likely revisit during Phase 1.
+- **Live updates:** status still polls every 2s; branches/tags refresh after explicit operations or when their sidebar sections are opened. Longer term, move repo state sync to server-side watchers plus GraphQL subscriptions or SSE.
 - **Modal lib:** Radix vs in-house. Lean Radix unless bundle pressure says otherwise.

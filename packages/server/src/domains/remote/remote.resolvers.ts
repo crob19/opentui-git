@@ -10,5 +10,13 @@ export const remoteResolvers: Resolvers = {
       await git.push();
       return { success: true };
     },
+    forcePush: async (_p, _a, { git }) => {
+      await git.forcePush();
+      return { success: true };
+    },
+    fetch: async (_p, _a, { git }) => {
+      await git.fetch();
+      return { success: true };
+    },
   },
 };

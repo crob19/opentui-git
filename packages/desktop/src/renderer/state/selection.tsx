@@ -8,6 +8,7 @@ type SelectionState = {
   setMode: (mode: FileTreeMode) => void;
   selected: string | null;
   setSelected: (path: string | null) => void;
+  resetSelection: () => void;
 };
 
 const SelectionContext = createContext<SelectionState | null>(null);
@@ -25,6 +26,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
       },
       selected,
       setSelected,
+      resetSelection: () => setSelected(null),
     }),
     [mode, selected],
   );

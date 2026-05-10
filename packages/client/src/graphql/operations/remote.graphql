@@ -9,3 +9,15 @@ mutation Push {
     success
   }
 }
+
+mutation ForcePush {
+  forcePush {
+    success
+  }
+}
+
+mutation Fetch {
+  fetch {
+    success
+  }
+}

@@ -5,7 +5,7 @@ import { PullDocument, PushDocument } from "@opentui-git/client";
 
 /**
  * Pull changes from remote repository
- * Shows loading toast, executes pull, shows success/error toast, and refreshes status
+ * Shows loading toast, executes pull, shows success/error toast, and refreshes status/branches
  * @param context - Command context with git service, toast, and refetch
  */
 export async function pull(context: RemoteCommandContext): Promise<void> {
@@ -25,12 +25,13 @@ export async function pull(context: RemoteCommandContext): Promise<void> {
     console.log("Pull successful");
     context.toast.success("Pull successful");
     await context.refetch();
+    await context.refetchBranches();
   }
 }
 
 /**
  * Push changes to remote repository
- * Shows loading toast, executes push, shows success/error toast, and refreshes status
+ * Shows loading toast, executes push, shows success/error toast, and refreshes status/branches
  * @param context - Command context with git service, toast, and refetch
  */
 export async function push(context: RemoteCommandContext): Promise<void> {
@@ -50,5 +51,6 @@ export async function push(context: RemoteCommandContext): Promise<void> {
     console.log("Push successful");
     context.toast.success("Push successful");
     await context.refetch();
+    await context.refetchBranches();
   }
 }

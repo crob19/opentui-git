@@ -45,11 +45,8 @@ export function CommitPanel({ stagedCount, stagedPaths }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-2 p-3 border-t border-border bg-card/50">
-      <div className="flex items-baseline justify-between">
-        <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
-          Commit
-        </span>
+    <div className="flex flex-col gap-2 p-3 bg-card/50">
+      <div className="flex items-baseline justify-end">
         <span className="text-[11px] text-muted-foreground/70">
           {stagedCount} file{stagedCount === 1 ? "" : "s"} staged
         </span>

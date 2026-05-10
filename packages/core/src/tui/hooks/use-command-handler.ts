@@ -236,6 +236,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
         dialog,
         setErrorMessage: gitStatus.setErrorMessage,
         refetch: gitStatus.refetch,
+        refetchBranches: gitBranches.refetchBranches,
       };
 
       if (shift) {
@@ -248,7 +249,14 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
 
     // Toggle between panels with Tab
     if (key === "tab") {
+      const nextPanel = activePanel() === "files" ? "branches" : "files";
       navCommands.switchPanel(activePanel, setActivePanel);
+      if (nextPanel === "branches") {
+        await Promise.all([
+          gitBranches.refetchBranches(),
+          gitTags.refetchTags(),
+        ]);
+      }
       return;
     }
 
@@ -311,6 +319,7 @@ export function useCommandHandler(options: UseCommandHandlerOptions): void {
           dialog,
           setErrorMessage: gitStatus.setErrorMessage,
           refetch: gitStatus.refetch,
+          refetchBranches: gitBranches.refetchBranches,
           refetchTags: gitTags.refetchTags,
           setActivePanel,
           diffMode,
@@ -836,6 +845,7 @@ async function handleFilePanelKeys(
     dialog: DialogContext;
     setErrorMessage: (msg: string | null) => void;
     refetch: () => Promise<unknown>;
+    refetchBranches: () => Promise<unknown>;
     refetchTags: () => Promise<unknown>;
     setActivePanel: Setter<PanelType>;
     diffMode: Accessor<DiffMode>;
@@ -893,7 +903,6 @@ async function handleFilePanelKeys(
   if (key === "n") {
     branchCommands.showNewBranchDialog(currentBranch, false, {
       ...context,
-      refetchBranches: async () => {}, // Not needed in file panel context
     });
     return;
   }

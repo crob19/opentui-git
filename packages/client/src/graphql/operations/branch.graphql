@@ -7,6 +7,8 @@ query Branches {
       commit
       label
       current
+      ahead
+      behind
     }
   }
 }
@@ -15,8 +17,8 @@ query DefaultBranch {
   defaultBranch
 }
 
-mutation CreateBranch($name: String!) {
-  createBranch(name: $name) {
+mutation CreateBranch($name: String!, $source: String) {
+  createBranch(name: $name, source: $source) {
     success
     branch
   }
@@ -24,6 +26,13 @@ mutation CreateBranch($name: String!) {
 
 mutation CheckoutBranch($name: String!) {
   checkoutBranch(name: $name) {
+    success
+    branch
+  }
+}
+
+mutation RenameBranch($oldName: String!, $newName: String!) {
+  renameBranch(oldName: $oldName, newName: $newName) {
     success
     branch
   }

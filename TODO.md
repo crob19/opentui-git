@@ -4,38 +4,12 @@ This document tracks upcoming features and improvements for opentui-git.
 
 ## High Priority
 
-### Commit Functionality
-- [ ] Commit dialog/modal that appears when pressing 'c'
-- [ ] Multi-line commit message input
-- [ ] Validate commit message (non-empty)
-- [ ] Show staged files in commit preview
-- [ ] Amend last commit option
-
-### Branch Operations
-- [ ] Branch switching dialog (press 'b')
-- [ ] List all local branches
-- [ ] List remote branches
-- [ ] Create new branch
-- [ ] Delete branch (with confirmation)
-- [ ] Rename branch
-- [ ] Show branch tracking information
-
-### Diff Viewer
-- [ ] View diff of selected file (press 'd')
-- [ ] Syntax highlighting for diffs
-- [ ] Side-by-side diff view option
-- [ ] Navigate between hunks
-- [ ] Stage/unstage individual hunks
-- [ ] Scroll through large diffs
-
-### Remote Operations
-- [ ] Pull from remote (press 'p')
-- [ ] Push to remote (press 'P')
-- [ ] Show pull/push progress
-- [ ] Fetch from remote
-- [ ] Handle merge conflicts during pull
-- [ ] Push with force option
-- [ ] Set upstream branch
+### Git State Sync
+- [ ] Add server-side repository watchers for `.git/HEAD`, `.git/index`, `.git/refs/**`, `.git/packed-refs`, and working tree changes
+- [ ] Debounce watcher events and map them to targeted invalidations: status, current branch, branches, tags, and diff
+- [ ] Add GraphQL subscriptions or SSE for repo state changes so clients can refetch only stale slices
+- [ ] Keep remote updates explicit or low-frequency; remote branches should update after `git fetch`/pull, not by constant branch polling
+- [ ] Add a manual refresh command as a fallback for missed watcher events or unusual Git operations
 
 ## Medium Priority
 
@@ -69,7 +43,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Custom key bindings
 - [ ] Resizable panels
 - [ ] Search/filter files
-- [ ] Show more git status info (ahead/behind details)
 
 ## Low Priority
 
@@ -78,7 +51,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Cherry-pick commits
 - [ ] Reset (soft/mixed/hard)
 - [ ] Revert commits
-- [ ] Tag management
 - [ ] Submodule support
 
 ### Configuration
@@ -100,7 +72,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Command palette
 - [ ] Undo last git operation
 - [ ] Copy file path to clipboard
-- [ ] Status bar with more info
 - [ ] Loading spinners
 - [ ] Better error messages with suggestions
 
@@ -123,26 +94,6 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] GPG commit signing
 - [ ] Bisect support
 - [ ] Worktree management
-
-## Bugs & Issues
-
-- [ ] Test on Windows
-- [ ] Test on Linux
-- [ ] Handle very large files
-- [ ] Handle binary files gracefully
-- [ ] Test with various terminal emulators
-- [ ] Memory leak testing
-- [ ] Performance testing with large repos
-
-## Documentation
-
-- [ ] API documentation
-- [ ] Contributing guide
-- [ ] Architecture documentation
-- [ ] Video demo/tutorial
-- [ ] Screenshot gallery
-- [ ] Comparison with lazygit
-- [ ] Performance benchmarks
 
 ---
 

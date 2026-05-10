@@ -1,6 +1,8 @@
 import { FieldPolicy, FieldReadFunction, TypePolicies, TypePolicy } from '@apollo/client/cache';
-export type BranchDetailKeySpecifier = ('commit' | 'current' | 'label' | 'name' | BranchDetailKeySpecifier)[];
+export type BranchDetailKeySpecifier = ('ahead' | 'behind' | 'commit' | 'current' | 'label' | 'name' | BranchDetailKeySpecifier)[];
 export type BranchDetailFieldPolicy = {
+	ahead?: FieldPolicy<any> | FieldReadFunction<any>,
+	behind?: FieldPolicy<any> | FieldReadFunction<any>,
 	commit?: FieldPolicy<any> | FieldReadFunction<any>,
 	current?: FieldPolicy<any> | FieldReadFunction<any>,
 	label?: FieldPolicy<any> | FieldReadFunction<any>,
@@ -58,17 +60,20 @@ export type MergeOutcomeFieldPolicy = {
 	result?: FieldPolicy<any> | FieldReadFunction<any>,
 	success?: FieldPolicy<any> | FieldReadFunction<any>
 };
-export type MutationKeySpecifier = ('checkoutBranch' | 'commit' | 'createBranch' | 'createTag' | 'deleteBranch' | 'mergeBranch' | 'pull' | 'push' | 'pushTag' | 'stageAll' | 'stageFile' | 'stageFiles' | 'unstageAll' | 'unstageFile' | 'unstageFiles' | 'writeFile' | MutationKeySpecifier)[];
+export type MutationKeySpecifier = ('checkoutBranch' | 'commit' | 'createBranch' | 'createTag' | 'deleteBranch' | 'fetch' | 'forcePush' | 'mergeBranch' | 'pull' | 'push' | 'pushTag' | 'renameBranch' | 'stageAll' | 'stageFile' | 'stageFiles' | 'unstageAll' | 'unstageFile' | 'unstageFiles' | 'writeFile' | MutationKeySpecifier)[];
 export type MutationFieldPolicy = {
 	checkoutBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	commit?: FieldPolicy<any> | FieldReadFunction<any>,
 	createBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	createTag?: FieldPolicy<any> | FieldReadFunction<any>,
 	deleteBranch?: FieldPolicy<any> | FieldReadFunction<any>,
+	fetch?: FieldPolicy<any> | FieldReadFunction<any>,
+	forcePush?: FieldPolicy<any> | FieldReadFunction<any>,
 	mergeBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	pull?: FieldPolicy<any> | FieldReadFunction<any>,
 	push?: FieldPolicy<any> | FieldReadFunction<any>,
 	pushTag?: FieldPolicy<any> | FieldReadFunction<any>,
+	renameBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	stageAll?: FieldPolicy<any> | FieldReadFunction<any>,
 	stageFile?: FieldPolicy<any> | FieldReadFunction<any>,
 	stageFiles?: FieldPolicy<any> | FieldReadFunction<any>,

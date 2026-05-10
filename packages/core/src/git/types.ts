@@ -48,6 +48,8 @@ export interface GitBranchInfo {
     name: string;
     commit: string;
     label: string;
+    ahead: number;
+    behind: number;
   }>;
 }
 

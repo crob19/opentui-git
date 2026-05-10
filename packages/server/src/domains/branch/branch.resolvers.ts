@@ -6,13 +6,17 @@ export const branchResolvers: Resolvers = {
     defaultBranch: (_p, _a, { git }) => git.getDefaultBranch(),
   },
   Mutation: {
-    createBranch: async (_p, { name }, { git }) => {
-      await git.createBranch(name);
+    createBranch: async (_p, { name, source }, { git }) => {
+      await git.createBranch(name, source ?? null);
       return { success: true, branch: name };
     },
     checkoutBranch: async (_p, { name }, { git }) => {
       await git.checkoutBranch(name);
       return { success: true, branch: name };
+    },
+    renameBranch: async (_p, { oldName, newName }, { git }) => {
+      await git.renameBranch(oldName, newName);
+      return { success: true, branch: newName };
     },
     deleteBranch: async (_p, { name, force }, { git }) => {
       await git.deleteBranch(name, force ?? false);
