@@ -230,6 +230,7 @@ export type RemoteResult = {
 export type RepoInfo = {
   __typename?: 'RepoInfo';
   isRepo: Scalars['Boolean']['output'];
+  remoteUrl?: Maybe<Scalars['String']['output']>;
   repoRoot?: Maybe<Scalars['String']['output']>;
 };
 
@@ -483,6 +484,7 @@ export type RemoteResultResolvers<ContextType = Context, ParentType extends Reso
 
 export type RepoInfoResolvers<ContextType = Context, ParentType extends ResolversParentTypes['RepoInfo'] = ResolversParentTypes['RepoInfo']> = ResolversObject<{
   isRepo?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  remoteUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   repoRoot?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

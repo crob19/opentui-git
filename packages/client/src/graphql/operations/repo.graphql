@@ -2,6 +2,7 @@ query RepoInfo {
   repoInfo {
     isRepo
     repoRoot
+    remoteUrl
   }
 }
 

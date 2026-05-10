@@ -661,6 +661,20 @@ export class GitService {
   }
 
   /**
+   * Get the configured remote URL.
+   * @param remote - Remote name to inspect (defaults to "origin")
+   * @returns Promise<string | null> - Remote URL, or null when the remote is missing
+   */
+  async getRemoteUrl(remote: string = "origin"): Promise<string | null> {
+    try {
+      const result = await this.git.raw(["remote", "get-url", remote]);
+      return result.trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Create a lightweight tag at HEAD
    * @param tagName - Name of the tag to create
    */

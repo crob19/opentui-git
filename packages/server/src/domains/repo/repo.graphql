@@ -1,6 +1,7 @@
 type RepoInfo {
   isRepo: Boolean!
   repoRoot: String
+  remoteUrl: String
 }
 
 type FileStatus {
