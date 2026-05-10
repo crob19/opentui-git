@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Terminal, FitAddon, Ghostty } from "ghostty-web";
+import { Terminal, FitAddon } from "ghostty-web";
+import { loadGhostty } from "@/lib/ghostty";
 
 let sessionCounter = 0;
 
@@ -20,7 +21,7 @@ export function TerminalPanel({ visible }: { visible: boolean }) {
     let resizeObs: ResizeObserver | null = null;
 
     (async () => {
-      const ghostty = await Ghostty.load();
+      const ghostty = await loadGhostty();
       if (disposed) return;
 
       term = new Terminal({
