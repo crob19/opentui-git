@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@apollo/client": "^3.11.10",
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
     "@lydell/node-pty": "^1.2.0-beta.12",
     "@opentui-git/client": "workspace:*",
     "@pierre/diffs": "^1.1.20",

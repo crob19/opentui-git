@@ -32,9 +32,6 @@
   "author": "opentui-git",
   "license": "MIT",
   "pnpm": {
-    "overrides": {
-      "solid-js": "1.9.10"
-    },
     "onlyBuiltDependencies": [
       "electron",
       "esbuild",
@@ -44,5 +41,11 @@
   "devDependencies": {
     "tsx": "^4.19.2",
     "typescript": "^5.9.3"
-  }
+  },
+  "overrides": {
+    "solid-js": "1.9.10"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

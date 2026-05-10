@@ -1,6 +1,13 @@
 import { useApolloClient, useMutation } from "@apollo/client/react/index.js";
 import { useState } from "react";
 import {
+  AlertTriangle,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+import {
   BranchesDocument,
   FetchDocument,
   ForcePushDocument,
@@ -9,32 +16,23 @@ import {
   StatusDocument,
   TagsDocument,
 } from "@opentui-git/client";
-import {
-  AlertTriangle,
-  Download,
-  RefreshCw,
-  Terminal as TerminalIcon,
-  Upload,
-} from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 
 const REFETCH = [StatusDocument, BranchesDocument, TagsDocument];
 
-export function RemoteToolbar({
-  terminalOpen,
-  onToggleTerminal,
-}: {
-  terminalOpen: boolean;
-  onToggleTerminal: () => void;
-}) {
+type Props = {
+  ahead: number;
+  behind: number;
+};
+
+export function RemoteActions({ ahead, behind }: Props) {
   const client = useApolloClient();
   const [isForcePushOpen, setIsForcePushOpen] = useState(false);
   const [pull, pullState] = useMutation(PullDocument);
   const [push, pushState] = useMutation(PushDocument);
   const [forcePush, forcePushState] = useMutation(ForcePushDocument);
-  const [fetch, fetchState] = useMutation(FetchDocument);
+  const [runFetch, fetchState] = useMutation(FetchDocument);
 
   const invalidateRepoState = async () => {
     await client.refetchQueries({
@@ -64,53 +62,58 @@ export function RemoteToolbar({
 
   return (
     <>
-      <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-card/40 px-2">
-        <Button
-          variant="ghost"
-          size="sm"
+      <div className="sb-actions">
+        <button
+          type="button"
+          className="sb-btn"
+          title="Fetch from remote"
+          disabled={fetchState.loading}
+          onClick={() => run("Fetch", () => runFetch(), "Fetched from remote")}
+        >
+          <RefreshCw className={fetchState.loading ? "animate-spin" : ""} />
+          <span>Fetch</span>
+        </button>
+        <button
+          type="button"
+          className={cn("sb-btn", behind > 0 && "hot")}
+          title={
+            behind > 0
+              ? `Pull ${behind} commit${behind === 1 ? "" : "s"} from remote`
+              : "Pull from remote"
+          }
           disabled={pullState.loading}
           onClick={() => run("Pull", () => pull(), "Pulled from remote")}
         >
-          <Download />
-          {pullState.loading ? "Pulling..." : "Pull"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
+          <ArrowDownToLine />
+          <span>Pull</span>
+          {behind > 0 && <span className="ct">{behind}</span>}
+        </button>
+        <button
+          type="button"
+          className={cn("sb-btn", ahead > 0 && "hot")}
+          title={
+            ahead > 0
+              ? `Push ${ahead} commit${ahead === 1 ? "" : "s"} to remote`
+              : "Push to remote"
+          }
           disabled={pushState.loading}
           onClick={() => run("Push", () => push(), "Pushed to remote")}
         >
-          <Upload />
-          {pushState.loading ? "Pushing..." : "Push"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={fetchState.loading}
-          onClick={() => run("Fetch", () => fetch(), "Fetched from remote")}
-        >
-          <RefreshCw className={fetchState.loading ? "animate-spin" : ""} />
-          {fetchState.loading ? "Fetching..." : "Fetch"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
+          <ArrowUpToLine />
+          <span>Push</span>
+          {ahead > 0 && <span className="ct">{ahead}</span>}
+        </button>
+        <button
+          type="button"
+          className="sb-btn danger"
+          title="Force push with lease"
           disabled={forcePushState.loading}
           onClick={() => setIsForcePushOpen(true)}
         >
           <AlertTriangle />
-          Force push
-        </Button>
-        <div className="ml-auto" />
-        <Button
-          variant={terminalOpen ? "secondary" : "ghost"}
-          size="sm"
-          onClick={onToggleTerminal}
-        >
-          <TerminalIcon />
-          Terminal
-        </Button>
+        </button>
       </div>
+
       <ConfirmDialog
         open={isForcePushOpen}
         title="Force Push"
