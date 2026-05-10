@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import { DiffDocument, DefaultBranchDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
-import { ACTIVE_THEME } from "../lib/theme.js";
 
 export function DiffViewer() {
   const { mode, selected } = useSelection();
@@ -63,7 +62,7 @@ export function DiffViewer() {
 
   return (
     <div className="flex-1 min-h-0 overflow-auto">
-      <PatchDiff patch={patch} theme={ACTIVE_THEME.diff} />
+      <PatchDiff patch={patch} />
     </div>
   );
 }
