@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
 import {
   BranchesDocument,
@@ -10,7 +10,7 @@ import {
   StatusDocument,
   type BranchesQuery,
 } from "@opentui-git/client";
-import { GitBranch, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, GitBranch, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,12 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useSelection } from "../state/selection.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
@@ -46,9 +52,19 @@ export function BranchList() {
       }),
     [data],
   );
+  const localBranches = useMemo(
+    () => branches.filter((branch) => !isRemoteBranch(branch)),
+    [branches],
+  );
+  const remoteGroups = useMemo(() => groupRemoteBranches(branches), [branches]);
+  const remoteCount = remoteGroups.reduce(
+    (count, group) => count + group.branches.length,
+    0,
+  );
   const currentBranch = data?.branches.current ?? "";
 
   const [newBranchSource, setNewBranchSource] = useState<string | null>(null);
+  const [branchTab, setBranchTab] = useState("local");
   const [isNewBranchOpen, setIsNewBranchOpen] = useState(false);
   const [renameBranch, setRenameBranch] = useState<Branch | null>(null);
   const [mergeBranch, setMergeBranch] = useState<Branch | null>(null);
@@ -99,7 +115,8 @@ export function BranchList() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-border px-2 py-1.5">
         <span className="text-[11px] text-muted-foreground">
-          {branches.length} branch{branches.length === 1 ? "" : "es"}
+          {localBranches.length + remoteCount} branch
+          {localBranches.length + remoteCount === 1 ? "" : "es"}
         </span>
         <Button
           variant="ghost"
@@ -115,39 +132,99 @@ export function BranchList() {
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        {loading && !data ? (
-          <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
-            Loading...
+      {loading && !data ? (
+        <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+          Loading...
+        </div>
+      ) : error ? (
+        <div className="px-3 py-2 text-xs text-destructive">
+          {error.message}
+        </div>
+      ) : branches.length === 0 ? (
+        <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+          No branches
+        </div>
+      ) : (
+        <Tabs
+          value={branchTab}
+          onValueChange={setBranchTab}
+          className="min-h-0 flex-1 gap-0"
+        >
+          <div className="border-b border-border px-2 py-1.5">
+            <TabsList className="grid h-7 w-full grid-cols-2 rounded-md">
+              <TabsTrigger value="local" className="text-[11px]">
+                Local ({localBranches.length})
+              </TabsTrigger>
+              <TabsTrigger value="remote" className="text-[11px]">
+                Remote ({remoteCount})
+              </TabsTrigger>
+            </TabsList>
           </div>
-        ) : error ? (
-          <div className="px-3 py-2 text-xs text-destructive">
-            {error.message}
-          </div>
-        ) : branches.length === 0 ? (
-          <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
-            No branches
-          </div>
-        ) : (
-          <div className="py-1">
-            {branches.map((branch) => (
-              <BranchRow
-                key={branch.name}
-                branch={branch}
-                disabled={checkoutState.loading}
-                onCheckout={() => checkout(branch)}
-                onNewFrom={() => {
-                  setNewBranchSource(branch.name);
-                  setIsNewBranchOpen(true);
-                }}
-                onRename={() => setRenameBranch(branch)}
-                onMerge={() => setMergeBranch(branch)}
-                onDelete={() => setDeleteBranch(branch)}
-              />
-            ))}
-          </div>
-        )}
-      </ScrollArea>
+          <TabsContent value="local" className="min-h-0 flex-1">
+            <ScrollArea className="h-full min-h-0">
+              <BranchGroup title="Local" count={localBranches.length} defaultOpen>
+                {localBranches.length === 0 ? (
+                  <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+                    No local branches
+                  </div>
+                ) : (
+                  localBranches.map((branch) => (
+                    <BranchRow
+                      key={branch.name}
+                      branch={branch}
+                      disabled={checkoutState.loading}
+                      onCheckout={() => checkout(branch)}
+                      onNewFrom={() => {
+                        setNewBranchSource(branch.name);
+                        setIsNewBranchOpen(true);
+                      }}
+                      onRename={() => setRenameBranch(branch)}
+                      onMerge={() => setMergeBranch(branch)}
+                      onDelete={() => setDeleteBranch(branch)}
+                    />
+                  ))
+                )}
+              </BranchGroup>
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="remote" className="min-h-0 flex-1">
+            <ScrollArea className="h-full min-h-0">
+              <div className="py-1">
+                {remoteGroups.length === 0 ? (
+                  <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
+                    No remote branches
+                  </div>
+                ) : (
+                  remoteGroups.map((group) => (
+                    <BranchGroup
+                      key={group.remote}
+                      title={group.remote}
+                      count={group.branches.length}
+                      defaultOpen
+                    >
+                      {group.branches.map((branch) => (
+                        <BranchRow
+                          key={branch.name}
+                          branch={branch}
+                          disabled
+                          onCheckout={() => checkout(branch)}
+                          onNewFrom={() => {
+                            setNewBranchSource(branch.name);
+                            setIsNewBranchOpen(true);
+                          }}
+                          onRename={() => setRenameBranch(branch)}
+                          onMerge={() => setMergeBranch(branch)}
+                          onDelete={() => setDeleteBranch(branch)}
+                        />
+                      ))}
+                    </BranchGroup>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      )}
 
       <NewBranchDialog
         open={isNewBranchOpen}
@@ -258,15 +335,19 @@ function BranchRow({
   onMerge: () => void;
   onDelete: () => void;
 }) {
+  const remote = isRemoteBranch(branch);
+  const displayName = remote ? displayRemoteBranchName(branch.name) : branch.name;
   const row = (
     <div
       role="button"
       tabIndex={0}
-      onDoubleClick={onCheckout}
+      onDoubleClick={() => {
+        if (!remote) onCheckout();
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();
-          onCheckout();
+          if (!remote) onCheckout();
         }
       }}
       className={cn(
@@ -280,7 +361,7 @@ function BranchRow({
           branch.current ? "text-git-branch" : "text-muted-foreground",
         )}
       />
-      <span className="min-w-0 flex-1 truncate font-mono">{branch.name}</span>
+      <span className="min-w-0 flex-1 truncate font-mono">{displayName}</span>
       {branch.ahead > 0 && (
         <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
           ↑{branch.ahead}
@@ -298,17 +379,22 @@ function BranchRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem disabled={branch.current || disabled} onSelect={onCheckout}>
+        <ContextMenuItem
+          disabled={branch.current || disabled || remote}
+          onSelect={onCheckout}
+        >
           Checkout
         </ContextMenuItem>
         <ContextMenuItem onSelect={onNewFrom}>New branch from here</ContextMenuItem>
-        <ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
+        <ContextMenuItem disabled={remote} onSelect={onRename}>
+          Rename
+        </ContextMenuItem>
         <ContextMenuItem disabled={branch.current} onSelect={onMerge}>
           Merge into current
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
-          disabled={branch.current}
+          disabled={branch.current || remote}
           variant="destructive"
           onSelect={onDelete}
         >
@@ -317,4 +403,67 @@ function BranchRow({
       </ContextMenuContent>
     </ContextMenu>
   );
+}
+
+function BranchGroup({
+  title,
+  count,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  count: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="flex h-7 w-full items-center gap-1.5 px-2 text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground hover:bg-accent/40">
+        {open ? (
+          <ChevronDown className="size-3.5" />
+        ) : (
+          <ChevronRight className="size-3.5" />
+        )}
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        <span className="text-muted-foreground/70">{count}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pb-1">{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function isRemoteBranch(branch: Branch): boolean {
+  return branch.name.startsWith("remotes/");
+}
+
+function displayRemoteBranchName(name: string): string {
+  return name.replace(/^remotes\/[^/]+\//, "");
+}
+
+function groupRemoteBranches(branches: Branch[]): Array<{
+  remote: string;
+  branches: Branch[];
+}> {
+  const groups = new Map<string, Branch[]>();
+
+  for (const branch of branches) {
+    if (!isRemoteBranch(branch) || branch.name.endsWith("/HEAD")) continue;
+    const [, remote = "remote"] = branch.name.split("/");
+    const group = groups.get(remote) ?? [];
+    group.push(branch);
+    groups.set(remote, group);
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([remote, groupBranches]) => ({
+      remote,
+      branches: groupBranches.sort((a, b) =>
+        displayRemoteBranchName(a.name).localeCompare(
+          displayRemoteBranchName(b.name),
+        ),
+      ),
+    }));
 }

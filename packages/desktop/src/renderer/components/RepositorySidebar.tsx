@@ -17,14 +17,14 @@ type Props = {
 export function RepositorySidebar({ files }: Props) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SidebarSection title="Branches" defaultOpen className="min-h-[160px]">
+      <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
+        <FileTree files={files} />
+      </SidebarSection>
+      <SidebarSection title="Branches" defaultOpen className="min-h-[180px]">
         <BranchList />
       </SidebarSection>
       <SidebarSection title="Tags" defaultOpen={false} className="min-h-[120px]">
         <TagList />
-      </SidebarSection>
-      <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
-        <FileTree files={files} />
       </SidebarSection>
     </div>
   );

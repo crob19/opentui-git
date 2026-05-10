@@ -234,7 +234,7 @@ export class GitService {
    * @returns Promise<GitBranchInfo> - Branch information
    */
   async getBranches(): Promise<GitBranchInfo> {
-    const branches: BranchSummary = await this.git.branch();
+    const branches: BranchSummary = await this.git.branch(["-a"]);
 
     return {
       current: branches.current,
