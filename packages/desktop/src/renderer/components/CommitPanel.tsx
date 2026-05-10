@@ -4,14 +4,12 @@ import { toast } from "sonner";
 import { CommitDocument, StatusDocument } from "@opentui-git/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Props = {
   stagedCount: number;
-  stagedPaths: string[];
 };
 
-export function CommitPanel({ stagedCount, stagedPaths }: Props) {
+export function CommitPanel({ stagedCount }: Props) {
   const [message, setMessage] = useState("");
   const [commit, { loading }] = useMutation(CommitDocument, {
     refetchQueries: [{ query: StatusDocument }],

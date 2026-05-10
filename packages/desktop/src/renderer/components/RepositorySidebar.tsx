@@ -17,7 +17,7 @@ type Props = {
   stagedPaths: string[];
 };
 
-export function RepositorySidebar({ files, stagedCount, stagedPaths }: Props) {
+export function RepositorySidebar({ files, stagedCount }: Props) {
   const [branchRefreshSignal, setBranchRefreshSignal] = useState(0);
   const [tagRefreshSignal, setTagRefreshSignal] = useState(0);
 
@@ -43,7 +43,7 @@ export function RepositorySidebar({ files, stagedCount, stagedPaths }: Props) {
         <TagList refreshSignal={tagRefreshSignal} />
       </SidebarSection>
       <SidebarSection title="Commit" defaultOpen className="min-h-[220px]">
-        <CommitPanel stagedCount={stagedCount} stagedPaths={stagedPaths} />
+        <CommitPanel stagedCount={stagedCount} />
       </SidebarSection>
     </div>
   );
