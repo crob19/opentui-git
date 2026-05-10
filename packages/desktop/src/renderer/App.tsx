@@ -3,9 +3,16 @@ import { useState } from "react";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { DiffViewer } from "./components/DiffViewer.js";
+import { FileViewer } from "./components/FileViewer.js";
+import { useSelection } from "./state/selection.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
 import { TerminalPanel } from "./components/TerminalPanel.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+function MainPane() {
+  const { kind } = useSelection();
+  return kind === "view" ? <FileViewer /> : <DiffViewer />;
+}
 
 export function App() {
   const repo = useQuery(RepoInfoDocument);
@@ -46,7 +53,7 @@ export function App() {
               </pre>
             </ScrollArea>
           )}
-          {status.data?.status && <DiffViewer />}
+          {status.data?.status && <MainPane />}
         </div>
         <TerminalPanel visible={terminalOpen} />
       </main>

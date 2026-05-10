@@ -5,6 +5,14 @@ query ReadFile($path: String!) {
   }
 }
 
+query RepoTree($path: String) {
+  repoTree(path: $path) {
+    path
+    name
+    type
+  }
+}
+
 mutation WriteFile($path: String!, $content: String!, $expectedMtime: String) {
   writeFile(path: $path, content: $content, expectedMtime: $expectedMtime) {
     success

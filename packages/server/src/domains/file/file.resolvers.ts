@@ -6,6 +6,9 @@ export const fileResolvers: Resolvers = {
       const { content, mtime } = await git.readFileWithMetadata(path);
       return { content, mtime: mtime.toISOString() };
     },
+    repoTree: async (_p, { path }, { git }) => {
+      return git.listTree(path);
+    },
   },
   Mutation: {
     writeFile: async (_p, { path, content, expectedMtime }, { git }) => {

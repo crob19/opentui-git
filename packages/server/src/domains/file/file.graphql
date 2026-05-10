@@ -13,8 +13,20 @@ type StageResult {
   success: Boolean!
 }
 
+enum TreeEntryType {
+  FILE
+  DIR
+}
+
+type TreeEntry {
+  path: String!
+  name: String!
+  type: TreeEntryType!
+}
+
 extend type Query {
   readFile(path: String!): FileReadResult!
+  repoTree(path: String): [TreeEntry!]!
 }
 
 extend type Mutation {
