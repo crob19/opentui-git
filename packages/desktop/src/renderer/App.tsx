@@ -3,7 +3,6 @@ import { useState } from "react";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { DiffViewer } from "./components/DiffViewer.js";
-import { RemoteToolbar } from "./components/RemoteToolbar.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
 import { TerminalPanel } from "./components/TerminalPanel.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,10 +32,6 @@ export function App() {
       </aside>
 
       <main className="col-start-2 row-start-1 flex flex-col min-h-0 overflow-hidden">
-        <RemoteToolbar
-          terminalOpen={terminalOpen}
-          onToggleTerminal={() => setTerminalOpen((v) => !v)}
-        />
         <div
           className="flex-1 flex flex-col min-h-0 overflow-hidden"
           style={{ background: "var(--code)" }}
@@ -65,6 +60,8 @@ export function App() {
           behind={status.data?.status?.behind ?? 0}
           isClean={status.data?.status?.isClean ?? true}
           dirtyCount={files.length}
+          terminalOpen={terminalOpen}
+          onToggleTerminal={() => setTerminalOpen((v) => !v)}
         />
       </div>
     </div>

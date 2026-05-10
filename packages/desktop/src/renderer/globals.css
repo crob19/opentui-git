@@ -338,6 +338,72 @@
 }
 
 /* ============================================================
+   Status bar actions (push/pull/fetch in footer)
+   ============================================================ */
+.sb-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding-left: 8px;
+  border-left: 1px solid var(--hairline-soft);
+}
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg-muted);
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 120ms var(--ease);
+}
+.sb-btn svg {
+  width: 11px;
+  height: 11px;
+}
+.sb-btn:hover {
+  background: rgba(189, 147, 249, 0.15);
+  color: var(--fg1);
+}
+.sb-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.sb-btn.hot {
+  color: var(--dracula-cyan);
+  background: rgba(139, 233, 253, 0.1);
+  border-color: rgba(139, 233, 253, 0.25);
+}
+.sb-btn.hot:hover {
+  background: rgba(139, 233, 253, 0.18);
+}
+.sb-btn .ct {
+  background: rgba(139, 233, 253, 0.2);
+  color: var(--dracula-cyan);
+  padding: 1px 4px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+.sb-btn.danger {
+  color: var(--fg4);
+}
+.sb-btn.danger:hover {
+  color: var(--dracula-red);
+  background: rgba(255, 85, 85, 0.12);
+}
+.sb-btn.on {
+  background: rgba(189, 147, 249, 0.18);
+  color: var(--fg1);
+  border-color: rgba(189, 147, 249, 0.3);
+}
+
+/* ============================================================
    Custom scrollbars
    ============================================================ */
 ::-webkit-scrollbar {
