@@ -54,6 +54,8 @@ export interface BranchCommandWithSelectionContext extends BranchCommandContext 
 export interface RemoteCommandContext extends CommandContext {
   /** Function to refetch git status */
   refetch: () => Promise<unknown>;
+  /** Function to refetch branch list */
+  refetchBranches: () => Promise<unknown>;
 }
 
 /**

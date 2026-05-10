@@ -3,20 +3,16 @@ import type { DialogContext } from "../components/dialog.js";
 import { logger } from "../utils/logger.js";
 
 /**
- * Custom hook for auto-refreshing git status, branches, and tags
+ * Custom hook for auto-refreshing git status
  * Refreshes every second when no dialog is open to keep UI in sync with git state
  * @param dialog - Dialog context to check if modal is open
  * @param refetchStatus - Function to refetch git status
- * @param refetchBranches - Function to refetch branch information
- * @param refetchTags - Function to refetch tag information
  * @param interval - Refresh interval in milliseconds (defaults to 1000ms)
  * @returns Cleanup function that clears the auto-refresh interval
  */
 export function useAutoRefresh(
   dialog: DialogContext,
   refetchStatus: () => Promise<unknown>,
-  refetchBranches: () => Promise<unknown>,
-  refetchTags: () => Promise<unknown>,
   interval: number = 1000,
 ): () => void {
   // Track whether an auto-refresh is currently in progress with proper reactivity
@@ -45,7 +41,7 @@ export function useAutoRefresh(
       logger.debug("Auto-refresh triggered");
       setIsAutoRefreshing(true);
 
-      Promise.all([refetchStatus(), refetchBranches(), refetchTags()])
+      refetchStatus()
         .catch((error) => {
           console.error("Error during auto-refresh:", error);
         })

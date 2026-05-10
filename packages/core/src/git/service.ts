@@ -245,10 +245,16 @@ export class GitService {
           name: b.name,
           commit: b.commit,
           label: b.label,
-          ...(await this.getBranchAheadBehind(b.name)),
+          ...(this.isRemoteBranch(b.name)
+            ? { ahead: 0, behind: 0 }
+            : await this.getBranchAheadBehind(b.name)),
         })),
       ),
     };
+  }
+
+  private isRemoteBranch(branchName: string): boolean {
+    return branchName.startsWith("remotes/");
   }
 
   private async getBranchAheadBehind(

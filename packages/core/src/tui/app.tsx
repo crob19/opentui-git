@@ -95,14 +95,10 @@ function AppContent(props: { client: ApolloClient<unknown> }) {
     compareBranch,
   );
 
-  // Auto-refresh git status, branches, and tags every second
+  // Auto-refresh git status every second. Branches and tags are refreshed after
+  // explicit git operations or when the branch panel is opened.
   // Returns cleanup function for graceful shutdown
-  const cleanupAutoRefresh = useAutoRefresh(
-    dialog,
-    gitStatus.refetch,
-    gitBranches.refetchBranches,
-    gitTags.refetchTags,
-  );
+  const cleanupAutoRefresh = useAutoRefresh(dialog, gitStatus.refetch);
 
   // Register cleanup handlers for graceful shutdown
   // These will be called when the app exits via q, Ctrl+C, or SIGTERM
