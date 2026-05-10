@@ -61,15 +61,15 @@ First usable version of the desktop app.
 
 ## Phase 2 — Branches, tags, remote
 
-- [ ] Branch list in sidebar with current marker, ahead/behind
-- [ ] Double-click branch → checkout
-- [ ] Branch context menu: checkout, create from, rename, delete, merge into current
-- [ ] "New branch" button in sidebar
-- [ ] Tags section in sidebar
-- [ ] Create tag dialog
-- [ ] Push tag action
-- [ ] Toolbar: Pull, Push, Fetch buttons (with spinner state)
-- [ ] Confirm dialog for delete branch / force push
+- [x] Branch list in sidebar with current marker, ahead/behind
+- [x] Double-click branch → checkout
+- [x] Branch context menu: checkout, create from, rename, delete, merge into current
+- [x] "New branch" button in sidebar
+- [x] Tags section in sidebar
+- [x] Create tag dialog
+- [x] Push tag action
+- [x] Toolbar: Pull, Push, Fetch buttons (with spinner state)
+- [x] Confirm dialog for delete branch / force push
 
 ## Phase 3 — Diff viewer + edit mode
 

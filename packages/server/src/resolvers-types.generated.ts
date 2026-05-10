@@ -20,6 +20,8 @@ export type Scalars = {
 
 export type BranchDetail = {
   __typename?: 'BranchDetail';
+  ahead: Scalars['Int']['output'];
+  behind: Scalars['Int']['output'];
   commit: Scalars['String']['output'];
   current: Scalars['Boolean']['output'];
   label: Scalars['String']['output'];
@@ -98,10 +100,12 @@ export type Mutation = {
   createBranch: BranchResult;
   createTag: TagResult;
   deleteBranch: BranchResult;
+  fetch: RemoteResult;
   mergeBranch: MergeOutcome;
   pull: RemoteResult;
   push: RemoteResult;
   pushTag: TagResult;
+  renameBranch: BranchResult;
   stageAll: StageResult;
   stageFile: StageResult;
   stageFiles: StageResult;
@@ -124,6 +128,7 @@ export type MutationCommitArgs = {
 
 export type MutationCreateBranchArgs = {
   name: Scalars['String']['input'];
+  source?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -143,9 +148,20 @@ export type MutationMergeBranchArgs = {
 };
 
 
+export type MutationPushArgs = {
+  force?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
 export type MutationPushTagArgs = {
   name: Scalars['String']['input'];
   remote?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationRenameBranchArgs = {
+  newName: Scalars['String']['input'];
+  oldName: Scalars['String']['input'];
 };
 
 
@@ -360,6 +376,8 @@ export type ResolversParentTypes = ResolversObject<{
 }>;
 
 export type BranchDetailResolvers<ContextType = Context, ParentType extends ResolversParentTypes['BranchDetail'] = ResolversParentTypes['BranchDetail']> = ResolversObject<{
+  ahead?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  behind?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   commit?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   current?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -433,10 +451,12 @@ export type MutationResolvers<ContextType = Context, ParentType extends Resolver
   createBranch?: Resolver<ResolversTypes['BranchResult'], ParentType, ContextType, RequireFields<MutationCreateBranchArgs, 'name'>>;
   createTag?: Resolver<ResolversTypes['TagResult'], ParentType, ContextType, RequireFields<MutationCreateTagArgs, 'name'>>;
   deleteBranch?: Resolver<ResolversTypes['BranchResult'], ParentType, ContextType, RequireFields<MutationDeleteBranchArgs, 'name'>>;
+  fetch?: Resolver<ResolversTypes['RemoteResult'], ParentType, ContextType>;
   mergeBranch?: Resolver<ResolversTypes['MergeOutcome'], ParentType, ContextType, RequireFields<MutationMergeBranchArgs, 'name'>>;
   pull?: Resolver<ResolversTypes['RemoteResult'], ParentType, ContextType>;
-  push?: Resolver<ResolversTypes['RemoteResult'], ParentType, ContextType>;
+  push?: Resolver<ResolversTypes['RemoteResult'], ParentType, ContextType, Partial<MutationPushArgs>>;
   pushTag?: Resolver<ResolversTypes['TagResult'], ParentType, ContextType, RequireFields<MutationPushTagArgs, 'name'>>;
+  renameBranch?: Resolver<ResolversTypes['BranchResult'], ParentType, ContextType, RequireFields<MutationRenameBranchArgs, 'newName' | 'oldName'>>;
   stageAll?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType>;
   stageFile?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationStageFileArgs, 'path'>>;
   stageFiles?: Resolver<ResolversTypes['StageResult'], ParentType, ContextType, RequireFields<MutationStageFilesArgs, 'paths'>>;

@@ -3,6 +3,8 @@ type BranchDetail {
   commit: String!
   label: String!
   current: Boolean!
+  ahead: Int!
+  behind: Int!
 }
 
 type Branches {
@@ -29,8 +31,9 @@ extend type Query {
 }
 
 extend type Mutation {
-  createBranch(name: String!): BranchResult!
+  createBranch(name: String!, source: String): BranchResult!
   checkoutBranch(name: String!): BranchResult!
+  renameBranch(oldName: String!, newName: String!): BranchResult!
   deleteBranch(name: String!, force: Boolean): BranchResult!
   mergeBranch(name: String!): MergeOutcome!
 }

@@ -4,5 +4,6 @@ type RemoteResult {
 
 extend type Mutation {
   pull: RemoteResult!
-  push: RemoteResult!
+  push(force: Boolean): RemoteResult!
+  fetch: RemoteResult!
 }

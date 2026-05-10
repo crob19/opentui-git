@@ -239,13 +239,50 @@ export class GitService {
     return {
       current: branches.current,
       all: branches.all,
-      branches: Object.values(branches.branches).map((b) => ({
-        current: b.current,
-        name: b.name,
-        commit: b.commit,
-        label: b.label,
-      })),
+      branches: await Promise.all(
+        Object.values(branches.branches).map(async (b) => ({
+          current: b.current,
+          name: b.name,
+          commit: b.commit,
+          label: b.label,
+          ...(await this.getBranchAheadBehind(b.name)),
+        })),
+      ),
     };
+  }
+
+  private async getBranchAheadBehind(
+    branchName: string,
+  ): Promise<{ ahead: number; behind: number }> {
+    try {
+      const upstream = (
+        await this.git.raw([
+          "rev-parse",
+          "--abbrev-ref",
+          `${branchName}@{upstream}`,
+        ])
+      ).trim();
+
+      if (!upstream) return { ahead: 0, behind: 0 };
+
+      const counts = (
+        await this.git.raw([
+          "rev-list",
+          "--left-right",
+          "--count",
+          `${branchName}...${upstream}`,
+        ])
+      )
+        .trim()
+        .split(/\s+/);
+
+      return {
+        ahead: Number.parseInt(counts[0] ?? "0", 10) || 0,
+        behind: Number.parseInt(counts[1] ?? "0", 10) || 0,
+      };
+    } catch {
+      return { ahead: 0, behind: 0 };
+    }
   }
 
   /**
@@ -517,11 +554,24 @@ export class GitService {
   }
 
   /**
+   * Fetch from remote
+   * @returns Promise<void>
+   */
+  async fetch(): Promise<void> {
+    await this.git.fetch();
+  }
+
+  /**
    * Push to remote
    * Automatically sets upstream for new branches
    * @returns Promise<void>
    */
-  async push(): Promise<void> {
+  async push(force: boolean = false): Promise<void> {
+    if (force) {
+      await this.git.push(["--force-with-lease"]);
+      return;
+    }
+
     try {
       await this.git.push();
     } catch (error) {
@@ -553,8 +603,21 @@ export class GitService {
    * Create a new branch
    * @param branchName - Name of the new branch
    */
-  async createBranch(branchName: string): Promise<void> {
+  async createBranch(branchName: string, source?: string | null): Promise<void> {
+    if (source) {
+      await this.git.checkout(["-b", branchName, source]);
+      return;
+    }
     await this.git.checkoutLocalBranch(branchName);
+  }
+
+  /**
+   * Rename a local branch
+   * @param oldName - Current branch name
+   * @param newName - New branch name
+   */
+  async renameBranch(oldName: string, newName: string): Promise<void> {
+    await this.git.branch(["-m", oldName, newName]);
   }
 
   /**
