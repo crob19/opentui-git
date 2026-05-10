@@ -99,9 +99,10 @@ export type RemoteResultKeySpecifier = ('success' | RemoteResultKeySpecifier)[];
 export type RemoteResultFieldPolicy = {
 	success?: FieldPolicy<any> | FieldReadFunction<any>
 };
-export type RepoInfoKeySpecifier = ('isRepo' | 'repoRoot' | RepoInfoKeySpecifier)[];
+export type RepoInfoKeySpecifier = ('isRepo' | 'remoteUrl' | 'repoRoot' | RepoInfoKeySpecifier)[];
 export type RepoInfoFieldPolicy = {
 	isRepo?: FieldPolicy<any> | FieldReadFunction<any>,
+	remoteUrl?: FieldPolicy<any> | FieldReadFunction<any>,
 	repoRoot?: FieldPolicy<any> | FieldReadFunction<any>
 };
 export type RepoStatusKeySpecifier = ('ahead' | 'behind' | 'current' | 'files' | 'isClean' | RepoStatusKeySpecifier)[];

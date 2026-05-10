@@ -5,7 +5,8 @@ export const repoResolvers: Resolvers = {
     repoInfo: async (_p, _a, { git }) => {
       const isRepo = await git.isRepo();
       const repoRoot = isRepo ? await git.getRepoRoot() : null;
-      return { isRepo, repoRoot };
+      const remoteUrl = isRepo ? await git.getRemoteUrl() : null;
+      return { isRepo, repoRoot, remoteUrl };
     },
     status: (_p, _a, { git }) => git.getStatus(),
     commits: (_p, { limit }, { git }) => git.getCommits(limit ?? 50),

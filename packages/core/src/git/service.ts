@@ -564,7 +564,7 @@ export class GitService {
    * @returns Promise<void>
    */
   async fetch(): Promise<void> {
-    await this.git.fetch();
+    await this.git.fetch(["--prune"]);
   }
 
   /**
@@ -658,6 +658,20 @@ export class GitService {
   async getRepoRoot(): Promise<string> {
     const result = await this.git.revparse(["--show-toplevel"]);
     return result.trim();
+  }
+
+  /**
+   * Get the configured remote URL.
+   * @param remote - Remote name to inspect (defaults to "origin")
+   * @returns Promise<string | null> - Remote URL, or null when the remote is missing
+   */
+  async getRemoteUrl(remote: string = "origin"): Promise<string | null> {
+    try {
+      const result = await this.git.raw(["remote", "get-url", remote]);
+      return result.trim() || null;
+    } catch {
+      return null;
+    }
   }
 
   /**

@@ -4,8 +4,10 @@ import {
   BranchesDocument,
   CheckoutBranchDocument,
   CreateBranchDocument,
+  DefaultBranchDocument,
   DeleteBranchDocument,
   MergeBranchDocument,
+  RepoInfoDocument,
   RenameBranchDocument,
   StatusDocument,
   type BranchesQuery,
@@ -30,9 +32,14 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useSelection } from "../state/selection.js";
+import { buildGitHubPullRequestUrl } from "../lib/github.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { MergeBranchDialog } from "./MergeBranchDialog.js";
-import { NewBranchDialog, RenameBranchDialog } from "./BranchDialogs.js";
+import {
+  NewBranchDialog,
+  RenameBranchDialog,
+} from "./BranchDialogs.js";
+import { OpenPullRequestDialog } from "./OpenPullRequestDialog.js";
 
 type Branch = BranchesQuery["branches"]["branches"][number];
 
@@ -45,6 +52,8 @@ type Props = {
 export function BranchList({ refreshSignal = 0 }: Props) {
   const { resetSelection } = useSelection();
   const { data, loading, error, refetch } = useQuery(BranchesDocument);
+  const repoInfoQuery = useQuery(RepoInfoDocument);
+  const defaultBranchQuery = useQuery(DefaultBranchDocument);
 
   useEffect(() => {
     if (refreshSignal === 0) return;
@@ -77,6 +86,9 @@ export function BranchList({ refreshSignal = 0 }: Props) {
   const [renameBranch, setRenameBranch] = useState<Branch | null>(null);
   const [mergeBranch, setMergeBranch] = useState<Branch | null>(null);
   const [deleteBranch, setDeleteBranch] = useState<Branch | null>(null);
+  const [pullRequestBranch, setPullRequestBranch] = useState<Branch | null>(
+    null,
+  );
 
   const [checkoutBranch, checkoutState] = useMutation(CheckoutBranchDocument, {
     refetchQueries: REFETCH,
@@ -118,6 +130,15 @@ export function BranchList({ refreshSignal = 0 }: Props) {
       toast.error(`Checkout failed: ${(err as Error).message}`);
     }
   };
+
+  const defaultBranch = defaultBranchQuery.data?.defaultBranch ?? "main";
+  const remoteUrl = repoInfoQuery.data?.repoInfo.remoteUrl ?? null;
+  const pullRequestHead = pullRequestBranch
+    ? branchNameForPullRequest(pullRequestBranch)
+    : "";
+  const pullRequestUrl = pullRequestBranch
+    ? buildGitHubPullRequestUrl(remoteUrl, defaultBranch, pullRequestHead)
+    : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -188,6 +209,7 @@ export function BranchList({ refreshSignal = 0 }: Props) {
                       }}
                       onRename={() => setRenameBranch(branch)}
                       onMerge={() => setMergeBranch(branch)}
+                      onOpenPullRequest={() => setPullRequestBranch(branch)}
                       onDelete={() => setDeleteBranch(branch)}
                     />
                   ))
@@ -222,6 +244,9 @@ export function BranchList({ refreshSignal = 0 }: Props) {
                           }}
                           onRename={() => setRenameBranch(branch)}
                           onMerge={() => setMergeBranch(branch)}
+                          onOpenPullRequest={() =>
+                            setPullRequestBranch(branch)
+                          }
                           onDelete={() => setDeleteBranch(branch)}
                         />
                       ))}
@@ -322,6 +347,21 @@ export function BranchList({ refreshSignal = 0 }: Props) {
           }}
         />
       )}
+
+      {pullRequestBranch && (
+        <OpenPullRequestDialog
+          open={Boolean(pullRequestBranch)}
+          baseBranch={defaultBranch}
+          headBranch={pullRequestHead}
+          url={pullRequestUrl}
+          onOpenChange={(open) => !open && setPullRequestBranch(null)}
+          onOpenPullRequest={() => {
+            if (!pullRequestUrl) return;
+            window.open(pullRequestUrl, "_blank", "noopener,noreferrer");
+            setPullRequestBranch(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -333,6 +373,7 @@ function BranchRow({
   onNewFrom,
   onRename,
   onMerge,
+  onOpenPullRequest,
   onDelete,
 }: {
   branch: Branch;
@@ -341,6 +382,7 @@ function BranchRow({
   onNewFrom: () => void;
   onRename: () => void;
   onMerge: () => void;
+  onOpenPullRequest: () => void;
   onDelete: () => void;
 }) {
   const remote = isRemoteBranch(branch);
@@ -394,6 +436,9 @@ function BranchRow({
           Checkout
         </ContextMenuItem>
         <ContextMenuItem onSelect={onNewFrom}>New branch from here</ContextMenuItem>
+        <ContextMenuItem onSelect={onOpenPullRequest}>
+          Open pull request
+        </ContextMenuItem>
         <ContextMenuItem disabled={remote} onSelect={onRename}>
           Rename
         </ContextMenuItem>
@@ -448,6 +493,12 @@ function isRemoteBranch(branch: Branch): boolean {
 
 function displayRemoteBranchName(name: string): string {
   return name.replace(/^remotes\/[^/]+\//, "");
+}
+
+function branchNameForPullRequest(branch: Branch): string {
+  return isRemoteBranch(branch)
+    ? displayRemoteBranchName(branch.name)
+    : branch.name;
 }
 
 function groupRemoteBranches(branches: Branch[]): Array<{
