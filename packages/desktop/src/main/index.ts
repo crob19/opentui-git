@@ -53,7 +53,6 @@ async function resolveEndpoint(): Promise<string> {
 }
 
 function createWindow(endpoint: string): void {
-  const cwd = repoCwdFromArgs();
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -63,10 +62,7 @@ function createWindow(endpoint: string): void {
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      additionalArguments: [
-        `--opentui-endpoint=${endpoint}`,
-        `--opentui-cwd=${cwd}`,
-      ],
+      additionalArguments: [`--opentui-endpoint=${endpoint}`],
     },
   });
 
@@ -101,7 +97,7 @@ app.whenReady().then(async () => {
   }
 
   Menu.setApplicationMenu(buildAppMenu());
-  registerPtyIpc();
+  registerPtyIpc(repoCwdFromArgs());
   createWindow(endpoint);
 
   app.on("activate", () => {

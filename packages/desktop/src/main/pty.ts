@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
-import os from "node:os";
+import type { IpcMainInvokeEvent } from "electron";
 import type { IPty } from "@lydell/node-pty";
 
 type Session = {
@@ -8,6 +8,17 @@ type Session = {
 };
 
 const sessions = new Map<string, Session>();
+const MAX_SESSIONS = 8;
+
+function ownedSession(
+  event: IpcMainInvokeEvent,
+  id: string,
+): Session | undefined {
+  const s = sessions.get(id);
+  if (!s) return undefined;
+  if (s.windowId !== event.sender.id) return undefined;
+  return s;
+}
 
 function defaultShell(): { file: string; args: string[] } {
   if (process.platform === "win32") {
@@ -20,24 +31,33 @@ function defaultShell(): { file: string; args: string[] } {
   return { file, args: ["-l"] };
 }
 
-export function registerPtyIpc(): void {
+export function registerPtyIpc(repoCwd: string): void {
   ipcMain.handle(
     "pty:start",
-    (event, opts: { id: string; cwd: string; cols: number; rows: number }) => {
+    (event, opts: { id: string; cols: number; rows: number }) => {
       // Lazy-load to avoid loading the native binding before app.whenReady.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const nodePty =
         require("@lydell/node-pty") as typeof import("@lydell/node-pty");
 
       const existing = sessions.get(opts.id);
-      if (existing) return { ok: true };
+      if (existing) {
+        if (existing.windowId !== event.sender.id) {
+          return { ok: false as const, error: "id-in-use" };
+        }
+        return { ok: true as const };
+      }
+
+      if (sessions.size >= MAX_SESSIONS) {
+        return { ok: false as const, error: "session-limit" };
+      }
 
       const { file, args } = defaultShell();
       const pty = nodePty.spawn(file, args, {
         name: "xterm-256color",
         cols: opts.cols || 80,
         rows: opts.rows || 24,
-        cwd: opts.cwd,
+        cwd: repoCwd,
         env: { ...process.env, TERM: "xterm-256color" } as Record<
           string,
           string
@@ -61,18 +81,18 @@ export function registerPtyIpc(): void {
         sessions.delete(opts.id);
       });
 
-      return { ok: true };
+      return { ok: true as const };
     },
   );
 
-  ipcMain.handle("pty:write", (_event, id: string, data: string) => {
-    sessions.get(id)?.pty.write(data);
+  ipcMain.handle("pty:write", (event, id: string, data: string) => {
+    ownedSession(event, id)?.pty.write(data);
   });
 
   ipcMain.handle(
     "pty:resize",
-    (_event, id: string, cols: number, rows: number) => {
-      const s = sessions.get(id);
+    (event, id: string, cols: number, rows: number) => {
+      const s = ownedSession(event, id);
       if (!s) return;
       try {
         s.pty.resize(Math.max(1, cols | 0), Math.max(1, rows | 0));
@@ -82,8 +102,8 @@ export function registerPtyIpc(): void {
     },
   );
 
-  ipcMain.handle("pty:kill", (_event, id: string) => {
-    const s = sessions.get(id);
+  ipcMain.handle("pty:kill", (event, id: string) => {
+    const s = ownedSession(event, id);
     if (!s) return;
     try {
       s.pty.kill();
@@ -104,6 +124,3 @@ export function killAllPtys(): void {
   }
   sessions.clear();
 }
-
-// Silence unused import warning on platforms that don't use os.
-void os;

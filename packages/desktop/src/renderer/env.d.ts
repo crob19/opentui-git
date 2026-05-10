@@ -8,13 +8,14 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+type TerminalStartResult = { ok: true } | { ok: false; error: string };
+
 interface TerminalBridge {
   start(opts: {
     id: string;
-    cwd: string;
     cols: number;
     rows: number;
-  }): Promise<{ ok: true }>;
+  }): Promise<TerminalStartResult>;
   write(id: string, data: string): Promise<void>;
   resize(id: string, cols: number, rows: number): Promise<void>;
   kill(id: string): Promise<void>;
@@ -27,7 +28,6 @@ interface TerminalBridge {
 
 interface OpentuiBridge {
   readonly endpoint: string | null;
-  readonly cwd: string | null;
   readonly terminal: TerminalBridge;
 }
 

@@ -1,17 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const ENDPOINT_FLAG = "--opentui-endpoint=";
-const CWD_FLAG = "--opentui-cwd=";
 
 const endpointArg = process.argv.find((a) => a.startsWith(ENDPOINT_FLAG));
 const endpoint = endpointArg ? endpointArg.slice(ENDPOINT_FLAG.length) : null;
 
-const cwdArg = process.argv.find((a) => a.startsWith(CWD_FLAG));
-const cwd = cwdArg ? cwdArg.slice(CWD_FLAG.length) : null;
+type StartResult = { ok: true } | { ok: false; error: string };
 
 const terminal = {
-  start(opts: { id: string; cwd: string; cols: number; rows: number }) {
-    return ipcRenderer.invoke("pty:start", opts) as Promise<{ ok: true }>;
+  start(opts: { id: string; cols: number; rows: number }) {
+    return ipcRenderer.invoke("pty:start", opts) as Promise<StartResult>;
   },
   write(id: string, data: string) {
     return ipcRenderer.invoke("pty:write", id, data);
@@ -42,4 +40,4 @@ const terminal = {
   },
 };
 
-contextBridge.exposeInMainWorld("opentui", { endpoint, cwd, terminal });
+contextBridge.exposeInMainWorld("opentui", { endpoint, terminal });
