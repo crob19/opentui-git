@@ -5,6 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FileTree } from "./FileTree.js";
 import { RepoTree } from "./RepoTree.js";
 import { BranchList } from "./BranchList.js";
@@ -23,33 +24,51 @@ export function RepositorySidebar({ files, stagedCount }: Props) {
   const [tagRefreshSignal, setTagRefreshSignal] = useState(0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <SidebarSection title="Changes" defaultOpen className="flex-[2_1_260px]">
-        <FileTree files={files} />
-      </SidebarSection>
-      <SidebarSection title="Files" defaultOpen className="flex-[2_1_260px]">
+    <Tabs defaultValue="git" className="flex h-full min-h-0 flex-col gap-0">
+      <TabsList className="m-2 grid w-auto shrink-0 grid-cols-2">
+        <TabsTrigger value="git">Git</TabsTrigger>
+        <TabsTrigger value="files">Files</TabsTrigger>
+      </TabsList>
+
+      <TabsContent
+        value="git"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
+        <SidebarSection
+          title="Changes"
+          defaultOpen
+          className="flex-[2_1_260px]"
+        >
+          <FileTree files={files} />
+        </SidebarSection>
+        <SidebarSection
+          title="Branches"
+          defaultOpen
+          className="min-h-[180px]"
+          onOpen={() => setBranchRefreshSignal((value) => value + 1)}
+        >
+          <BranchList refreshSignal={branchRefreshSignal} />
+        </SidebarSection>
+        <SidebarSection
+          title="Tags"
+          defaultOpen={false}
+          className="min-h-[120px]"
+          onOpen={() => setTagRefreshSignal((value) => value + 1)}
+        >
+          <TagList refreshSignal={tagRefreshSignal} />
+        </SidebarSection>
+        <SidebarSection title="Commit" defaultOpen className="min-h-[220px]">
+          <CommitPanel stagedCount={stagedCount} />
+        </SidebarSection>
+      </TabsContent>
+
+      <TabsContent
+        value="files"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
         <RepoTree />
-      </SidebarSection>
-      <SidebarSection
-        title="Branches"
-        defaultOpen
-        className="min-h-[180px]"
-        onOpen={() => setBranchRefreshSignal((value) => value + 1)}
-      >
-        <BranchList refreshSignal={branchRefreshSignal} />
-      </SidebarSection>
-      <SidebarSection
-        title="Tags"
-        defaultOpen={false}
-        className="min-h-[120px]"
-        onOpen={() => setTagRefreshSignal((value) => value + 1)}
-      >
-        <TagList refreshSignal={tagRefreshSignal} />
-      </SidebarSection>
-      <SidebarSection title="Commit" defaultOpen className="min-h-[220px]">
-        <CommitPanel stagedCount={stagedCount} />
-      </SidebarSection>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 
