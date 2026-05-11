@@ -1,6 +1,7 @@
 import { MouseEvent } from "react";
 import { Eye, FileDiff, Pin, Terminal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { disposeTerminal } from "@/lib/terminalSession";
 import {
   useSelection,
   type SelectionTab,
@@ -24,7 +25,10 @@ export function FileTabs() {
           active={tab.id === activeTabId}
           onActivate={() => setActiveTab(tab.id)}
           onPin={() => pinTab(tab.id)}
-          onClose={() => closeTab(tab.id)}
+          onClose={() => {
+            if (tab.kind === "terminal") disposeTerminal();
+            closeTab(tab.id);
+          }}
         />
       ))}
     </div>

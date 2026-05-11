@@ -33,9 +33,7 @@ export function TerminalPanel({ visible, onOpenAsTab }: Props) {
             Open as tab
           </Button>
         </div>
-        <div className="min-h-0 flex-1">
-          <TerminalSurface visible={visible} />
-        </div>
+        <div className="min-h-0 flex-1">{visible && <TerminalSurface />}</div>
       </div>
     </div>
   );
