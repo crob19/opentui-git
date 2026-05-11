@@ -11,6 +11,7 @@
     "dev:desktop": "pnpm --filter @opentui-git/desktop run dev",
     "start": "pnpm --filter opentui-git run start",
     "build": "pnpm --filter opentui-git run build",
+    "build:server": "pnpm --filter @opentui-git/server run build",
     "build:desktop": "pnpm --filter @opentui-git/desktop run build",
     "typecheck": "pnpm -r run typecheck",
     "generate": "pnpm --filter @opentui-git/server run generate && pnpm --filter @opentui-git/client run generate",

@@ -1,4 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 export interface SpawnedServer {
   url: string;
@@ -20,10 +22,21 @@ export interface SpawnOptions {
 export function spawnGraphQLServer(opts: SpawnOptions): Promise<SpawnedServer> {
   const { serverPackageDir, repoCwd, readyTimeoutMs = 15_000 } = opts;
 
+  const entry = join(serverPackageDir, "dist", "index.js");
+  if (!existsSync(entry)) {
+    return Promise.reject(
+      new Error(
+        `GraphQL server bundle missing at ${entry}. Run \`pnpm --filter @opentui-git/server build\` (or \`make og-update\`).`,
+      ),
+    );
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn("bun", ["run", "src/index.ts", "--cwd", repoCwd], {
+    // Re-exec Electron's bundled Node via ELECTRON_RUN_AS_NODE so we don't
+    // need Bun/Node on the user's PATH. process.execPath is Electron itself.
+    const child = spawn(process.execPath, [entry, "--cwd", repoCwd], {
       cwd: serverPackageDir,
-      env: { ...process.env, PORT: "0" },
+      env: { ...process.env, PORT: "0", ELECTRON_RUN_AS_NODE: "1" },
       stdio: ["ignore", "pipe", "pipe"],
     });
 
@@ -90,9 +103,8 @@ export function spawnGraphQLServer(opts: SpawnOptions): Promise<SpawnedServer> {
       if (err.code === "ENOENT") {
         finishErr(
           new Error(
-            "`bun` not found on PATH — the GraphQL server requires Bun. " +
-              "Install it from https://bun.sh or set OPENTUI_GIT_ENDPOINT to " +
-              "point at a server you've started yourself.",
+            `Failed to spawn GraphQL server (${process.execPath} not found). ` +
+              "Set OPENTUI_GIT_ENDPOINT to point at a server you've started yourself.",
           ),
         );
         return;
