@@ -3,11 +3,13 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { ApolloClient } from "@apollo/client/index.js";
 import { createClient } from "@opentui-git/client";
+import { disposeTerminal } from "../lib/terminalSession.js";
 
 export type ProjectClient = {
   id: string;
@@ -49,6 +51,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [activeId, setActiveId] = useState<string | null>(
     initial[0]?.id ?? null,
   );
+  // Ref so closeProject can read latest projects without re-binding the callback
+  // and without putting side effects in a setState updater (StrictMode safety).
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
 
   const activate = useCallback((id: string) => setActiveId(id), []);
 
@@ -70,32 +76,25 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     setActiveId(result.project.id);
   }, []);
 
-  const closeProject = useCallback(
-    (id: string) => {
-      setProjects((current) => {
-        const next = current.filter((p) => p.id !== id);
-        const closed = current.find((p) => p.id === id);
-        if (closed) {
-          try {
-            closed.client.stop();
-          } catch {
-            /* ignore */
-          }
-        }
-        void window.opentui?.projects.close(id);
-        return next;
-      });
-      setActiveId((current) => {
-        if (current !== id) return current;
-        const idx = projects.findIndex((p) => p.id === id);
-        const remaining = projects.filter((p) => p.id !== id);
-        return (
-          (remaining[idx] ?? remaining[idx - 1] ?? remaining[0])?.id ?? null
-        );
-      });
-    },
-    [projects],
-  );
+  const closeProject = useCallback((id: string) => {
+    const current = projectsRef.current;
+    const idx = current.findIndex((p) => p.id === id);
+    if (idx === -1) return;
+    const closed = current[idx]!;
+    const next = current.filter((p) => p.id !== id);
+    const nextActive = (next[idx] ?? next[idx - 1] ?? next[0])?.id ?? null;
+
+    try {
+      closed.client.stop();
+    } catch {
+      /* ignore */
+    }
+    disposeTerminal(closed.path);
+    void window.opentui?.projects.close(id);
+
+    setProjects(next);
+    setActiveId((cur) => (cur === id ? nextActive : cur));
+  }, []);
 
   const value = useMemo<ProjectsState>(
     () => ({ projects, activeId, activate, openFromPicker, closeProject }),
