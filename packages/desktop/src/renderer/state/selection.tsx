@@ -43,7 +43,7 @@ type SelectionState = {
 const SelectionContext = createContext<SelectionState | null>(null);
 
 export function isFileTab(tab: SelectionTab | null): tab is FileSelectionTab {
-  return Boolean(tab && tab.kind !== "terminal");
+  return tab?.kind === "diff" || tab?.kind === "view";
 }
 
 type ReducerState = {
