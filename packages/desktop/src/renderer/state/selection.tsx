@@ -2,19 +2,26 @@ import { createContext, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 export type FileTreeMode = "unstaged" | "staged" | "branch";
-export type SelectionKind = "diff" | "view";
-export type SelectionTab = {
+export type SelectionKind = "diff" | "view" | "terminal";
+export type FileSelectionTab = {
   id: string;
   path: string;
-  kind: SelectionKind;
+  kind: "diff" | "view";
   mode: FileTreeMode;
   compareBranch: string | null;
   pinned: boolean;
 };
+export type TerminalSelectionTab = {
+  id: string;
+  kind: "terminal";
+  title: string;
+  pinned: boolean;
+};
+export type SelectionTab = FileSelectionTab | TerminalSelectionTab;
 
 type OpenTabOptions = {
   path: string;
-  kind?: SelectionKind;
+  kind?: "diff" | "view";
   mode?: FileTreeMode;
   compareBranch?: string | null;
   pinned?: boolean;
@@ -28,29 +35,20 @@ type SelectionState = {
   activeTabId: string | null;
   setActiveTab: (id: string) => void;
   openTab: (options: OpenTabOptions) => void;
+  openTerminalTab: () => void;
   closeTab: (id: string) => void;
   pinTab: (id: string) => void;
   invalidateDiffTabs: () => void;
   selected: string | null;
   kind: SelectionKind;
-  setSelected: (path: string | null, kind?: SelectionKind, pinned?: boolean) => void;
+  setSelected: (path: string | null, kind?: "diff" | "view", pinned?: boolean) => void;
   resetSelection: () => void;
 };
 
 const SelectionContext = createContext<SelectionState | null>(null);
 
-function makeTabKey(options: {
-  path: string;
-  kind: SelectionKind;
-  mode: FileTreeMode;
-  compareBranch: string | null;
-}): string {
-  return [
-    options.kind,
-    options.mode,
-    options.compareBranch ?? "",
-    options.path,
-  ].join("::");
+export function isFileTab(tab: SelectionTab | null): tab is FileSelectionTab {
+  return Boolean(tab && tab.kind !== "terminal");
 }
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
@@ -76,10 +74,15 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     compareBranch = null,
     pinned = false,
   }: OpenTabOptions) => {
-    const key = makeTabKey({ path, kind, mode: tabMode, compareBranch });
-
     setTabs((prev) => {
-      const existing = prev.find((tab) => makeTabKey(tab) === key);
+      const existing = prev.find(
+        (tab): tab is FileSelectionTab =>
+          isFileTab(tab) &&
+          tab.path === path &&
+          tab.kind === kind &&
+          tab.mode === tabMode &&
+          tab.compareBranch === compareBranch,
+      );
       if (existing) {
         setActiveTabId(existing.id);
         if (pinned && !existing.pinned) {
@@ -117,6 +120,27 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const openTerminalTab = () => {
+    setTabs((prev) => {
+      const existing = prev.find((tab) => tab.kind === "terminal");
+      if (existing) {
+        setActiveTabId(existing.id);
+        return prev;
+      }
+
+      const newTab: TerminalSelectionTab = {
+        id: `tab-${nextTabId.current++}`,
+        kind: "terminal",
+        title: "Terminal",
+        pinned: true,
+      };
+      setActiveTabId(newTab.id);
+      return [...prev, newTab];
+    });
+  };
+
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+
   const value = useMemo<SelectionState>(
     () => ({
       mode,
@@ -125,10 +149,11 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         invalidateDiffTabs();
       },
       tabs,
-      activeTab: tabs.find((tab) => tab.id === activeTabId) ?? null,
+      activeTab,
       activeTabId,
       setActiveTab: (id) => setActiveTabId(id),
       openTab,
+      openTerminalTab,
       closeTab: (id) => {
         setTabs((prev) => {
           const index = prev.findIndex((tab) => tab.id === id);
@@ -146,8 +171,8 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
           prev.map((tab) => (tab.id === id ? { ...tab, pinned: true } : tab)),
         ),
       invalidateDiffTabs,
-      selected: tabs.find((tab) => tab.id === activeTabId)?.path ?? null,
-      kind: tabs.find((tab) => tab.id === activeTabId)?.kind ?? "diff",
+      selected: isFileTab(activeTab) ? activeTab.path : null,
+      kind: activeTab?.kind ?? "diff",
       setSelected: (path, nextKind = "diff", pinned = false) => {
         if (!path) {
           setActiveTabId(null);
@@ -160,7 +185,7 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
         setActiveTabId(null);
       },
     }),
-    [activeTabId, mode, tabs],
+    [activeTab, activeTabId, mode, tabs],
   );
 
   return (

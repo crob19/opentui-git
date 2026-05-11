@@ -2,12 +2,12 @@ import { useQuery } from "@apollo/client/react/index.js";
 import { useEffect, useState } from "react";
 import { ReadFileDocument } from "@opentui-git/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { SelectionTab } from "../state/selection.js";
+import type { FileSelectionTab } from "../state/selection.js";
 import { highlight } from "../lib/highlighter.js";
 
 const MAX_CHARS = 1024 * 1024;
 
-export function FileViewer({ tab }: { tab: SelectionTab }) {
+export function FileViewer({ tab }: { tab: FileSelectionTab }) {
   const { data, loading, error } = useQuery(ReadFileDocument, {
     variables: { path: tab.path },
   });

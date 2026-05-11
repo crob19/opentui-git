@@ -2,9 +2,9 @@ import { useQuery } from "@apollo/client/react/index.js";
 import { useMemo } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import { DiffDocument } from "@opentui-git/client";
-import type { SelectionTab } from "../state/selection.js";
+import type { FileSelectionTab } from "../state/selection.js";
 
-export function DiffViewer({ tab }: { tab: SelectionTab }) {
+export function DiffViewer({ tab }: { tab: FileSelectionTab }) {
   const branchPending = tab.mode === "branch" && !tab.compareBranch;
 
   const diffOptions = useMemo(() => {
