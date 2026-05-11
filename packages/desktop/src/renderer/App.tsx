@@ -4,20 +4,40 @@ import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { DiffViewer } from "./components/DiffViewer.js";
 import { FileViewer } from "./components/FileViewer.js";
-import { useSelection } from "./state/selection.js";
+import { FileTabs } from "./components/FileTabs.js";
+import { TerminalTab } from "./components/TerminalTab.js";
+import { isFileTab, useSelection } from "./state/selection.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
 import { TerminalPanel } from "./components/TerminalPanel.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 function MainPane() {
-  const { kind } = useSelection();
-  return kind === "view" ? <FileViewer /> : <DiffViewer />;
+  const { activeTab } = useSelection();
+
+  if (!activeTab) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
+        Select a file to open a tab
+      </div>
+    );
+  }
+
+  if (!isFileTab(activeTab)) {
+    return <TerminalTab />;
+  }
+
+  return activeTab.kind === "view" ? (
+    <FileViewer tab={activeTab} />
+  ) : (
+    <DiffViewer tab={activeTab} />
+  );
 }
 
 export function App() {
   const repo = useQuery(RepoInfoDocument);
   const status = useQuery(StatusDocument, { pollInterval: 2000 });
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const { openTerminalTab } = useSelection();
 
   const files = status.data?.status?.files ?? [];
   const staged = files.filter((f) => f.staged);
@@ -53,9 +73,20 @@ export function App() {
               </pre>
             </ScrollArea>
           )}
-          {status.data?.status && <MainPane />}
+          {status.data?.status && (
+            <>
+              <FileTabs />
+              <MainPane />
+            </>
+          )}
         </div>
-        <TerminalPanel visible={terminalOpen} />
+        <TerminalPanel
+          visible={terminalOpen}
+          onOpenAsTab={() => {
+            openTerminalTab();
+            setTerminalOpen(false);
+          }}
+        />
       </main>
 
       <div className="col-span-2 row-start-2">

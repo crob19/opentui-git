@@ -33,7 +33,7 @@ type Props = {
 const REFETCH = [{ query: StatusDocument }];
 
 export function FileTree({ files }: Props) {
-  const { mode, setMode, selected, setSelected } = useSelection();
+  const { mode, setMode, activeTab, openTab } = useSelection();
 
   const defaultBranchQuery = useQuery(DefaultBranchDocument, {
     skip: mode !== "branch",
@@ -175,8 +175,20 @@ export function FileTree({ files }: Props) {
             mode={mode}
             collapsed={collapsed}
             onToggleFolder={toggle}
-            selected={selected}
-            onSelect={setSelected}
+            activePath={
+              activeTab?.kind === "diff" && activeTab.mode === mode
+                ? activeTab.path
+                : null
+            }
+            onOpenFile={(path, pinned) =>
+              openTab({
+                path,
+                kind: "diff",
+                mode,
+                compareBranch: mode === "branch" ? compareBranch : null,
+                pinned,
+              })
+            }
             onStage={stagePaths}
             onUnstage={unstagePaths}
           />
@@ -197,8 +209,8 @@ type TreeProps = {
   mode: FileTreeMode;
   collapsed: Set<string>;
   onToggleFolder: (path: string) => void;
-  selected: string | null;
-  onSelect: (id: string | null) => void;
+  activePath: string | null;
+  onOpenFile: (path: string, pinned: boolean) => void;
   onStage: (paths: string[]) => void;
   onUnstage: (paths: string[]) => void;
 };
@@ -216,8 +228,9 @@ function Tree(props: TreeProps) {
           key={node.path}
           node={node}
           isCollapsed={node.type === "folder" && props.collapsed.has(node.path)}
-          isSelected={props.selected === node.path}
-          onSelect={() => props.onSelect(node.path)}
+          isSelected={props.activePath === node.path}
+          onOpenPreview={() => props.onOpenFile(node.path, false)}
+          onOpenPinned={() => props.onOpenFile(node.path, true)}
           onToggle={() => props.onToggleFolder(node.path)}
           onStage={() => {
             const paths =
@@ -261,7 +274,8 @@ function Row({
   node,
   isCollapsed,
   isSelected,
-  onSelect,
+  onOpenPreview,
+  onOpenPinned,
   onToggle,
   onStage,
   onUnstage,
@@ -270,7 +284,8 @@ function Row({
   node: FileTreeNode;
   isCollapsed: boolean;
   isSelected: boolean;
-  onSelect: () => void;
+  onOpenPreview: () => void;
+  onOpenPinned: () => void;
   onToggle: () => void;
   onStage: () => void;
   onUnstage: () => void;
@@ -285,7 +300,7 @@ function Row({
 
   const activate = () => {
     if (isFolder) onToggle();
-    else onSelect();
+    else onOpenPreview();
   };
 
   const inner = (
@@ -293,6 +308,9 @@ function Row({
       role="button"
       tabIndex={0}
       onClick={activate}
+      onDoubleClick={() => {
+        if (!isFolder) onOpenPinned();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();

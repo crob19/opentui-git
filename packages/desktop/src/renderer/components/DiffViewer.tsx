@@ -1,36 +1,22 @@
 import { useQuery } from "@apollo/client/react/index.js";
 import { useMemo } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
-import { DiffDocument, DefaultBranchDocument } from "@opentui-git/client";
-import { useSelection } from "../state/selection.js";
+import { DiffDocument } from "@opentui-git/client";
+import type { FileSelectionTab } from "../state/selection.js";
 
-export function DiffViewer() {
-  const { mode, selected } = useSelection();
-
-  const branchQuery = useQuery(DefaultBranchDocument, {
-    skip: mode !== "branch",
-  });
-  const compareBranch = branchQuery.data?.defaultBranch ?? null;
-  const branchPending = mode === "branch" && !compareBranch;
+export function DiffViewer({ tab }: { tab: FileSelectionTab }) {
+  const branchPending = tab.mode === "branch" && !tab.compareBranch;
 
   const diffOptions = useMemo(() => {
-    if (mode === "branch")
-      return compareBranch ? { branch: compareBranch } : null;
-    return { staged: mode === "staged" };
-  }, [mode, compareBranch]);
+    if (tab.mode === "branch")
+      return tab.compareBranch ? { branch: tab.compareBranch } : null;
+    return { staged: tab.mode === "staged" };
+  }, [tab.compareBranch, tab.mode]);
 
   const diffQuery = useQuery(DiffDocument, {
-    variables: { path: selected ?? "", options: diffOptions },
-    skip: !selected || !diffOptions,
+    variables: { path: tab.path, options: diffOptions },
+    skip: !diffOptions,
   });
-
-  if (!selected) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
-        Select a file to view its diff
-      </div>
-    );
-  }
 
   if (branchPending || (diffQuery.loading && !diffQuery.data)) {
     return (
@@ -55,7 +41,7 @@ export function DiffViewer() {
   if (!patch.trim()) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
-        No changes for {selected}
+        No changes for {tab.path}
       </div>
     );
   }

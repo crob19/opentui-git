@@ -82,12 +82,13 @@ function DirNode({ entry, depth }: { entry: Entry; depth: number }) {
 }
 
 function FileNode({ entry, depth }: { entry: Entry; depth: number }) {
-  const { selected, kind, setSelected } = useSelection();
-  const active = kind === "view" && selected === entry.path;
+  const { activeTab, openTab } = useSelection();
+  const active = activeTab?.kind === "view" && activeTab.path === entry.path;
   return (
     <button
       type="button"
-      onClick={() => setSelected(entry.path, "view")}
+      onClick={() => openTab({ path: entry.path, kind: "view" })}
+      onDoubleClick={() => openTab({ path: entry.path, kind: "view", pinned: true })}
       className={cn(
         "flex w-full items-center gap-1 px-2 py-0.5 text-left hover:bg-accent/40",
         active && "bg-accent/60",
