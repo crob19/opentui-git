@@ -67,8 +67,7 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
         rows: term.rows,
       });
       if (cancelled) {
-        // TODO: orphaned PTY. terminal.start succeeded server-side but we
-        // bailed before storing the session, so kill(id) never runs.
+        if (result.ok) window.opentui?.terminal.kill(id);
         term.dispose();
         return;
       }
