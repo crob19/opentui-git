@@ -34,7 +34,7 @@ function defaultShell(): { file: string; args: string[] } {
 export function registerPtyIpc(repoCwd: string): void {
   ipcMain.handle(
     "pty:start",
-    (event, opts: { id: string; cols: number; rows: number }) => {
+    (event, opts: { id: string; cols: number; rows: number; cwd?: string }) => {
       // Lazy-load to avoid loading the native binding before app.whenReady.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const nodePty =
@@ -57,7 +57,7 @@ export function registerPtyIpc(repoCwd: string): void {
         name: "xterm-256color",
         cols: opts.cols || 80,
         rows: opts.rows || 24,
-        cwd: repoCwd,
+        cwd: opts.cwd ?? repoCwd,
         env: { ...process.env, TERM: "xterm-256color" } as Record<
           string,
           string
