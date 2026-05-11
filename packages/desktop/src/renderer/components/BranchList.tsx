@@ -50,7 +50,7 @@ type Props = {
 };
 
 export function BranchList({ refreshSignal = 0 }: Props) {
-  const { resetSelection } = useSelection();
+  const { invalidateDiffTabs } = useSelection();
   const { data, loading, error, refetch } = useQuery(BranchesDocument);
   const repoInfoQuery = useQuery(RepoInfoDocument);
   const defaultBranchQuery = useQuery(DefaultBranchDocument);
@@ -124,7 +124,7 @@ export function BranchList({ refreshSignal = 0 }: Props) {
     if (branch.current || checkoutState.loading) return;
     try {
       await checkoutBranch({ variables: { name: branch.name } });
-      resetSelection();
+      invalidateDiffTabs();
       toast.success(`Checked out ${branch.name}`);
     } catch (err) {
       toast.error(`Checkout failed: ${(err as Error).message}`);
@@ -269,7 +269,7 @@ export function BranchList({ refreshSignal = 0 }: Props) {
             await createBranch({
               variables: { name, source: newBranchSource ?? undefined },
             });
-            resetSelection();
+            invalidateDiffTabs();
             setIsNewBranchOpen(false);
             toast.success(`Created ${name}`);
           } catch (err) {

@@ -2,33 +2,30 @@ import { useQuery } from "@apollo/client/react/index.js";
 import { useEffect, useState } from "react";
 import { ReadFileDocument } from "@opentui-git/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSelection } from "../state/selection.js";
+import type { SelectionTab } from "../state/selection.js";
 import { highlight } from "../lib/highlighter.js";
 
 const MAX_CHARS = 1024 * 1024;
 
-export function FileViewer() {
-  const { selected } = useSelection();
-
+export function FileViewer({ tab }: { tab: SelectionTab }) {
   const { data, loading, error } = useQuery(ReadFileDocument, {
-    variables: { path: selected ?? "" },
-    skip: !selected,
+    variables: { path: tab.path },
   });
 
   const content = data?.readFile?.content ?? "";
   const tooLarge = content.length > MAX_CHARS;
   const binary = !tooLarge && containsBinary(content);
-  const renderable = !!selected && !!data && !tooLarge && !binary;
+  const renderable = !!data && !tooLarge && !binary;
 
   const [html, setHtml] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!renderable || !selected) {
+    if (!renderable) {
       setHtml(null);
       return;
     }
     let cancelled = false;
-    highlight(selected, content)
+    highlight(tab.path, content)
       .then((out) => {
         if (!cancelled) setHtml(out);
       })
@@ -38,15 +35,7 @@ export function FileViewer() {
     return () => {
       cancelled = true;
     };
-  }, [selected, content, renderable]);
-
-  if (!selected) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
-        Select a file to view
-      </div>
-    );
-  }
+  }, [content, renderable, tab.path]);
 
   if (loading && !data) {
     return (
