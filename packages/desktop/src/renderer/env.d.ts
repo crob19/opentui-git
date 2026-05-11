@@ -47,7 +47,6 @@ interface ProjectsBridge {
 }
 
 interface OpentuiBridge {
-  readonly endpoint: string | null;
   readonly terminal: TerminalBridge;
   readonly projects: ProjectsBridge;
 }

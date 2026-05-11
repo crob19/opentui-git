@@ -21,10 +21,6 @@ if (projectsArg) {
   }
 }
 
-// Endpoint of the first project — kept for backward compatibility with any
-// callers that read `window.opentui.endpoint`.
-const endpoint = initialProjects[0]?.endpoint ?? null;
-
 type StartResult = { ok: true } | { ok: false; error: string };
 
 const terminal = {
@@ -80,4 +76,4 @@ const projects = {
   },
 };
 
-contextBridge.exposeInMainWorld("opentui", { endpoint, terminal, projects });
+contextBridge.exposeInMainWorld("opentui", { terminal, projects });
