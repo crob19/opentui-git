@@ -1,17 +1,24 @@
 import { useQuery } from "@apollo/client/react/index.js";
 import { useState } from "react";
+import { ApolloProvider } from "@apollo/client/react/index.js";
 import { RepoInfoDocument, StatusDocument } from "@opentui-git/client";
 import { StatusBar } from "./components/StatusBar.js";
 import { DiffViewer } from "./components/DiffViewer.js";
 import { FileViewer } from "./components/FileViewer.js";
 import { FileTabs } from "./components/FileTabs.js";
 import { TerminalTab } from "./components/TerminalTab.js";
-import { isFileTab, useSelection } from "./state/selection.js";
+import {
+  isFileTab,
+  SelectionProvider,
+  useSelection,
+} from "./state/selection.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
 import { TerminalPanel } from "./components/TerminalPanel.js";
+import { ProjectTabBar } from "./components/ProjectTabBar.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useProjects, type ProjectClient } from "./state/projects.js";
 
-function MainPane() {
+function MainPane({ cwd }: { cwd: string }) {
   const { activeTab } = useSelection();
 
   if (!activeTab) {
@@ -23,7 +30,7 @@ function MainPane() {
   }
 
   if (!isFileTab(activeTab)) {
-    return <TerminalTab />;
+    return <TerminalTab cwd={cwd} />;
   }
 
   return activeTab.kind === "view" ? (
@@ -33,7 +40,7 @@ function MainPane() {
   );
 }
 
-export function App() {
+function ProjectWorkspace({ project }: { project: ProjectClient }) {
   const repo = useQuery(RepoInfoDocument);
   const status = useQuery(StatusDocument, { pollInterval: 2000 });
   const [terminalOpen, setTerminalOpen] = useState(false);
@@ -44,7 +51,7 @@ export function App() {
 
   return (
     <div
-      className="h-screen w-screen grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] text-foreground"
+      className="flex-1 min-h-0 grid grid-cols-[320px_1fr] grid-rows-[1fr_auto] text-foreground"
       style={{ background: "var(--window)" }}
     >
       <aside
@@ -75,13 +82,14 @@ export function App() {
           )}
           {status.data?.status && (
             <>
-              <FileTabs />
-              <MainPane />
+              <FileTabs cwd={project.path} />
+              <MainPane cwd={project.path} />
             </>
           )}
         </div>
         <TerminalPanel
           visible={terminalOpen}
+          cwd={project.path}
           onOpenAsTab={() => {
             openTerminalTab();
             setTerminalOpen(false);
@@ -102,6 +110,35 @@ export function App() {
           onToggleTerminal={() => setTerminalOpen((v) => !v)}
         />
       </div>
+    </div>
+  );
+}
+
+export function App() {
+  const { projects, activeId } = useProjects();
+
+  return (
+    <div className="h-screen w-screen flex flex-col overflow-hidden">
+      <ProjectTabBar />
+      {projects.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground/60 italic">
+          No project open — use the + button to open one.
+        </div>
+      ) : (
+        projects.map((p) => (
+          <div
+            key={p.id}
+            className="flex-1 min-h-0 flex flex-col"
+            style={{ display: p.id === activeId ? "flex" : "none" }}
+          >
+            <ApolloProvider client={p.client}>
+              <SelectionProvider>
+                <ProjectWorkspace project={p} />
+              </SelectionProvider>
+            </ApolloProvider>
+          </div>
+        ))
+      )}
     </div>
   );
 }

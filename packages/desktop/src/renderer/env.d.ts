@@ -15,6 +15,7 @@ interface TerminalBridge {
     id: string;
     cols: number;
     rows: number;
+    cwd?: string;
   }): Promise<TerminalStartResult>;
   write(id: string, data: string): Promise<void>;
   resize(id: string, cols: number, rows: number): Promise<void>;
@@ -26,9 +27,29 @@ interface TerminalBridge {
   ): () => void;
 }
 
+interface ProjectInfo {
+  readonly id: string;
+  readonly path: string;
+  readonly name: string;
+  readonly endpoint: string;
+}
+
+type OpenProjectResult =
+  | { ok: true; project: ProjectInfo }
+  | { ok: false; error: string };
+
+interface ProjectsBridge {
+  readonly initial: ReadonlyArray<ProjectInfo>;
+  list(): Promise<ProjectInfo[]>;
+  pickDirectory(): Promise<string | null>;
+  open(repoPath: string): Promise<OpenProjectResult>;
+  close(id: string): Promise<{ ok: true }>;
+}
+
 interface OpentuiBridge {
   readonly endpoint: string | null;
   readonly terminal: TerminalBridge;
+  readonly projects: ProjectsBridge;
 }
 
 interface Window {

@@ -41,6 +41,22 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Show file history
 - [ ] Blame view
 
+### Multi-Project Workspaces
+
+- [x] Open multiple projects in one window as top-of-window tabs (per-project Apollo client + selection state, native folder picker via `+` button)
+- [ ] Persist open projects + active tab across launches
+  - Write `<userData>/projects.json` with `{ recents, lastSession: { paths, activeIndex } }`; hydrate in `app.whenReady` before `createWindow`
+  - Atomic writes (`writeFile(tmp) + rename`) and a debounced (~250ms) flush on open/close/activate, plus a final flush on `before-quit`
+  - Validate each path with `fs.existsSync` on startup; drop missing entries and surface a toast
+  - Cap auto-restored projects (~8) to avoid spawning dozens of GraphQL servers on launch
+  - Add `projects:setActive` IPC so the renderer can report the active tab back to main
+- [ ] Per-project state (open file tabs, scroll/cursor, terminal buffer) keyed by path hash under `<userData>/workspaceStorage/<hash>/state.json`
+  - Mirrors VS Code's layout; lets one project's state be cleared without touching others
+- [ ] Separate "currently open" from "recently opened" — feeds a future Recent Projects menu
+- [ ] Migrate from JSON to SQLite once state grows (matches Zed's approach; do this when per-project state lands, not before)
+- [ ] Drag-to-reorder project tabs
+- [ ] Close-project confirmation if there are unsaved/uncommitted changes
+
 ### UI Improvements
 
 - [ ] Split view (files + diff side by side)

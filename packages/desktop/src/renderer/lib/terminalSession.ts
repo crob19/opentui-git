@@ -10,14 +10,16 @@ type Session = {
   detachExit: () => void;
 };
 
-let session: Session | null = null;
-let initPromise: Promise<Session> | null = null;
+const sessions = new Map<string, Session>();
+const pending = new Map<string, Promise<Session>>();
 
-async function ensureSession(): Promise<Session> {
-  if (session) return session;
-  if (initPromise) return initPromise;
+async function ensureSession(cwd: string): Promise<Session> {
+  const existing = sessions.get(cwd);
+  if (existing) return existing;
+  const inFlight = pending.get(cwd);
+  if (inFlight) return inFlight;
 
-  initPromise = (async () => {
+  const promise = (async () => {
     const ghostty = await loadGhostty();
 
     const host = document.createElement("div");
@@ -44,6 +46,7 @@ async function ensureSession(): Promise<Session> {
       id,
       cols: term.cols,
       rows: term.rows,
+      cwd,
     });
     if (!result.ok) {
       term.write(`\r\n[failed to start terminal: ${result.error}]\r\n`);
@@ -61,22 +64,27 @@ async function ensureSession(): Promise<Session> {
       window.opentui!.terminal.write(id, data);
     });
 
-    session = { id, term, fit, host, detachData, detachExit };
+    const session: Session = { id, term, fit, host, detachData, detachExit };
+    sessions.set(cwd, session);
     return session;
   })();
 
+  pending.set(cwd, promise);
   try {
-    return await initPromise;
+    return await promise;
   } finally {
-    initPromise = null;
+    pending.delete(cwd);
   }
 }
 
-export function attachTerminal(container: HTMLDivElement): () => void {
+export function attachTerminal(
+  container: HTMLDivElement,
+  cwd: string,
+): () => void {
   let detached = false;
   let observer: ResizeObserver | null = null;
 
-  ensureSession()
+  ensureSession(cwd)
     .then((s) => {
       if (detached) return;
       container.appendChild(s.host);
@@ -105,10 +113,10 @@ export function attachTerminal(container: HTMLDivElement): () => void {
   };
 }
 
-export function disposeTerminal(): void {
-  if (!session) return;
-  const s = session;
-  session = null;
+export function disposeTerminal(cwd: string): void {
+  const s = sessions.get(cwd);
+  if (!s) return;
+  sessions.delete(cwd);
   s.detachData();
   s.detachExit();
   window.opentui?.terminal.kill(s.id);
