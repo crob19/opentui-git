@@ -8,7 +8,7 @@ import {
   isFileTab,
 } from "../state/selection.js";
 
-export function FileTabs({ cwd }: { cwd: string }) {
+export function FileTabs({ projectId }: { projectId: string }) {
   const { tabs, activeTabId, setActiveTab, closeTab, pinTab } = useSelection();
 
   if (tabs.length === 0) return null;
@@ -26,7 +26,7 @@ export function FileTabs({ cwd }: { cwd: string }) {
           onActivate={() => setActiveTab(tab.id)}
           onPin={() => pinTab(tab.id)}
           onClose={() => {
-            if (tab.kind === "terminal") disposeTerminal(cwd);
+            if (tab.kind === "terminal") disposeTerminal(projectId);
             closeTab(tab.id);
           }}
         />
