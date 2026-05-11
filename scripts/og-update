@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Rebuild the opentui-git desktop bundle from the current checkout.
+# Usage: og-update [--pull]
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+REPO="$(cd "$(dirname "$SOURCE")/.." && pwd)"
+cd "$REPO"
+
+if [ "${1:-}" = "--pull" ]; then
+  echo "→ git pull --ff-only"
+  git pull --ff-only
+fi
+
+echo "→ pnpm install"
+pnpm install
+
+echo "→ pnpm --filter @opentui-git/server build"
+pnpm --filter @opentui-git/server build
+
+echo "→ pnpm build:desktop"
+pnpm build:desktop
+
+echo "✓ opentui-git rebuilt at $REPO/packages/desktop/out"

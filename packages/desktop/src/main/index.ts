@@ -31,9 +31,9 @@ async function resolveEndpoint(): Promise<string> {
     );
   }
 
-  // Dev: app path is packages/desktop, so the sibling server package is one
-  // level up. Tied to the monorepo layout — revisit if packages/ moves.
-  const serverPackageDir = resolvePath(app.getAppPath(), "..", "server");
+  // The main bundle lives at packages/desktop/out/main/index.js, so the
+  // sibling server package is three levels up. Tied to the monorepo layout.
+  const serverPackageDir = resolvePath(__dirname, "..", "..", "..", "server");
   const { url, child } = await spawnGraphQLServer({
     serverPackageDir,
     repoCwd: repoCwdFromArgs(),

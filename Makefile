@@ -1,4 +1,4 @@
-.PHONY: help release-major release-minor release-patch version
+.PHONY: help release-major release-minor release-patch version og og-build og-update og-link
 
 .DEFAULT_GOAL := help
 
@@ -20,3 +20,19 @@ release-minor: ## Bump minor version (e.g., 0.1.0 → 0.2.0)
 
 release-patch: ## Bump patch version (e.g., 0.1.0 → 0.1.1)
 	@pnpm release:patch
+
+og-build: ## Build the server + desktop bundles (no install)
+	@pnpm build:server
+	@pnpm build:desktop
+
+og-update: ## Reinstall deps and rebuild the desktop bundle
+	@./scripts/og-update
+
+og-update-pull: ## git pull, reinstall deps, rebuild the desktop bundle
+	@./scripts/og-update --pull
+
+og-link: ## Symlink og + og-update into ~/.local/bin (override with DIR=...)
+	@./scripts/og-link $(DIR)
+
+og: ## Launch the bundled app against $(DIR) or $$PWD (e.g. make og DIR=~/foo)
+	@./scripts/og "$(DIR)"

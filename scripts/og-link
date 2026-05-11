@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Symlink the og / og-update launchers into a directory on $PATH.
+# Usage: og-link [target-dir]   (defaults to ~/.local/bin)
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BIN_DIR="${1:-$HOME/.local/bin}"
+
+mkdir -p "$BIN_DIR"
+
+for name in og og-update; do
+  src="$REPO/scripts/$name"
+  dst="$BIN_DIR/$name"
+  ln -sfn "$src" "$dst"
+  echo "✓ linked $dst → $src"
+done
+
+case ":$PATH:" in
+  *":$BIN_DIR:"*) ;;
+  *) echo "⚠  $BIN_DIR is not on your \$PATH. Add this to your shell rc:"
+     echo "     export PATH=\"$BIN_DIR:\$PATH\"" ;;
+esac
