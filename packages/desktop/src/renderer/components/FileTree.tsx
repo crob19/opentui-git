@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { buildFileTree, getFilesInFolder } from "opentui-git/shared/file-tree";
-import type { GitFileStatus, FileTreeNode } from "opentui-git/git/types";
+import type { FileStatus as GitFileStatus } from "@opentui-git/client";
+import type { FileTreeNode } from "opentui-git/git/types";
 
 type Props = {
   files: GitFileStatus[];

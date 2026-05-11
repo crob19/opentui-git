@@ -1,8 +1,18 @@
-import { Show, type Accessor, type Setter, type Resource, type JSXElement } from "solid-js";
-import type { GitStatusSummary, GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
+import {
+  Show,
+  type Accessor,
+  type Setter,
+  type Resource,
+  type JSXElement,
+} from "solid-js";
+import type { FileTreeNode, DiffMode } from "../../git/types.js";
 import type { PanelType } from "../commands/types.js";
 import type { BranchPanelTab } from "../app.js";
-import type { ApolloClient } from "@opentui-git/client";
+import type {
+  ApolloClient,
+  RepoStatus as GitStatusSummary,
+  FileStatus as GitFileStatus,
+} from "@opentui-git/client";
 import { Header } from "./header.js";
 import { FileList } from "./file-list.js";
 import { BranchList } from "./branch-list.js";
@@ -104,7 +114,9 @@ export function AppLayout(props: AppLayoutProps): JSXElement {
             alignItems="center"
           >
             <text fg="#FF4444">Error</text>
-            <text fg="#AAAAAA">{props.errorMessage() || "Not a git repository"}</text>
+            <text fg="#AAAAAA">
+              {props.errorMessage() || "Not a git repository"}
+            </text>
             <text fg="#888888">Press 'q' to quit</text>
           </box>
         }

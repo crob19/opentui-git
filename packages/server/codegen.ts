@@ -11,10 +11,10 @@ const config: CodegenConfig = {
         // Map GraphQL types to internal model types where the resolver returns
         // the raw service shape rather than the schema shape.
         mappers: {
-          RepoStatus: "opentui-git/git/types#GitStatusSummary",
-          FileStatus: "opentui-git/git/types#GitFileStatus",
-          Branches: "opentui-git/git/types#GitBranchInfo",
-          Commit: "opentui-git/git/types#GitCommitInfo",
+          RepoStatus: "./git/types#GitStatusSummary",
+          FileStatus: "./git/types#GitFileStatus",
+          Branches: "./git/types#GitBranchInfo",
+          Commit: "./git/types#GitCommitInfo",
         },
       },
     },

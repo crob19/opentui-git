@@ -1,5 +1,5 @@
 import { createMemo, type Accessor } from "solid-js";
-import type { GitStatusSummary } from "../../git/types.js";
+import type { RepoStatus as GitStatusSummary } from "@opentui-git/client";
 
 /**
  * Header component - Displays current branch and status information
@@ -20,7 +20,8 @@ export function Header(props: HeaderProps) {
       return "clean";
     }
     const parts = [];
-    if (fileCount() > 0) parts.push(`${fileCount()} file${fileCount() > 1 ? "s" : ""}`);
+    if (fileCount() > 0)
+      parts.push(`${fileCount()} file${fileCount() > 1 ? "s" : ""}`);
     if (ahead() > 0) parts.push(`↑${ahead()}`);
     if (behind() > 0) parts.push(`↓${behind()}`);
     return parts.join(" ");
@@ -38,12 +39,8 @@ export function Header(props: HeaderProps) {
       paddingLeft={1}
       paddingRight={1}
     >
-      <text fg="#00FF00">
-        {`⎇ ${branchName()}`}
-      </text>
-      <text fg={isClean() ? "#44FF44" : "#FFAA00"}>
-        {statusText()}
-      </text>
+      <text fg="#00FF00">{`⎇ ${branchName()}`}</text>
+      <text fg={isClean() ? "#44FF44" : "#FFAA00"}>{statusText()}</text>
     </box>
   );
 }

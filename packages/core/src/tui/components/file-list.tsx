@@ -1,5 +1,6 @@
 import { For, createMemo, type Accessor } from "solid-js";
-import type { GitFileStatus, FileTreeNode, DiffMode } from "../../git/types.js";
+import type { FileTreeNode, DiffMode } from "../../git/types.js";
+import type { FileStatus as GitFileStatus } from "@opentui-git/client";
 import { calculateVirtualScrollWindow } from "../utils/virtual-scroll.js";
 
 // Maximum number of file items to show at once in the virtual scroll window

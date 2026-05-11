@@ -5,8 +5,12 @@ import {
   type Accessor,
   type Resource,
 } from "solid-js";
-import { type ApolloClient, DiffDocument } from "@opentui-git/client";
-import type { GitFileStatus, DiffMode } from "../../git/types.js";
+import {
+  type ApolloClient,
+  DiffDocument,
+  type FileStatus as GitFileStatus,
+} from "@opentui-git/client";
+import type { DiffMode } from "../../git/types.js";
 import { runQuery } from "../data/operations.js";
 
 /**

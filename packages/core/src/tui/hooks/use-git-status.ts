@@ -12,14 +12,11 @@ import {
   FilesChangedAgainstBranchDocument,
   RepoInfoDocument,
   StatusDocument,
+  type RepoStatus as GitStatusSummary,
+  type FileStatus as GitFileStatus,
 } from "@opentui-git/client";
-import type {
-  GitStatusSummary,
-  GitFileStatus,
-  FileTreeNode,
-  DiffMode,
-} from "../../git/types.js";
-import { STATUS_COLORS } from "../../git/types.js";
+import type { FileTreeNode, DiffMode } from "../../git/types.js";
+import { STATUS_COLORS } from "../../shared/status-colors.js";
 import {
   buildFileTree,
   flattenTree,

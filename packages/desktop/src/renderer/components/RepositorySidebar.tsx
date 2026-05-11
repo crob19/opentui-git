@@ -11,7 +11,7 @@ import { RepoTree } from "./RepoTree.js";
 import { BranchList } from "./BranchList.js";
 import { TagList } from "./TagList.js";
 import { CommitPanel } from "./CommitPanel.js";
-import type { GitFileStatus } from "opentui-git/git/types";
+import type { FileStatus as GitFileStatus } from "@opentui-git/client";
 
 type Props = {
   files: GitFileStatus[];
