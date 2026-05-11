@@ -6,7 +6,8 @@ Thank you for your interest in contributing to opentui-git! This document provid
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) v1.3.5 or later
+- [Bun](https://bun.sh) v1.3.5 or later (runtime)
+- [pnpm](https://pnpm.io) (package manager)
 - [Git](https://git-scm.com/)
 - A terminal emulator that supports 24-bit color
 
@@ -14,19 +15,21 @@ Thank you for your interest in contributing to opentui-git! This document provid
 
 1. Fork the repository
 2. Clone your fork:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/opentui-git.git
    cd opentui-git
    ```
 
 3. Install dependencies:
+
    ```bash
-   bun install
+   pnpm install
    ```
 
 4. Run the application:
    ```bash
-   bun run dev
+   pnpm dev
    ```
 
 ## Project Structure
@@ -56,7 +59,7 @@ opentui-git/
 ### Running in Development
 
 ```bash
-bun run dev
+pnpm dev
 ```
 
 This runs the application in the current directory. Navigate to a git repository to see it in action.
@@ -64,7 +67,7 @@ This runs the application in the current directory. Navigate to a git repository
 ### Type Checking
 
 ```bash
-bun run typecheck
+pnpm typecheck
 ```
 
 Always run type checking before submitting a PR to ensure no type errors.
@@ -72,7 +75,7 @@ Always run type checking before submitting a PR to ensure no type errors.
 ### Building
 
 ```bash
-bun run build
+pnpm build
 ```
 
 This creates a bundled version in the `dist/` directory.
@@ -117,12 +120,14 @@ This creates a bundled version in the `dist/` directory.
 ### Pull Requests
 
 1. Update your fork:
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. Push to your fork:
+
    ```bash
    git push origin your-branch-name
    ```
@@ -168,12 +173,12 @@ import { useKeyboard } from "@opentui/solid";
 
 export function MyComponent() {
   const [value, setValue] = createSignal(0);
-  
+
   useKeyboard((event) => {
-    if (event.name === "up") setValue(v => v + 1);
-    if (event.name === "down") setValue(v => v - 1);
+    if (event.name === "up") setValue((v) => v + 1);
+    if (event.name === "down") setValue((v) => v - 1);
   });
-  
+
   return (
     <box flexDirection="column">
       <text fg="#00FF00">Value: {value()}</text>

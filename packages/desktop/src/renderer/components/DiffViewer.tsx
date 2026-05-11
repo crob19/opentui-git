@@ -4,6 +4,7 @@ import { PatchDiff } from "@pierre/diffs/react";
 import { DiffDocument } from "@opentui-git/client";
 import type { FileSelectionTab } from "../state/selection.js";
 import { Button } from "./ui/button.js";
+import { Columns, Rows } from "lucide-react";
 
 type DiffStyle = "unified" | "split";
 const DIFF_STYLE_KEY = "diffViewer.diffStyle";
@@ -67,18 +68,22 @@ export function DiffViewer({ tab }: { tab: FileSelectionTab }) {
         <Button
           size="sm"
           variant={diffStyle === "unified" ? "secondary" : "ghost"}
-          className="h-6 px-2 text-xs"
+          className="h-6 w-6 p-0"
           onClick={() => setDiffStyle("unified")}
+          title="Unified"
+          aria-label="Unified"
         >
-          Unified
+          <Rows className="h-3.5 w-3.5" />
         </Button>
         <Button
           size="sm"
           variant={diffStyle === "split" ? "secondary" : "ghost"}
-          className="h-6 px-2 text-xs"
+          className="h-6 w-6 p-0"
           onClick={() => setDiffStyle("split")}
+          title="Side by side"
+          aria-label="Side by side"
         >
-          Side by side
+          <Columns className="h-3.5 w-3.5" />
         </Button>
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
