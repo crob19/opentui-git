@@ -39,6 +39,9 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
     const id = crypto.randomUUID();
 
     (async () => {
+      await waitForContainerLayout(container, () => cancelled);
+      if (cancelled) return;
+
       const ghostty = await loadGhostty();
       if (cancelled) return;
 
@@ -100,6 +103,7 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
 
     return () => {
       cancelled = true;
+      initStartedRef.current = false;
     };
   }, [visible]);
 
@@ -113,8 +117,44 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
       window.opentui?.terminal.kill(s.id);
       s.term.dispose();
       sessionRef.current = null;
+      initStartedRef.current = false;
     };
   }, []);
 
-  return <div ref={containerRef} className="h-full w-full p-2" />;
+  return <div ref={containerRef} className="min-h-0 h-full w-full flex-1 p-2" />;
+}
+
+async function waitForContainerLayout(
+  container: HTMLDivElement,
+  isCancelled: () => boolean,
+): Promise<void> {
+  if (container.offsetWidth > 0 && container.offsetHeight > 0) return;
+
+  await new Promise<void>((resolve) => {
+    const observer = new ResizeObserver(() => {
+      if (isCancelled()) {
+        observer.disconnect();
+        resolve();
+        return;
+      }
+      if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+
+    observer.observe(container);
+
+    requestAnimationFrame(() => {
+      if (isCancelled()) {
+        observer.disconnect();
+        resolve();
+        return;
+      }
+      if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+  });
 }
