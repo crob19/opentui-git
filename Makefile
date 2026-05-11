@@ -35,4 +35,4 @@ og-link: ## Symlink og + og-update into ~/.local/bin (override with DIR=...)
 	@./scripts/og-link $(DIR)
 
 og: ## Launch the bundled app against $(DIR) or $$PWD (e.g. make og DIR=~/foo)
-	@./scripts/og $(DIR)
+	@./scripts/og "$(DIR)"

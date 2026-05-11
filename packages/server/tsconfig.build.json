@@ -8,9 +8,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "declaration": false,
-    "sourceMap": true,
-    "strict": false,
-    "noImplicitAny": false
+    "sourceMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/*.graphql"]
