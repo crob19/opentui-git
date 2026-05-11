@@ -84,6 +84,12 @@ This document tracks upcoming features and improvements for opentui-git.
 - [ ] Loading spinners
 - [ ] Better error messages with suggestions
 
+### Terminal Lifecycle Hardening
+
+- [ ] Fix orphaned-PTY race in `TerminalSurface`: if cleanup fires after `terminal.start` resolves but before the session is stored, the backend PTY survives with no client reference. Fix by building the session locally, swapping into the ref last, and calling `terminal.kill(id)` on the cancelled branch.
+- [ ] Replace the `let cancelled` + `initStartedRef`/`sessionRef` pair with an `AbortController` so async checkpoints abort promptly instead of waiting for the next `await`.
+- [ ] Consider moving terminal lifecycle out of React into a module-level manager keyed by tab id; React components attach/detach DOM and subscribe to an already-running session. Matches the data model (PTY outlives any single mount) and removes the strict-mode dance.
+
 ### Embedded Terminal (ghostty-web)
 
 - [ ] Add `ghostty-web` (libghostty-vt compiled to WASM) as the terminal renderer

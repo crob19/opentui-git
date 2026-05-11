@@ -67,6 +67,8 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
         rows: term.rows,
       });
       if (cancelled) {
+        // TODO: orphaned PTY. terminal.start succeeded server-side but we
+        // bailed before storing the session, so kill(id) never runs.
         term.dispose();
         return;
       }
@@ -103,7 +105,9 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
 
     return () => {
       cancelled = true;
-      initStartedRef.current = false;
+      if (!sessionRef.current) {
+        initStartedRef.current = false;
+      }
     };
   }, [visible]);
 
@@ -121,7 +125,9 @@ export function TerminalSurface({ visible }: { visible: boolean }) {
     };
   }, []);
 
-  return <div ref={containerRef} className="min-h-0 h-full w-full flex-1 p-2" />;
+  return (
+    <div ref={containerRef} className="min-h-0 h-full w-full flex-1 p-2" />
+  );
 }
 
 async function waitForContainerLayout(

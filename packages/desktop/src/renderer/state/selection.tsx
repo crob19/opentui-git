@@ -1,8 +1,7 @@
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useMemo, useReducer } from "react";
 import type { ReactNode } from "react";
 
 export type FileTreeMode = "unstaged" | "staged" | "branch";
-export type SelectionKind = "diff" | "view" | "terminal";
 export type FileSelectionTab = {
   id: string;
   path: string;
@@ -39,10 +38,6 @@ type SelectionState = {
   closeTab: (id: string) => void;
   pinTab: (id: string) => void;
   invalidateDiffTabs: () => void;
-  selected: string | null;
-  kind: SelectionKind;
-  setSelected: (path: string | null, kind?: "diff" | "view", pinned?: boolean) => void;
-  resetSelection: () => void;
 };
 
 const SelectionContext = createContext<SelectionState | null>(null);
@@ -51,142 +46,182 @@ export function isFileTab(tab: SelectionTab | null): tab is FileSelectionTab {
   return Boolean(tab && tab.kind !== "terminal");
 }
 
-export function SelectionProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeRaw] = useState<FileTreeMode>("unstaged");
-  const [tabs, setTabs] = useState<SelectionTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const nextTabId = useRef(0);
+type ReducerState = {
+  mode: FileTreeMode;
+  tabs: SelectionTab[];
+  activeTabId: string | null;
+  nextId: number;
+};
 
-  const invalidateDiffTabs = () => {
-    setTabs((prev) => {
-      const next = prev.filter((tab) => tab.kind !== "diff");
-      if (activeTabId && !next.some((tab) => tab.id === activeTabId)) {
-        setActiveTabId(next.at(-1)?.id ?? null);
-      }
-      return next;
-    });
-  };
+type Action =
+  | { type: "SET_MODE"; mode: FileTreeMode }
+  | { type: "SET_ACTIVE"; id: string }
+  | {
+      type: "OPEN_TAB";
+      path: string;
+      kind: "diff" | "view";
+      mode: FileTreeMode;
+      compareBranch: string | null;
+      pinned: boolean;
+    }
+  | { type: "OPEN_TERMINAL" }
+  | { type: "CLOSE_TAB"; id: string }
+  | { type: "PIN_TAB"; id: string }
+  | { type: "INVALIDATE_DIFF_TABS" };
 
-  const openTab = ({
-    path,
-    kind = "diff",
-    mode: tabMode = mode,
-    compareBranch = null,
-    pinned = false,
-  }: OpenTabOptions) => {
-    setTabs((prev) => {
-      const existing = prev.find(
-        (tab): tab is FileSelectionTab =>
-          isFileTab(tab) &&
-          tab.path === path &&
-          tab.kind === kind &&
-          tab.mode === tabMode &&
-          tab.compareBranch === compareBranch,
+function dropTabs(
+  state: ReducerState,
+  predicate: (tab: SelectionTab) => boolean,
+): ReducerState {
+  const tabs = state.tabs.filter((t) => !predicate(t));
+  if (tabs.length === state.tabs.length) return state;
+  const activeTabId = tabs.some((t) => t.id === state.activeTabId)
+    ? state.activeTabId
+    : (tabs.at(-1)?.id ?? null);
+  return { ...state, tabs, activeTabId };
+}
+
+function reducer(state: ReducerState, action: Action): ReducerState {
+  switch (action.type) {
+    case "SET_MODE":
+      return dropTabs(
+        { ...state, mode: action.mode },
+        (t) => t.kind === "diff",
+      );
+    case "SET_ACTIVE":
+      return state.activeTabId === action.id
+        ? state
+        : { ...state, activeTabId: action.id };
+    case "OPEN_TAB": {
+      const { path, kind, mode, compareBranch, pinned } = action;
+      const existing = state.tabs.find(
+        (t): t is FileSelectionTab =>
+          isFileTab(t) &&
+          t.path === path &&
+          t.kind === kind &&
+          t.mode === mode &&
+          t.compareBranch === compareBranch,
       );
       if (existing) {
-        setActiveTabId(existing.id);
-        if (pinned && !existing.pinned) {
-          return prev.map((tab) =>
-            tab.id === existing.id ? { ...tab, pinned: true } : tab,
-          );
-        }
-        return prev;
+        const tabs =
+          pinned && !existing.pinned
+            ? state.tabs.map((t) =>
+                t.id === existing.id ? { ...t, pinned: true } : t,
+              )
+            : state.tabs;
+        return { ...state, tabs, activeTabId: existing.id };
       }
-
-      const newTab: SelectionTab = {
-        id: `tab-${nextTabId.current++}`,
+      const id = `tab-${state.nextId}`;
+      const newTab: FileSelectionTab = {
+        id,
         path,
         kind,
-        mode: tabMode,
+        mode,
         compareBranch,
         pinned,
       };
-
       if (pinned) {
-        setActiveTabId(newTab.id);
-        return [...prev, newTab];
+        return {
+          ...state,
+          tabs: [...state.tabs, newTab],
+          activeTabId: id,
+          nextId: state.nextId + 1,
+        };
       }
-
-      const previewIndex = prev.findIndex((tab) => !tab.pinned);
+      const previewIndex = state.tabs.findIndex((t) => !t.pinned);
       if (previewIndex === -1) {
-        setActiveTabId(newTab.id);
-        return [...prev, newTab];
+        return {
+          ...state,
+          tabs: [...state.tabs, newTab],
+          activeTabId: id,
+          nextId: state.nextId + 1,
+        };
       }
-
-      const next = [...prev];
-      next[previewIndex] = { ...newTab, id: prev[previewIndex].id };
-      setActiveTabId(next[previewIndex].id);
-      return next;
-    });
-  };
-
-  const openTerminalTab = () => {
-    setTabs((prev) => {
-      const existing = prev.find((tab) => tab.kind === "terminal");
-      if (existing) {
-        setActiveTabId(existing.id);
-        return prev;
-      }
-
+      const tabs = [...state.tabs];
+      const replacedId = state.tabs[previewIndex].id;
+      tabs[previewIndex] = { ...newTab, id: replacedId };
+      return { ...state, tabs, activeTabId: replacedId };
+    }
+    case "OPEN_TERMINAL": {
+      const existing = state.tabs.find((t) => t.kind === "terminal");
+      if (existing) return { ...state, activeTabId: existing.id };
+      const id = `tab-${state.nextId}`;
       const newTab: TerminalSelectionTab = {
-        id: `tab-${nextTabId.current++}`,
+        id,
         kind: "terminal",
         title: "Terminal",
         pinned: true,
       };
-      setActiveTabId(newTab.id);
-      return [...prev, newTab];
-    });
-  };
-
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
-
-  const value = useMemo<SelectionState>(
-    () => ({
-      mode,
-      setMode: (next) => {
-        setModeRaw(next);
-        invalidateDiffTabs();
-      },
-      tabs,
-      activeTab,
-      activeTabId,
-      setActiveTab: (id) => setActiveTabId(id),
-      openTab,
-      openTerminalTab,
-      closeTab: (id) => {
-        setTabs((prev) => {
-          const index = prev.findIndex((tab) => tab.id === id);
-          if (index === -1) return prev;
-          const next = prev.filter((tab) => tab.id !== id);
-          if (activeTabId === id) {
-            const fallback = next[index] ?? next[index - 1] ?? null;
-            setActiveTabId(fallback?.id ?? null);
-          }
-          return next;
-        });
-      },
-      pinTab: (id) =>
-        setTabs((prev) =>
-          prev.map((tab) => (tab.id === id ? { ...tab, pinned: true } : tab)),
+      return {
+        ...state,
+        tabs: [...state.tabs, newTab],
+        activeTabId: id,
+        nextId: state.nextId + 1,
+      };
+    }
+    case "CLOSE_TAB": {
+      const index = state.tabs.findIndex((t) => t.id === action.id);
+      if (index === -1) return state;
+      const tabs = state.tabs.filter((t) => t.id !== action.id);
+      let activeTabId = state.activeTabId;
+      if (state.activeTabId === action.id) {
+        activeTabId = (tabs[index] ?? tabs[index - 1] ?? null)?.id ?? null;
+      }
+      return { ...state, tabs, activeTabId };
+    }
+    case "PIN_TAB":
+      return {
+        ...state,
+        tabs: state.tabs.map((t) =>
+          t.id === action.id ? { ...t, pinned: true } : t,
         ),
-      invalidateDiffTabs,
-      selected: isFileTab(activeTab) ? activeTab.path : null,
-      kind: activeTab?.kind ?? "diff",
-      setSelected: (path, nextKind = "diff", pinned = false) => {
-        if (!path) {
-          setActiveTabId(null);
-          return;
-        }
-        openTab({ path, kind: nextKind, pinned });
-      },
-      resetSelection: () => {
-        setTabs([]);
-        setActiveTabId(null);
-      },
-    }),
-    [activeTab, activeTabId, mode, tabs],
-  );
+      };
+    case "INVALIDATE_DIFF_TABS":
+      return dropTabs(state, (t) => t.kind === "diff");
+  }
+}
+
+const INITIAL: ReducerState = {
+  mode: "unstaged",
+  tabs: [],
+  activeTabId: null,
+  nextId: 0,
+};
+
+export function SelectionProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, INITIAL);
+
+  const value = useMemo<SelectionState>(() => {
+    const activeTab =
+      state.tabs.find((t) => t.id === state.activeTabId) ?? null;
+    return {
+      mode: state.mode,
+      setMode: (mode) => dispatch({ type: "SET_MODE", mode }),
+      tabs: state.tabs,
+      activeTab,
+      activeTabId: state.activeTabId,
+      setActiveTab: (id) => dispatch({ type: "SET_ACTIVE", id }),
+      openTab: ({
+        path,
+        kind = "diff",
+        mode = state.mode,
+        compareBranch = null,
+        pinned = false,
+      }) =>
+        dispatch({
+          type: "OPEN_TAB",
+          path,
+          kind,
+          mode,
+          compareBranch,
+          pinned,
+        }),
+      openTerminalTab: () => dispatch({ type: "OPEN_TERMINAL" }),
+      closeTab: (id) => dispatch({ type: "CLOSE_TAB", id }),
+      pinTab: (id) => dispatch({ type: "PIN_TAB", id }),
+      invalidateDiffTabs: () => dispatch({ type: "INVALIDATE_DIFF_TABS" }),
+    };
+  }, [state]);
 
   return (
     <SelectionContext.Provider value={value}>

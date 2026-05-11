@@ -185,7 +185,7 @@ export function FileTree({ files }: Props) {
                 path,
                 kind: "diff",
                 mode,
-                compareBranch,
+                compareBranch: mode === "branch" ? compareBranch : null,
                 pinned,
               })
             }

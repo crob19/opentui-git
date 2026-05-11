@@ -13,7 +13,10 @@ export function FileTabs() {
   if (tabs.length === 0) return null;
 
   return (
-    <div className="hairline-b flex min-h-10 items-stretch overflow-x-auto overflow-y-hidden bg-muted/20">
+    <div
+      role="tablist"
+      className="hairline-b flex min-h-10 items-stretch overflow-x-auto overflow-y-hidden bg-muted/20"
+    >
       {tabs.map((tab) => (
         <TabButton
           key={tab.id}
@@ -46,11 +49,18 @@ function TabButton({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
+      role="tab"
+      aria-selected={active}
+      tabIndex={active ? 0 : -1}
       title={isFileTab(tab) ? tab.path : tab.title}
       onClick={onActivate}
       onDoubleClick={onPin}
+      onAuxClick={(event) => {
+        if (event.button === 1) {
+          event.preventDefault();
+          onClose();
+        }
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -59,7 +69,9 @@ function TabButton({
       }}
       className={cn(
         "group flex min-w-0 max-w-72 shrink-0 items-center gap-2 border-r border-border/70 px-3 text-left text-sm transition-colors",
-        active ? "bg-background text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+        active
+          ? "bg-background text-foreground"
+          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
       )}
     >
       <Icon className="size-3.5 shrink-0 opacity-70" />
@@ -82,7 +94,10 @@ function TabButton({
   );
 }
 
-function handleClose(event: MouseEvent<HTMLButtonElement>, onClose: () => void) {
+function handleClose(
+  event: MouseEvent<HTMLButtonElement>,
+  onClose: () => void,
+) {
   event.stopPropagation();
   onClose();
 }
