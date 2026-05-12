@@ -27,6 +27,7 @@ type TreeEntry {
 extend type Query {
   readFile(path: String!): FileReadResult!
   repoTree(path: String): [TreeEntry!]!
+  repoPaths: [String!]!
 }
 
 extend type Mutation {

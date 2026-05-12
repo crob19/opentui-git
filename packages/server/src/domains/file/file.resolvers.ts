@@ -9,6 +9,9 @@ export const fileResolvers: Resolvers = {
     repoTree: async (_p, { path }, { git }) => {
       return git.listTree(path);
     },
+    repoPaths: async (_p, _a, { git }) => {
+      return git.listAllPaths();
+    },
   },
   Mutation: {
     writeFile: async (_p, { path, content, expectedMtime }, { git }) => {

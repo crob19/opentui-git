@@ -82,7 +82,7 @@ export type MutationFieldPolicy = {
 	unstageFiles?: FieldPolicy<any> | FieldReadFunction<any>,
 	writeFile?: FieldPolicy<any> | FieldReadFunction<any>
 };
-export type QueryKeySpecifier = ('branches' | 'commits' | 'currentCommitHash' | 'defaultBranch' | 'diff' | 'filesChangedAgainstBranch' | 'readFile' | 'repoInfo' | 'repoTree' | 'status' | 'tags' | QueryKeySpecifier)[];
+export type QueryKeySpecifier = ('branches' | 'commits' | 'currentCommitHash' | 'defaultBranch' | 'diff' | 'filesChangedAgainstBranch' | 'readFile' | 'repoInfo' | 'repoPaths' | 'repoTree' | 'status' | 'tags' | QueryKeySpecifier)[];
 export type QueryFieldPolicy = {
 	branches?: FieldPolicy<any> | FieldReadFunction<any>,
 	commits?: FieldPolicy<any> | FieldReadFunction<any>,
@@ -92,6 +92,7 @@ export type QueryFieldPolicy = {
 	filesChangedAgainstBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	readFile?: FieldPolicy<any> | FieldReadFunction<any>,
 	repoInfo?: FieldPolicy<any> | FieldReadFunction<any>,
+	repoPaths?: FieldPolicy<any> | FieldReadFunction<any>,
 	repoTree?: FieldPolicy<any> | FieldReadFunction<any>,
 	status?: FieldPolicy<any> | FieldReadFunction<any>,
 	tags?: FieldPolicy<any> | FieldReadFunction<any>

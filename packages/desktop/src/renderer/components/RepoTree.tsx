@@ -1,123 +1,46 @@
 import { useQuery } from "@apollo/client/react/index.js";
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { RepoTreeDocument, type RepoTreeQuery } from "@opentui-git/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { useMemo } from "react";
+import { FileTree, useFileTree } from "@pierre/trees/react";
+import { RepoPathsDocument, StatusDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
-
-type Entry = RepoTreeQuery["repoTree"][number];
+import { toGitStatusEntries } from "../lib/gitStatusAdapter.js";
 
 export function RepoTree() {
-  return (
-    <ScrollArea className="h-full">
-      <div className="py-1 text-sm">
-        <Directory path={null} depth={0} />
-      </div>
-    </ScrollArea>
-  );
-}
+  const { openTab } = useSelection();
 
-function Directory({ path, depth }: { path: string | null; depth: number }) {
-  const { data, loading, error } = useQuery(RepoTreeDocument, {
-    variables: { path },
+  const { data, loading, error } = useQuery(RepoPathsDocument);
+  const statusQuery = useQuery(StatusDocument);
+
+  const paths = useMemo(() => data?.repoPaths ?? [], [data]);
+  const gitStatus = useMemo(
+    () => toGitStatusEntries(statusQuery.data?.status.files ?? []),
+    [statusQuery.data],
+  );
+
+  const { model } = useFileTree({
+    paths,
+    gitStatus,
+    onSelectionChange: (selected) => {
+      const path = selected[0];
+      if (!path) return;
+      openTab({ path, kind: "view" });
+    },
   });
 
-  if (loading && !data) {
+  if (loading && paths.length === 0) {
     return (
-      <Row depth={depth} muted>
+      <div className="px-2 py-1.5 text-xs italic text-muted-foreground/60">
         Loading…
-      </Row>
+      </div>
     );
   }
   if (error) {
     return (
-      <Row depth={depth} muted>
+      <div className="px-2 py-1.5 text-xs italic text-muted-foreground/60">
         {error.message}
-      </Row>
-    );
-  }
-  const entries = data?.repoTree ?? [];
-  if (entries.length === 0) {
-    return (
-      <Row depth={depth} muted>
-        (empty)
-      </Row>
+      </div>
     );
   }
 
-  return (
-    <>
-      {entries.map((entry) =>
-        entry.type === "DIR" ? (
-          <DirNode key={entry.path} entry={entry} depth={depth} />
-        ) : (
-          <FileNode key={entry.path} entry={entry} depth={depth} />
-        ),
-      )}
-    </>
-  );
-}
-
-function DirNode({ entry, depth }: { entry: Entry; depth: number }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-1 px-2 py-0.5 text-left hover:bg-accent/40"
-        style={{ paddingLeft: 8 + depth * 12 }}
-      >
-        {open ? (
-          <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-        )}
-        <span className="truncate">{entry.name}</span>
-      </button>
-      {open && <Directory path={entry.path} depth={depth + 1} />}
-    </>
-  );
-}
-
-function FileNode({ entry, depth }: { entry: Entry; depth: number }) {
-  const { activeTab, openTab } = useSelection();
-  const active = activeTab?.kind === "view" && activeTab.path === entry.path;
-  return (
-    <button
-      type="button"
-      onClick={() => openTab({ path: entry.path, kind: "view" })}
-      onDoubleClick={() => openTab({ path: entry.path, kind: "view", pinned: true })}
-      className={cn(
-        "flex w-full items-center gap-1 px-2 py-0.5 text-left hover:bg-accent/40",
-        active && "bg-accent/60",
-      )}
-      style={{ paddingLeft: 8 + depth * 12 + 14 }}
-    >
-      <span className="truncate">{entry.name}</span>
-    </button>
-  );
-}
-
-function Row({
-  depth,
-  muted,
-  children,
-}: {
-  depth: number;
-  muted?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        "px-2 py-0.5 text-xs italic",
-        muted && "text-muted-foreground/60",
-      )}
-      style={{ paddingLeft: 8 + depth * 12 + 14 }}
-    >
-      {children}
-    </div>
-  );
+  return <FileTree model={model} className="h-full" />;
 }

@@ -796,6 +796,17 @@ export class GitService {
     return entries;
   }
 
+  async listAllPaths(): Promise<string[]> {
+    const raw = await this.git.raw([
+      "ls-files",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "-z",
+    ]);
+    return raw.split("\0").filter(Boolean);
+  }
+
   /**
    * Read a file from the repository with metadata
    * @param filepath - Path to the file relative to the repository root
