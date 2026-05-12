@@ -10,13 +10,15 @@ type Session = {
   detachExit: () => void;
 };
 
+// Keyed by project id, not cwd: two windows on the same repo (or a future
+// split-terminal feature) need independent sessions.
 const sessions = new Map<string, Session>();
 const pending = new Map<string, Promise<Session>>();
 
-async function ensureSession(cwd: string): Promise<Session> {
-  const existing = sessions.get(cwd);
+async function ensureSession(projectId: string, cwd: string): Promise<Session> {
+  const existing = sessions.get(projectId);
   if (existing) return existing;
-  const inFlight = pending.get(cwd);
+  const inFlight = pending.get(projectId);
   if (inFlight) return inFlight;
 
   const promise = (async () => {
@@ -65,26 +67,27 @@ async function ensureSession(cwd: string): Promise<Session> {
     });
 
     const session: Session = { id, term, fit, host, detachData, detachExit };
-    sessions.set(cwd, session);
+    sessions.set(projectId, session);
     return session;
   })();
 
-  pending.set(cwd, promise);
+  pending.set(projectId, promise);
   try {
     return await promise;
   } finally {
-    pending.delete(cwd);
+    pending.delete(projectId);
   }
 }
 
 export function attachTerminal(
   container: HTMLDivElement,
+  projectId: string,
   cwd: string,
 ): () => void {
   let detached = false;
   let observer: ResizeObserver | null = null;
 
-  ensureSession(cwd)
+  ensureSession(projectId, cwd)
     .then((s) => {
       if (detached) return;
       container.appendChild(s.host);
@@ -113,10 +116,10 @@ export function attachTerminal(
   };
 }
 
-export function disposeTerminal(cwd: string): void {
-  const s = sessions.get(cwd);
+export function disposeTerminal(projectId: string): void {
+  const s = sessions.get(projectId);
   if (!s) return;
-  sessions.delete(cwd);
+  sessions.delete(projectId);
   s.detachData();
   s.detachExit();
   window.opentui?.terminal.kill(s.id);

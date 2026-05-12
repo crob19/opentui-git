@@ -4,11 +4,12 @@ import { TerminalSurface } from "./TerminalSurface.js";
 
 type Props = {
   visible: boolean;
+  projectId: string;
   cwd: string;
   onOpenAsTab: () => void;
 };
 
-export function TerminalPanel({ visible, cwd, onOpenAsTab }: Props) {
+export function TerminalPanel({ visible, projectId, cwd, onOpenAsTab }: Props) {
   return (
     <div
       className="hairline-t h-72"
@@ -35,7 +36,7 @@ export function TerminalPanel({ visible, cwd, onOpenAsTab }: Props) {
           </Button>
         </div>
         <div className="min-h-0 flex-1">
-          {visible && <TerminalSurface cwd={cwd} />}
+          {visible && <TerminalSurface projectId={projectId} cwd={cwd} />}
         </div>
       </div>
     </div>

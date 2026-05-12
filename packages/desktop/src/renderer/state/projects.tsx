@@ -89,7 +89,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    disposeTerminal(closed.path);
+    disposeTerminal(closed.id);
     void window.opentui?.projects.close(id);
 
     setProjects(next);

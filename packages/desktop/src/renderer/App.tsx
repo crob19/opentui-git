@@ -18,7 +18,7 @@ import { ProjectTabBar } from "./components/ProjectTabBar.js";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProjects, type ProjectClient } from "./state/projects.js";
 
-function MainPane({ cwd }: { cwd: string }) {
+function MainPane({ projectId, cwd }: { projectId: string; cwd: string }) {
   const { activeTab } = useSelection();
 
   if (!activeTab) {
@@ -30,7 +30,7 @@ function MainPane({ cwd }: { cwd: string }) {
   }
 
   if (!isFileTab(activeTab)) {
-    return <TerminalTab cwd={cwd} />;
+    return <TerminalTab projectId={projectId} cwd={cwd} />;
   }
 
   return activeTab.kind === "view" ? (
@@ -82,13 +82,14 @@ function ProjectWorkspace({ project }: { project: ProjectClient }) {
           )}
           {status.data?.status && (
             <>
-              <FileTabs cwd={project.path} />
-              <MainPane cwd={project.path} />
+              <FileTabs projectId={project.id} />
+              <MainPane projectId={project.id} cwd={project.path} />
             </>
           )}
         </div>
         <TerminalPanel
           visible={terminalOpen}
+          projectId={project.id}
           cwd={project.path}
           onOpenAsTab={() => {
             openTerminalTab();
