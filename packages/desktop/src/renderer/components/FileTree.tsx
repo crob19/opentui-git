@@ -99,6 +99,8 @@ export function FileTree({ files }: Props) {
   const { model } = useFileTree({
     paths,
     gitStatus,
+    flattenEmptyDirectories: false,
+    initialExpansion: "open",
     onSelectionChange: (selected) => {
       const path = selected[0];
       if (!path) return;

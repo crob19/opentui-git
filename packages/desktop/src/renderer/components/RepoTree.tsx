@@ -20,6 +20,7 @@ export function RepoTree() {
   const { model } = useFileTree({
     paths,
     gitStatus,
+    flattenEmptyDirectories: false,
     onSelectionChange: (selected) => {
       const path = selected[0];
       if (!path) return;

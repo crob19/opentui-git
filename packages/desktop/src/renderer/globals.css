@@ -86,6 +86,13 @@
   --git-clean: var(--dracula-green);
   --git-dirty: var(--dracula-yellow);
 
+  /* ---- @pierre/trees ---------------------------------------- */
+  --trees-bg-override: var(--dracula-bg);
+  --trees-bg-muted-override: var(--dracula-current-line);
+  --trees-fg-override: var(--dracula-fg);
+  --trees-fg-muted-override: var(--dracula-comment);
+  --trees-accent-override: var(--dracula-purple);
+
   /* ---- Diff (PatchDiff) ------------------------------------ */
   --diff-add-bg: rgba(80, 250, 123, 0.1);
   --diff-add-gutter: rgba(80, 250, 123, 0.35);
