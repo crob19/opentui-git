@@ -21,13 +21,11 @@ export function formatCommentNote(input: {
   comment: string;
 }): string {
   const sel = input.selection;
-  const range = (() => {
-    if (!sel) return "this file";
-    const start = Math.min(sel.start, sel.end);
-    const end = Math.max(sel.start, sel.end);
-    return start === end ? `line ${start}` : `lines ${start} through ${end}`;
-  })();
-  return `The user made the following comment regarding ${range} of ${input.path}: ${input.comment}`;
+  if (!sel) return `@${input.path}: ${input.comment}`;
+  const start = Math.min(sel.start, sel.end);
+  const end = Math.max(sel.start, sel.end);
+  const range = start === end ? `line ${start}` : `lines ${start}–${end}`;
+  return `@${input.path} (${range}): ${input.comment}`;
 }
 
 export function formatCommentBatch(items: LineComment[]): string {
@@ -45,5 +43,9 @@ export function formatCommentBatch(items: LineComment[]): string {
         comment: c.comment,
       }),
     );
-  return lines.join("\n\n");
+  const header =
+    items.length === 1
+      ? "Please address this comment:"
+      : `Please address these ${items.length} comments:`;
+  return `${header}\n\n${lines.join("\n\n")}`;
 }
