@@ -66,15 +66,21 @@ export function useCommentComposer(filePath: string) {
   );
 
   const composerNode = pending ? (
-    <div className="absolute right-4 top-2 z-10">
-      <CommentComposer
-        selection={pending.selection}
-        initialValue={pending.initial}
-        submitLabel={pending.editingId ? "Save" : "Add comment"}
-        onSubmit={(text) => submit(text)}
-        onCancel={cancel}
+    <>
+      <div
+        className="absolute inset-0 z-10 bg-background/40"
+        onClick={cancel}
       />
-    </div>
+      <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+        <CommentComposer
+          selection={pending.selection}
+          initialValue={pending.initial}
+          submitLabel={pending.editingId ? "Save" : "Add comment"}
+          onSubmit={(text) => submit(text)}
+          onCancel={cancel}
+        />
+      </div>
+    </>
   ) : null;
 
   return {
