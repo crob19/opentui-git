@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
-import { useMemo } from "react";
-import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react";
+import { useEffect, useMemo } from "react";
+import { FileTree, useFileTree } from "@pierre/trees/react";
 import { toast } from "sonner";
 import {
   StageFilesDocument,
@@ -29,7 +29,7 @@ type Props = {
 
 const REFETCH = [{ query: StatusDocument }];
 
-export function FileTree({ files }: Props) {
+export function ChangesPanel({ files }: Props) {
   const { mode, setMode, openTab } = useSelection();
 
   const defaultBranchQuery = useQuery(DefaultBranchDocument, {
@@ -115,6 +115,14 @@ export function FileTree({ files }: Props) {
     },
   });
 
+  useEffect(() => {
+    model.resetPaths(paths);
+  }, [model, paths]);
+
+  useEffect(() => {
+    model.setGitStatus(gitStatus);
+  }, [model, gitStatus]);
+
   const isLoading =
     mode === "branch" &&
     (defaultBranchQuery.loading ||
@@ -193,7 +201,7 @@ export function FileTree({ files }: Props) {
             {emptyMessage(mode, compareBranch)}
           </div>
         ) : (
-          <PierreFileTree
+          <FileTree
             model={model}
             className="h-full"
             renderContextMenu={(item) => {

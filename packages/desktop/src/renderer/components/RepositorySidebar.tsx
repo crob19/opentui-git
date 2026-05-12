@@ -6,7 +6,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileTree } from "./FileTree.js";
+import { ChangesPanel } from "./ChangesPanel.js";
 import { RepoTree } from "./RepoTree.js";
 import { BranchList } from "./BranchList.js";
 import { TagList } from "./TagList.js";
@@ -39,7 +39,7 @@ export function RepositorySidebar({ files, stagedCount }: Props) {
           defaultOpen
           className="flex-[2_1_260px]"
         >
-          <FileTree files={files} />
+          <ChangesPanel files={files} />
         </SidebarSection>
         <SidebarSection
           title="Branches"

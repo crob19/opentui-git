@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client/react/index.js";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import { RepoPathsDocument, StatusDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
@@ -27,6 +27,14 @@ export function RepoTree() {
       openTab({ path, kind: "view" });
     },
   });
+
+  useEffect(() => {
+    model.resetPaths(paths);
+  }, [model, paths]);
+
+  useEffect(() => {
+    model.setGitStatus(gitStatus);
+  }, [model, gitStatus]);
 
   if (loading && paths.length === 0) {
     return (
