@@ -3,29 +3,18 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { PatchDiff } from "@pierre/diffs/react";
 import type { DiffLineAnnotation, SelectedLineRange } from "@pierre/diffs";
 import { DiffDocument } from "@opentui-git/client";
-import {
-  formatCommentBatch,
-  type CommentSelection,
-  type LineComment,
-} from "opentui-git/shared/comments";
+import type { CommentSelection } from "opentui-git/shared/comments";
 import type { FileSelectionTab } from "../state/selection.js";
-import { useComments } from "../state/comments.js";
-import { hasTerminalSession, writeToTerminal } from "../lib/terminalSession.js";
 import { Button } from "./ui/button.js";
-import { CommentComposer } from "./CommentComposer.js";
-import { Columns, MessageSquarePlus, Rows, Send, X } from "lucide-react";
-import { toast } from "sonner";
+import { Columns, Rows } from "lucide-react";
+import { CommentToolbar } from "./comments/CommentToolbar.js";
+import { GutterCommentButton } from "./comments/GutterButton.js";
+import { useCommentComposer } from "./comments/useCommentComposer.js";
 
 type DiffStyle = "unified" | "split";
 const DIFF_STYLE_KEY = "diffViewer.diffStyle";
 
 type CommentMeta = { commentId: string };
-
-type Pending = {
-  selection: CommentSelection;
-  initial?: string;
-  editingId?: string;
-};
 
 function toCommentSelection(range: SelectedLineRange): CommentSelection {
   const out: CommentSelection = { start: range.start, end: range.end };
@@ -49,8 +38,6 @@ export function DiffViewer({
   projectId: string;
 }) {
   const branchPending = tab.mode === "branch" && !tab.compareBranch;
-  const comments = useComments();
-  const fileComments = comments.forFile(tab.path);
 
   const [diffStyle, setDiffStyle] = useState<DiffStyle>(() => {
     const stored = localStorage.getItem(DIFF_STYLE_KEY);
@@ -62,25 +49,15 @@ export function DiffViewer({
   }, [diffStyle]);
 
   const [selected, setSelected] = useState<SelectedLineRange | null>(null);
-  const [pending, setPending] = useState<Pending | null>(null);
+
+  const composer = useCommentComposer(tab.path);
+  const { fileComments, openFor, renderAnnotationFor, composerNode } = composer;
 
   const diffOptions = useMemo(() => {
     if (tab.mode === "branch")
       return tab.compareBranch ? { branch: tab.compareBranch } : null;
     return { staged: tab.mode === "staged" };
   }, [tab.compareBranch, tab.mode]);
-
-  const openComposerFor = useCallback((sel: CommentSelection) => {
-    setPending({ selection: sel });
-  }, []);
-
-  const openEditor = useCallback((c: LineComment) => {
-    setPending({
-      selection: c.selection,
-      initial: c.comment,
-      editingId: c.id,
-    });
-  }, []);
 
   const patchOptions = useMemo(
     () => ({
@@ -107,42 +84,9 @@ export function DiffViewer({
   }, [fileComments]);
 
   const renderAnnotation = useCallback(
-    (annotation: DiffLineAnnotation<CommentMeta>) => {
-      const c = fileComments.find(
-        (x) => x.id === annotation.metadata.commentId,
-      );
-      if (!c) return null;
-      return (
-        <div className="mx-2 my-1 rounded border border-border bg-popover/80 p-2 text-sm font-sans shadow-sm">
-          <div className="flex items-start gap-2">
-            <div className="flex-1 whitespace-pre-wrap break-words">
-              {c.comment}
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={() => openEditor(c)}
-              >
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0"
-                onClick={() => comments.remove(c.id)}
-                aria-label="Remove comment"
-                title="Remove comment"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      );
-    },
-    [fileComments, comments, openEditor],
+    (annotation: DiffLineAnnotation<CommentMeta>) =>
+      renderAnnotationFor(annotation.metadata.commentId),
+    [renderAnnotationFor],
   );
 
   const renderGutterUtility = useCallback(
@@ -153,49 +97,23 @@ export function DiffViewer({
     ) => {
       const onClick = () => {
         if (selected) {
-          openComposerFor(toCommentSelection(selected));
+          openFor(toCommentSelection(selected));
+          setSelected(null);
           return;
         }
         const hovered = getHoveredLine();
         if (!hovered) return;
-        openComposerFor(singleLineSelection(hovered.lineNumber, hovered.side));
+        openFor(singleLineSelection(hovered.lineNumber, hovered.side));
       };
-      return (
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label="Add comment"
-          title="Add comment"
-          className="flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <MessageSquarePlus className="h-3 w-3" />
-        </button>
-      );
+      return <GutterCommentButton onClick={onClick} />;
     },
-    [openComposerFor, selected],
+    [openFor, selected],
   );
 
   const diffQuery = useQuery(DiffDocument, {
     variables: { path: tab.path, options: diffOptions },
     skip: !diffOptions,
   });
-
-  const sendToTerminal = () => {
-    if (fileComments.length === 0) return;
-    if (!hasTerminalSession(projectId)) {
-      toast.error("Open the terminal first so the agent is running.");
-      return;
-    }
-    const note = formatCommentBatch(fileComments);
-    const ok = writeToTerminal(projectId, note + "\r");
-    if (!ok) {
-      toast.error("Couldn't reach the terminal.");
-      return;
-    }
-    toast.success(
-      `Sent ${fileComments.length} comment${fileComments.length === 1 ? "" : "s"}.`,
-    );
-  };
 
   if (branchPending || (diffQuery.loading && !diffQuery.data)) {
     return (
@@ -234,30 +152,7 @@ export function DiffViewer({
             : ""}
         </div>
         <div className="flex items-center gap-1">
-          {fileComments.length > 0 && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={sendToTerminal}
-                title="Send comments to terminal"
-              >
-                <Send className="h-3.5 w-3.5 mr-1" />
-                Send to terminal
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs"
-                onClick={() => comments.removeForFile(tab.path)}
-                title="Clear comments for this file"
-              >
-                Clear
-              </Button>
-              <div className="w-px h-4 bg-border/40 mx-1" />
-            </>
-          )}
+          <CommentToolbar projectId={projectId} filePath={tab.path} />
           <Button
             size="sm"
             variant={diffStyle === "unified" ? "secondary" : "ghost"}
@@ -289,29 +184,7 @@ export function DiffViewer({
           renderAnnotation={renderAnnotation}
           renderGutterUtility={renderGutterUtility}
         />
-        {pending && (
-          <div className="absolute right-4 top-2 z-10">
-            <CommentComposer
-              selection={pending.selection}
-              initialValue={pending.initial}
-              submitLabel={pending.editingId ? "Save" : "Add comment"}
-              onSubmit={(text) => {
-                if (pending.editingId) {
-                  comments.update(pending.editingId, text);
-                } else {
-                  comments.add({
-                    file: tab.path,
-                    selection: pending.selection,
-                    comment: text,
-                  });
-                }
-                setPending(null);
-                setSelected(null);
-              }}
-              onCancel={() => setPending(null)}
-            />
-          </div>
-        )}
+        {composerNode}
       </div>
     </div>
   );

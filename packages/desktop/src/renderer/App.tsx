@@ -35,7 +35,7 @@ function MainPane({ projectId, cwd }: { projectId: string; cwd: string }) {
   }
 
   return activeTab.kind === "view" ? (
-    <FileViewer tab={activeTab} />
+    <FileViewer tab={activeTab} projectId={projectId} />
   ) : (
     <DiffViewer tab={activeTab} projectId={projectId} />
   );
