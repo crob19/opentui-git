@@ -17,6 +17,9 @@ export function RepoTree() {
     [statusQuery.data],
   );
 
+  // pierre/trees' useFileTree captures onSelectionChange once at mount, so
+  // openTab would be frozen to the first render. Reach through a ref each call.
+  // Revisit if pierre/trees exposes a callback setter.
   const openTabRef = useRef(openTab);
   openTabRef.current = openTab;
 
@@ -24,6 +27,7 @@ export function RepoTree() {
     paths,
     gitStatus,
     flattenEmptyDirectories: false,
+    search: true,
     onSelectionChange: (selected) => {
       const path = selected[0];
       if (!path) return;

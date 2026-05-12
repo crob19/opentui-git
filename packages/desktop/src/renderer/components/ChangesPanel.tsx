@@ -96,6 +96,10 @@ export function ChangesPanel({ files }: Props) {
     return paths.filter((p) => p.startsWith(prefix));
   };
 
+  // pierre/trees' useFileTree builds the model once at mount and captures the
+  // initial onSelectionChange closure, so its `mode`/`paths`/`openTab` would be
+  // frozen to the first render. Read everything through a ref that we refresh
+  // each render. Revisit if pierre/trees exposes a callback setter.
   const latest = useRef({ mode, compareBranch, paths, openTab });
   latest.current = { mode, compareBranch, paths, openTab };
 

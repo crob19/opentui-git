@@ -92,6 +92,10 @@
   --trees-fg-override: var(--dracula-fg);
   --trees-fg-muted-override: var(--dracula-comment);
   --trees-accent-override: var(--dracula-purple);
+  --trees-input-bg-override: #21222c;
+  --trees-search-bg-override: transparent;
+  --trees-search-fg-override: var(--dracula-purple);
+  --trees-focus-ring-color-override: var(--dracula-purple);
 
   /* ---- Diff (PatchDiff) ------------------------------------ */
   --diff-add-bg: rgba(80, 250, 123, 0.1);
