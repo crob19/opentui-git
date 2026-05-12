@@ -12,6 +12,7 @@ import {
   SelectionProvider,
   useSelection,
 } from "./state/selection.js";
+import { CommentsProvider } from "./state/comments.js";
 import { RepositorySidebar } from "./components/RepositorySidebar.js";
 import { TerminalPanel } from "./components/TerminalPanel.js";
 import { ProjectTabBar } from "./components/ProjectTabBar.js";
@@ -36,7 +37,7 @@ function MainPane({ projectId, cwd }: { projectId: string; cwd: string }) {
   return activeTab.kind === "view" ? (
     <FileViewer tab={activeTab} />
   ) : (
-    <DiffViewer tab={activeTab} />
+    <DiffViewer tab={activeTab} projectId={projectId} />
   );
 }
 
@@ -134,7 +135,9 @@ export function App() {
           >
             <ApolloProvider client={p.client}>
               <SelectionProvider>
-                <ProjectWorkspace project={p} />
+                <CommentsProvider projectId={p.id}>
+                  <ProjectWorkspace project={p} />
+                </CommentsProvider>
               </SelectionProvider>
             </ApolloProvider>
           </div>

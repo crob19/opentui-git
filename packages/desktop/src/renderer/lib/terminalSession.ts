@@ -116,6 +116,17 @@ export function attachTerminal(
   };
 }
 
+export function hasTerminalSession(projectId: string): boolean {
+  return sessions.has(projectId);
+}
+
+export function writeToTerminal(projectId: string, data: string): boolean {
+  const s = sessions.get(projectId);
+  if (!s) return false;
+  window.opentui?.terminal.write(s.id, data);
+  return true;
+}
+
 export function disposeTerminal(projectId: string): void {
   const s = sessions.get(projectId);
   if (!s) return;

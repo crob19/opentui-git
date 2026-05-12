@@ -11,7 +11,8 @@
     "./shared/file-tree": "./src/shared/file-tree.ts",
     "./shared/diff-parser": "./src/shared/diff-parser.ts",
     "./shared/language-detection": "./src/shared/language-detection.ts",
-    "./shared/syntax-highlighting": "./src/shared/syntax-highlighting.ts"
+    "./shared/syntax-highlighting": "./src/shared/syntax-highlighting.ts",
+    "./shared/comments": "./src/shared/comments.ts"
   },
   "bin": {
     "opentui-git": "./bin/opentui-git.mjs"
