@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client/react/index.js";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import { RepoPathsDocument, StatusDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
@@ -17,6 +17,9 @@ export function RepoTree() {
     [statusQuery.data],
   );
 
+  const openTabRef = useRef(openTab);
+  openTabRef.current = openTab;
+
   const { model } = useFileTree({
     paths,
     gitStatus,
@@ -24,7 +27,7 @@ export function RepoTree() {
     onSelectionChange: (selected) => {
       const path = selected[0];
       if (!path) return;
-      openTab({ path, kind: "view" });
+      openTabRef.current({ path, kind: "view" });
     },
   });
 

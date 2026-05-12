@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import { toast } from "sonner";
 import {
@@ -96,6 +96,9 @@ export function ChangesPanel({ files }: Props) {
     return paths.filter((p) => p.startsWith(prefix));
   };
 
+  const latest = useRef({ mode, compareBranch, paths, openTab });
+  latest.current = { mode, compareBranch, paths, openTab };
+
   const { model } = useFileTree({
     paths,
     gitStatus,
@@ -104,14 +107,14 @@ export function ChangesPanel({ files }: Props) {
     onSelectionChange: (selected) => {
       const path = selected[0];
       if (!path) return;
-      if (paths.includes(path)) {
-        openTab({
-          path,
-          kind: "diff",
-          mode,
-          compareBranch: mode === "branch" ? compareBranch : null,
-        });
-      }
+      const cur = latest.current;
+      if (!cur.paths.includes(path)) return;
+      cur.openTab({
+        path,
+        kind: "diff",
+        mode: cur.mode,
+        compareBranch: cur.mode === "branch" ? cur.compareBranch : null,
+      });
     },
   });
 
