@@ -198,7 +198,7 @@ export function ChangesPanel({ files }: Props) {
         )}
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 bg-[var(--dracula-bg)]">
         {isLoading ? (
           <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
             Loading…
