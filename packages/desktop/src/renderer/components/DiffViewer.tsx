@@ -73,10 +73,10 @@ export function DiffViewer({
 
   const lineAnnotations = useMemo<DiffLineAnnotation<CommentMeta>[]>(() => {
     return fileComments.map((c) => {
-      const end = Math.max(c.selection.start, c.selection.end);
-      const side = c.selection.endSide ?? c.selection.side ?? "additions";
+      const start = Math.min(c.selection.start, c.selection.end);
+      const side = c.selection.side ?? c.selection.endSide ?? "additions";
       return {
-        lineNumber: end,
+        lineNumber: start,
         side,
         metadata: { commentId: c.id },
       } satisfies DiffLineAnnotation<CommentMeta>;

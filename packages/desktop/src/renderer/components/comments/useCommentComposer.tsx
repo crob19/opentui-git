@@ -58,7 +58,7 @@ export function useCommentComposer(filePath: string) {
         <CommentAnnotationRow
           comment={c}
           onEdit={() => openEdit(c)}
-          onRemove={() => comments.remove(c.id)}
+          onRemove={() => comments.remove(commentId)}
         />
       );
     },
@@ -69,7 +69,11 @@ export function useCommentComposer(filePath: string) {
     <>
       <div
         className="absolute inset-0 z-10 bg-background/40"
-        onClick={cancel}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          cancel();
+        }}
+        onClick={(e) => e.stopPropagation()}
       />
       <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
         <CommentComposer

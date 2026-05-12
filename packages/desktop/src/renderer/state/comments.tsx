@@ -40,17 +40,7 @@ function load(projectId: string): LineComment[] {
     const raw = localStorage.getItem(storageKey(projectId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (c): c is LineComment =>
-        c &&
-        typeof c.id === "string" &&
-        typeof c.file === "string" &&
-        typeof c.comment === "string" &&
-        c.selection &&
-        Number.isFinite(c.selection.start) &&
-        Number.isFinite(c.selection.end),
-    );
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
