@@ -737,63 +737,15 @@ export class GitService {
     return fullPath;
   }
 
-  /**
-   * List immediate children of a directory in the repo, respecting .gitignore.
-   * Uses `git ls-files --cached --others --exclude-standard` so tracked +
-   * untracked-not-ignored files are included; ignored files (e.g. node_modules)
-   * are skipped. Directories are inferred from path prefixes at this level.
-   *
-   * @param dirpath - Directory relative to repo root. Empty/undefined = root.
-   * @returns Sorted entries, directories first.
-   */
-  async listTree(
-    dirpath?: string | null,
-  ): Promise<Array<{ path: string; name: string; type: "FILE" | "DIR" }>> {
-    const rel = (dirpath ?? "").replace(/^\/+|\/+$/g, "");
-    if (rel) this.validateFilePath(rel);
-
-    const args = [
+  async listAllPaths(): Promise<string[]> {
+    const raw = await this.git.raw([
       "ls-files",
       "--cached",
       "--others",
       "--exclude-standard",
       "-z",
-    ];
-    if (rel) args.push("--", rel);
-    const raw = await this.git.raw(args);
-    const all = raw.split("\0").filter(Boolean);
-
-    const prefix = rel ? `${rel}/` : "";
-    const files = new Set<string>();
-    const dirs = new Set<string>();
-    for (const p of all) {
-      if (rel && !p.startsWith(prefix)) continue;
-      const tail = p.slice(prefix.length);
-      const slash = tail.indexOf("/");
-      if (slash === -1) {
-        files.add(tail);
-      } else {
-        dirs.add(tail.slice(0, slash));
-      }
-    }
-
-    const entries = [
-      ...Array.from(dirs)
-        .sort()
-        .map((name) => ({
-          name,
-          path: prefix + name,
-          type: "DIR" as const,
-        })),
-      ...Array.from(files)
-        .sort()
-        .map((name) => ({
-          name,
-          path: prefix + name,
-          type: "FILE" as const,
-        })),
-    ];
-    return entries;
+    ]);
+    return raw.split("\0").filter(Boolean);
   }
 
   /**

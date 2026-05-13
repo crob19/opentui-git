@@ -5,12 +5,8 @@ query ReadFile($path: String!) {
   }
 }
 
-query RepoTree($path: String) {
-  repoTree(path: $path) {
-    path
-    name
-    type
-  }
+query RepoPaths {
+  repoPaths
 }
 
 mutation WriteFile($path: String!, $content: String!, $expectedMtime: String) {

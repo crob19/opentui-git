@@ -82,7 +82,7 @@ export type MutationFieldPolicy = {
 	unstageFiles?: FieldPolicy<any> | FieldReadFunction<any>,
 	writeFile?: FieldPolicy<any> | FieldReadFunction<any>
 };
-export type QueryKeySpecifier = ('branches' | 'commits' | 'currentCommitHash' | 'defaultBranch' | 'diff' | 'filesChangedAgainstBranch' | 'readFile' | 'repoInfo' | 'repoTree' | 'status' | 'tags' | QueryKeySpecifier)[];
+export type QueryKeySpecifier = ('branches' | 'commits' | 'currentCommitHash' | 'defaultBranch' | 'diff' | 'filesChangedAgainstBranch' | 'readFile' | 'repoInfo' | 'repoPaths' | 'status' | 'tags' | QueryKeySpecifier)[];
 export type QueryFieldPolicy = {
 	branches?: FieldPolicy<any> | FieldReadFunction<any>,
 	commits?: FieldPolicy<any> | FieldReadFunction<any>,
@@ -92,7 +92,7 @@ export type QueryFieldPolicy = {
 	filesChangedAgainstBranch?: FieldPolicy<any> | FieldReadFunction<any>,
 	readFile?: FieldPolicy<any> | FieldReadFunction<any>,
 	repoInfo?: FieldPolicy<any> | FieldReadFunction<any>,
-	repoTree?: FieldPolicy<any> | FieldReadFunction<any>,
+	repoPaths?: FieldPolicy<any> | FieldReadFunction<any>,
 	status?: FieldPolicy<any> | FieldReadFunction<any>,
 	tags?: FieldPolicy<any> | FieldReadFunction<any>
 };
@@ -122,12 +122,6 @@ export type TagResultKeySpecifier = ('success' | 'tag' | TagResultKeySpecifier)[
 export type TagResultFieldPolicy = {
 	success?: FieldPolicy<any> | FieldReadFunction<any>,
 	tag?: FieldPolicy<any> | FieldReadFunction<any>
-};
-export type TreeEntryKeySpecifier = ('name' | 'path' | 'type' | TreeEntryKeySpecifier)[];
-export type TreeEntryFieldPolicy = {
-	name?: FieldPolicy<any> | FieldReadFunction<any>,
-	path?: FieldPolicy<any> | FieldReadFunction<any>,
-	type?: FieldPolicy<any> | FieldReadFunction<any>
 };
 export type StrictTypedTypePolicies = {
 	BranchDetail?: Omit<TypePolicy, "fields" | "keyFields"> & {
@@ -193,10 +187,6 @@ export type StrictTypedTypePolicies = {
 	TagResult?: Omit<TypePolicy, "fields" | "keyFields"> & {
 		keyFields?: false | TagResultKeySpecifier | (() => undefined | TagResultKeySpecifier),
 		fields?: TagResultFieldPolicy,
-	},
-	TreeEntry?: Omit<TypePolicy, "fields" | "keyFields"> & {
-		keyFields?: false | TreeEntryKeySpecifier | (() => undefined | TreeEntryKeySpecifier),
-		fields?: TreeEntryFieldPolicy,
 	}
 };
 export type TypedTypePolicies = StrictTypedTypePolicies & TypePolicies;

@@ -7,14 +7,12 @@ const config: CodegenConfig = {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         useIndexSignature: true,
-        contextType: "./infra/context#Context",
-        // Map GraphQL types to internal model types where the resolver returns
-        // the raw service shape rather than the schema shape.
+        contextType: "./infra/context.js#Context",
         mappers: {
-          RepoStatus: "./git/types#GitStatusSummary",
-          FileStatus: "./git/types#GitFileStatus",
-          Branches: "./git/types#GitBranchInfo",
-          Commit: "./git/types#GitCommitInfo",
+          RepoStatus: "./git/types.js#GitStatusSummary",
+          FileStatus: "./git/types.js#GitFileStatus",
+          Branches: "./git/types.js#GitBranchInfo",
+          Commit: "./git/types.js#GitCommitInfo",
         },
       },
     },
