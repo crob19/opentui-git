@@ -4,6 +4,7 @@ import { FileTree, useFileTree } from "@pierre/trees/react";
 import { RepoPathsDocument, StatusDocument } from "@opentui-git/client";
 import { useSelection } from "../state/selection.js";
 import { toGitStatusEntries } from "../lib/gitStatusAdapter.js";
+import { usePinOnDoubleClick } from "../lib/usePinOnDoubleClick.js";
 
 export function RepoTree() {
   const { openTab } = useSelection();
@@ -43,6 +44,10 @@ export function RepoTree() {
     model.setGitStatus(gitStatus);
   }, [model, gitStatus]);
 
+  const containerRef = usePinOnDoubleClick((path) =>
+    openTabRef.current({ path, kind: "view", pinned: true }),
+  );
+
   if (loading && paths.length === 0) {
     return (
       <div className="px-2 py-1.5 text-xs italic text-muted-foreground/60">
@@ -58,5 +63,9 @@ export function RepoTree() {
     );
   }
 
-  return <FileTree model={model} className="h-full" />;
+  return (
+    <div ref={containerRef} className="h-full">
+      <FileTree model={model} className="h-full" />
+    </div>
+  );
 }

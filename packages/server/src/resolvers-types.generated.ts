@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { GitStatusSummary, GitFileStatus, GitBranchInfo, GitCommitInfo } from './git/types';
-import { Context } from './infra/context';
+import { GitStatusSummary, GitFileStatus, GitBranchInfo, GitCommitInfo } from './git/types.js';
+import { Context } from './infra/context.js';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSelection, type FileTreeMode } from "../state/selection.js";
 import { toGitStatusEntries } from "../lib/gitStatusAdapter.js";
+import { usePinOnDoubleClick } from "../lib/usePinOnDoubleClick.js";
 import type { FileStatus as GitFileStatus } from "@opentui-git/client";
 
 type Props = {
@@ -130,6 +131,18 @@ export function ChangesPanel({ files }: Props) {
     model.setGitStatus(gitStatus);
   }, [model, gitStatus]);
 
+  const containerRef = usePinOnDoubleClick((path) => {
+    const cur = latest.current;
+    if (!cur.paths.includes(path)) return;
+    cur.openTab({
+      path,
+      kind: "diff",
+      mode: cur.mode,
+      compareBranch: cur.mode === "branch" ? cur.compareBranch : null,
+      pinned: true,
+    });
+  });
+
   const isLoading =
     mode === "branch" &&
     (defaultBranchQuery.loading ||
@@ -198,7 +211,7 @@ export function ChangesPanel({ files }: Props) {
         )}
       </div>
 
-      <div className="flex-1 min-h-0 bg-[var(--dracula-bg)]">
+      <div ref={containerRef} className="flex-1 min-h-0 bg-[var(--dracula-bg)]">
         {isLoading ? (
           <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
             Loading…
