@@ -6,9 +6,6 @@ export const fileResolvers: Resolvers = {
       const { content, mtime } = await git.readFileWithMetadata(path);
       return { content, mtime: mtime.toISOString() };
     },
-    repoTree: async (_p, { path }, { git }) => {
-      return git.listTree(path);
-    },
     repoPaths: async (_p, _a, { git }) => {
       return git.listAllPaths();
     },

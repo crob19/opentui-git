@@ -198,7 +198,6 @@ export type Query = {
   readFile: FileReadResult;
   repoInfo: RepoInfo;
   repoPaths: Array<Scalars['String']['output']>;
-  repoTree: Array<TreeEntry>;
   status: RepoStatus;
   tags: Array<Scalars['String']['output']>;
 };
@@ -222,11 +221,6 @@ export type QueryFilesChangedAgainstBranchArgs = {
 
 export type QueryReadFileArgs = {
   path: Scalars['String']['input'];
-};
-
-
-export type QueryRepoTreeArgs = {
-  path?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type RemoteResult = {
@@ -260,18 +254,6 @@ export type TagResult = {
   success: Scalars['Boolean']['output'];
   tag?: Maybe<Scalars['String']['output']>;
 };
-
-export type TreeEntry = {
-  __typename?: 'TreeEntry';
-  name: Scalars['String']['output'];
-  path: Scalars['String']['output'];
-  type: TreeEntryType;
-};
-
-export enum TreeEntryType {
-  Dir = 'DIR',
-  File = 'FILE'
-}
 
 export type WithIndex<TObject> = TObject & Record<string, any>;
 export type ResolversObject<TObject> = WithIndex<TObject>;
@@ -365,8 +347,6 @@ export type ResolversTypes = ResolversObject<{
   StageResult: ResolverTypeWrapper<StageResult>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   TagResult: ResolverTypeWrapper<TagResult>;
-  TreeEntry: ResolverTypeWrapper<TreeEntry>;
-  TreeEntryType: TreeEntryType;
 }>;
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -391,7 +371,6 @@ export type ResolversParentTypes = ResolversObject<{
   StageResult: StageResult;
   String: Scalars['String']['output'];
   TagResult: TagResult;
-  TreeEntry: TreeEntry;
 }>;
 
 export type BranchDetailResolvers<ContextType = Context, ParentType extends ResolversParentTypes['BranchDetail'] = ResolversParentTypes['BranchDetail']> = ResolversObject<{
@@ -496,7 +475,6 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   readFile?: Resolver<ResolversTypes['FileReadResult'], ParentType, ContextType, RequireFields<QueryReadFileArgs, 'path'>>;
   repoInfo?: Resolver<ResolversTypes['RepoInfo'], ParentType, ContextType>;
   repoPaths?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
-  repoTree?: Resolver<Array<ResolversTypes['TreeEntry']>, ParentType, ContextType, Partial<QueryRepoTreeArgs>>;
   status?: Resolver<ResolversTypes['RepoStatus'], ParentType, ContextType>;
   tags?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
 }>;
@@ -533,13 +511,6 @@ export type TagResultResolvers<ContextType = Context, ParentType extends Resolve
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type TreeEntryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['TreeEntry'] = ResolversParentTypes['TreeEntry']> = ResolversObject<{
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  type?: Resolver<ResolversTypes['TreeEntryType'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type Resolvers<ContextType = Context> = ResolversObject<{
   BranchDetail?: BranchDetailResolvers<ContextType>;
   BranchResult?: BranchResultResolvers<ContextType>;
@@ -557,6 +528,5 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   RepoStatus?: RepoStatusResolvers<ContextType>;
   StageResult?: StageResultResolvers<ContextType>;
   TagResult?: TagResultResolvers<ContextType>;
-  TreeEntry?: TreeEntryResolvers<ContextType>;
 }>;
 
