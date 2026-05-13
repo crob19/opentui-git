@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client/react/index.js";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { FileTree, useFileTree } from "@pierre/trees/react";
 import { toast } from "sonner";
 import {
@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSelection, type FileTreeMode } from "../state/selection.js";
 import { toGitStatusEntries } from "../lib/gitStatusAdapter.js";
-import { usePinOnDoubleClick } from "../lib/usePinOnDoubleClick.js";
+import { useLatestCallback } from "../lib/useLatestCallback.js";
 import type { FileStatus as GitFileStatus } from "@opentui-git/client";
 
 type Props = {
@@ -92,35 +92,31 @@ export function ChangesPanel({ files }: Props) {
     }
   };
 
+  const pathSet = useMemo(() => new Set(paths), [paths]);
+
   const pathsUnderFolder = (folder: string): string[] => {
     const prefix = folder.endsWith("/") ? folder : `${folder}/`;
     return paths.filter((p) => p.startsWith(prefix));
   };
 
-  // pierre/trees' useFileTree builds the model once at mount and captures the
-  // initial onSelectionChange closure, so its `mode`/`paths`/`openTab` would be
-  // frozen to the first render. Read everything through a ref that we refresh
-  // each render. Revisit if pierre/trees exposes a callback setter.
-  const latest = useRef({ mode, compareBranch, paths, openTab });
-  latest.current = { mode, compareBranch, paths, openTab };
+  const onSelectionChange = useLatestCallback((selected: readonly string[]) => {
+    const path = selected[0];
+    if (!path) return;
+    if (!pathSet.has(path)) return;
+    openTab({
+      path,
+      kind: "diff",
+      mode,
+      compareBranch: mode === "branch" ? compareBranch : null,
+    });
+  });
 
   const { model } = useFileTree({
     paths,
     gitStatus,
     flattenEmptyDirectories: false,
     initialExpansion: "open",
-    onSelectionChange: (selected) => {
-      const path = selected[0];
-      if (!path) return;
-      const cur = latest.current;
-      if (!cur.paths.includes(path)) return;
-      cur.openTab({
-        path,
-        kind: "diff",
-        mode: cur.mode,
-        compareBranch: cur.mode === "branch" ? cur.compareBranch : null,
-      });
-    },
+    onSelectionChange,
   });
 
   useEffect(() => {
@@ -130,18 +126,6 @@ export function ChangesPanel({ files }: Props) {
   useEffect(() => {
     model.setGitStatus(gitStatus);
   }, [model, gitStatus]);
-
-  const containerRef = usePinOnDoubleClick((path) => {
-    const cur = latest.current;
-    if (!cur.paths.includes(path)) return;
-    cur.openTab({
-      path,
-      kind: "diff",
-      mode: cur.mode,
-      compareBranch: cur.mode === "branch" ? cur.compareBranch : null,
-      pinned: true,
-    });
-  });
 
   const isLoading =
     mode === "branch" &&
@@ -211,7 +195,7 @@ export function ChangesPanel({ files }: Props) {
         )}
       </div>
 
-      <div ref={containerRef} className="flex-1 min-h-0 bg-[var(--dracula-bg)]">
+      <div className="flex-1 min-h-0 bg-[var(--dracula-bg)]">
         {isLoading ? (
           <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
             Loading…
