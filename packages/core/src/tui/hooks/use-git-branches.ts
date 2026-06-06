@@ -64,14 +64,16 @@ export function useGitBranches(
     if (!b || !b.all) {
       return [];
     }
-    const filtered = b.all
-      .filter((name: string) => !name.startsWith("remotes/"))
-      .sort((a: string, bName: string) => {
-        // Put current branch first
-        if (a === b.current) return -1;
-        if (bName === b.current) return 1;
-        return a.localeCompare(bName);
-      });
+    // Branches arrive sorted by committerdate (newest first); keep that order
+    // but pin the current branch to the top.
+    const filtered = b.all.filter(
+      (name: string) => !name.startsWith("remotes/"),
+    );
+    const idx = filtered.indexOf(b.current);
+    if (idx > 0) {
+      filtered.splice(idx, 1);
+      filtered.unshift(b.current);
+    }
     return filtered;
   };
 

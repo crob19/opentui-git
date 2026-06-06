@@ -44,7 +44,7 @@ export function RepositorySidebar({ files, stagedCount }: Props) {
         <SidebarSection
           title="Branches"
           defaultOpen
-          className="min-h-[180px]"
+          className="min-h-[180px] max-h-[360px] flex-1"
           onOpen={() => setBranchRefreshSignal((value) => value + 1)}
         >
           <BranchList refreshSignal={branchRefreshSignal} />
@@ -52,7 +52,7 @@ export function RepositorySidebar({ files, stagedCount }: Props) {
         <SidebarSection
           title="Tags"
           defaultOpen={false}
-          className="min-h-[120px]"
+          className="min-h-[120px] max-h-[360px] flex-1"
           onOpen={() => setTagRefreshSignal((value) => value + 1)}
         >
           <TagList refreshSignal={tagRefreshSignal} />

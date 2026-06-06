@@ -35,10 +35,7 @@ import { useSelection } from "../state/selection.js";
 import { buildGitHubPullRequestUrl } from "../lib/github.js";
 import { ConfirmDialog } from "./ConfirmDialog.js";
 import { MergeBranchDialog } from "./MergeBranchDialog.js";
-import {
-  NewBranchDialog,
-  RenameBranchDialog,
-} from "./BranchDialogs.js";
+import { NewBranchDialog, RenameBranchDialog } from "./BranchDialogs.js";
 import { OpenPullRequestDialog } from "./OpenPullRequestDialog.js";
 
 type Branch = BranchesQuery["branches"]["branches"][number];
@@ -63,9 +60,10 @@ export function BranchList({ refreshSignal = 0 }: Props) {
   const branches = useMemo(
     () =>
       [...(data?.branches.branches ?? [])].sort((a, b) => {
+        // Server orders by committerdate (newest first); just pin current.
         if (a.current) return -1;
         if (b.current) return 1;
-        return a.name.localeCompare(b.name);
+        return 0;
       }),
     [data],
   );
@@ -110,7 +108,11 @@ export function BranchList({ refreshSignal = 0 }: Props) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "b") {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === "b"
+      ) {
         event.preventDefault();
         setNewBranchSource(null);
         setIsNewBranchOpen(true);
@@ -190,8 +192,12 @@ export function BranchList({ refreshSignal = 0 }: Props) {
             </TabsList>
           </div>
           <TabsContent value="local" className="min-h-0 flex-1">
-            <ScrollArea className="h-full min-h-0">
-              <BranchGroup title="Local" count={localBranches.length} defaultOpen>
+            <ScrollArea className="h-full min-h-0 max-h-[320px]">
+              <BranchGroup
+                title="Local"
+                count={localBranches.length}
+                defaultOpen
+              >
                 {localBranches.length === 0 ? (
                   <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
                     No local branches
@@ -218,7 +224,7 @@ export function BranchList({ refreshSignal = 0 }: Props) {
             </ScrollArea>
           </TabsContent>
           <TabsContent value="remote" className="min-h-0 flex-1">
-            <ScrollArea className="h-full min-h-0">
+            <ScrollArea className="h-full min-h-0 max-h-[320px]">
               <div className="py-1">
                 {remoteGroups.length === 0 ? (
                   <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
@@ -244,9 +250,7 @@ export function BranchList({ refreshSignal = 0 }: Props) {
                           }}
                           onRename={() => setRenameBranch(branch)}
                           onMerge={() => setMergeBranch(branch)}
-                          onOpenPullRequest={() =>
-                            setPullRequestBranch(branch)
-                          }
+                          onOpenPullRequest={() => setPullRequestBranch(branch)}
                           onDelete={() => setDeleteBranch(branch)}
                         />
                       ))}
@@ -386,7 +390,9 @@ function BranchRow({
   onDelete: () => void;
 }) {
   const remote = isRemoteBranch(branch);
-  const displayName = remote ? displayRemoteBranchName(branch.name) : branch.name;
+  const displayName = remote
+    ? displayRemoteBranchName(branch.name)
+    : branch.name;
   const row = (
     <div
       role="button"
@@ -435,7 +441,9 @@ function BranchRow({
         >
           Checkout
         </ContextMenuItem>
-        <ContextMenuItem onSelect={onNewFrom}>New branch from here</ContextMenuItem>
+        <ContextMenuItem onSelect={onNewFrom}>
+          New branch from here
+        </ContextMenuItem>
         <ContextMenuItem onSelect={onOpenPullRequest}>
           Open pull request
         </ContextMenuItem>
@@ -519,10 +527,6 @@ function groupRemoteBranches(branches: Branch[]): Array<{
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([remote, groupBranches]) => ({
       remote,
-      branches: groupBranches.sort((a, b) =>
-        displayRemoteBranchName(a.name).localeCompare(
-          displayRemoteBranchName(b.name),
-        ),
-      ),
+      branches: groupBranches,
     }));
 }
