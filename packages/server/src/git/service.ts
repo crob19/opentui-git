@@ -234,7 +234,10 @@ export class GitService {
    * @returns Promise<GitBranchInfo> - Branch information
    */
   async getBranches(): Promise<GitBranchInfo> {
-    const branches: BranchSummary = await this.git.branch(["-a"]);
+    const branches: BranchSummary = await this.git.branch([
+      "-a",
+      "--sort=-committerdate",
+    ]);
 
     return {
       current: branches.current,
@@ -689,9 +692,20 @@ export class GitService {
    * Get all tags in the repository
    * @returns Promise<string[]> - Array of tag names
    */
-  async getTags(): Promise<string[]> {
-    const tags = await this.git.tags();
-    return tags.all;
+  async getTags(): Promise<{ name: string; date: string }[]> {
+    const output = await this.git.raw([
+      "for-each-ref",
+      "--sort=-creatordate",
+      "--format=%(refname:short)%09%(creatordate:iso8601)",
+      "refs/tags",
+    ]);
+    return output
+      .split("\n")
+      .filter((line) => line.length > 0)
+      .map((line) => {
+        const [name = "", date = ""] = line.split("\t");
+        return { name, date };
+      });
   }
 
   /**

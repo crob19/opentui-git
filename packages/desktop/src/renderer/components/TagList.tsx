@@ -37,7 +37,7 @@ export function TagList({ refreshSignal = 0 }: Props) {
     void refetch();
   }, [refreshSignal, refetch]);
 
-  const tags = [...(data?.tags ?? [])].sort((a, b) => a.localeCompare(b));
+  const tags = data?.tags ?? [];
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const [createTag, createState] = useMutation(CreateTagDocument, {
@@ -84,7 +84,7 @@ export function TagList({ refreshSignal = 0 }: Props) {
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 max-h-[320px] flex-1">
         {loading && !data ? (
           <div className="px-3 py-2 text-xs italic text-muted-foreground/60">
             Loading...
@@ -100,19 +100,25 @@ export function TagList({ refreshSignal = 0 }: Props) {
         ) : (
           <div className="py-1">
             {tags.map((tag) => (
-              <ContextMenu key={tag}>
+              <ContextMenu key={tag.name}>
                 <ContextMenuTrigger asChild>
                   <div className="flex min-h-7 cursor-pointer select-none items-center gap-2 px-2 py-1 text-[13px] hover:bg-accent/50">
                     <Tag className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate font-mono">
-                      {tag}
+                      {tag.name}
+                    </span>
+                    <span
+                      className="shrink-0 text-[10px] text-muted-foreground/70"
+                      title={tag.date}
+                    >
+                      {tag.date.slice(0, 10)}
                     </span>
                   </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent>
                   <ContextMenuItem
                     disabled={pushState.loading}
-                    onSelect={() => push(tag)}
+                    onSelect={() => push(tag.name)}
                   >
                     Push tag
                   </ContextMenuItem>

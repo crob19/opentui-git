@@ -199,7 +199,7 @@ export type Query = {
   repoInfo: RepoInfo;
   repoPaths: Array<Scalars['String']['output']>;
   status: RepoStatus;
-  tags: Array<Scalars['String']['output']>;
+  tags: Array<Tag>;
 };
 
 
@@ -247,6 +247,12 @@ export type RepoStatus = {
 export type StageResult = {
   __typename?: 'StageResult';
   success: Scalars['Boolean']['output'];
+};
+
+export type Tag = {
+  __typename?: 'Tag';
+  date: Scalars['String']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type TagResult = {
@@ -346,6 +352,7 @@ export type ResolversTypes = ResolversObject<{
   RepoStatus: ResolverTypeWrapper<GitStatusSummary>;
   StageResult: ResolverTypeWrapper<StageResult>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  Tag: ResolverTypeWrapper<Tag>;
   TagResult: ResolverTypeWrapper<TagResult>;
 }>;
 
@@ -370,6 +377,7 @@ export type ResolversParentTypes = ResolversObject<{
   RepoStatus: GitStatusSummary;
   StageResult: StageResult;
   String: Scalars['String']['output'];
+  Tag: Tag;
   TagResult: TagResult;
 }>;
 
@@ -476,7 +484,7 @@ export type QueryResolvers<ContextType = Context, ParentType extends ResolversPa
   repoInfo?: Resolver<ResolversTypes['RepoInfo'], ParentType, ContextType>;
   repoPaths?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['RepoStatus'], ParentType, ContextType>;
-  tags?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
 }>;
 
 export type RemoteResultResolvers<ContextType = Context, ParentType extends ResolversParentTypes['RemoteResult'] = ResolversParentTypes['RemoteResult']> = ResolversObject<{
@@ -505,6 +513,12 @@ export type StageResultResolvers<ContextType = Context, ParentType extends Resol
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type TagResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = ResolversObject<{
+  date?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type TagResultResolvers<ContextType = Context, ParentType extends ResolversParentTypes['TagResult'] = ResolversParentTypes['TagResult']> = ResolversObject<{
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   tag?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -527,6 +541,7 @@ export type Resolvers<ContextType = Context> = ResolversObject<{
   RepoInfo?: RepoInfoResolvers<ContextType>;
   RepoStatus?: RepoStatusResolvers<ContextType>;
   StageResult?: StageResultResolvers<ContextType>;
+  Tag?: TagResolvers<ContextType>;
   TagResult?: TagResultResolvers<ContextType>;
 }>;
 

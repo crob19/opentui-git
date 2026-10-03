@@ -40,7 +40,7 @@ export function useGitTags(client: ApolloClient<unknown>): UseGitTagsResult {
     async () => {
       try {
         const { tags } = await runQuery(client, TagsDocument);
-        return tags;
+        return tags.map((t) => t.name);
       } catch (error) {
         console.error("Error loading tags:", error);
         // Return empty array instead of throwing to prevent resource error state
@@ -49,11 +49,11 @@ export function useGitTags(client: ApolloClient<unknown>): UseGitTagsResult {
     },
   );
 
-  // Get all tags sorted alphabetically (most recent versions usually sort last)
+  // Tags arrive from the server sorted by creator date (newest first).
   const allTags = () => {
     const t = tags();
     if (!t) return [];
-    return [...t].sort((a, b) => b.localeCompare(a)); // Reverse alphabetical so v2.0.0 comes before v1.0.0
+    return [...t];
   };
 
   // Get selected tag name

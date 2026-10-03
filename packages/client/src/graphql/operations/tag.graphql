@@ -1,5 +1,8 @@
 query Tags {
-  tags
+  tags {
+    name
+    date
+  }
 }
 
 mutation CreateTag($name: String!) {

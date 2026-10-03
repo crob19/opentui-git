@@ -118,6 +118,11 @@ export type StageResultKeySpecifier = ('success' | StageResultKeySpecifier)[];
 export type StageResultFieldPolicy = {
 	success?: FieldPolicy<any> | FieldReadFunction<any>
 };
+export type TagKeySpecifier = ('date' | 'name' | TagKeySpecifier)[];
+export type TagFieldPolicy = {
+	date?: FieldPolicy<any> | FieldReadFunction<any>,
+	name?: FieldPolicy<any> | FieldReadFunction<any>
+};
 export type TagResultKeySpecifier = ('success' | 'tag' | TagResultKeySpecifier)[];
 export type TagResultFieldPolicy = {
 	success?: FieldPolicy<any> | FieldReadFunction<any>,
@@ -183,6 +188,10 @@ export type StrictTypedTypePolicies = {
 	StageResult?: Omit<TypePolicy, "fields" | "keyFields"> & {
 		keyFields?: false | StageResultKeySpecifier | (() => undefined | StageResultKeySpecifier),
 		fields?: StageResultFieldPolicy,
+	},
+	Tag?: Omit<TypePolicy, "fields" | "keyFields"> & {
+		keyFields?: false | TagKeySpecifier | (() => undefined | TagKeySpecifier),
+		fields?: TagFieldPolicy,
 	},
 	TagResult?: Omit<TypePolicy, "fields" | "keyFields"> & {
 		keyFields?: false | TagResultKeySpecifier | (() => undefined | TagResultKeySpecifier),
